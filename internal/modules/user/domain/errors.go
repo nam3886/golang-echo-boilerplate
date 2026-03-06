@@ -7,6 +7,7 @@ import (
 // Module-specific domain errors.
 var (
 	ErrEmailRequired = sharederr.New(sharederr.CodeInvalidArgument, "email is required")
+	ErrInvalidEmail  = sharederr.New(sharederr.CodeInvalidArgument, "invalid email format")
 	ErrNameRequired  = sharederr.New(sharederr.CodeInvalidArgument, "name is required")
 	ErrInvalidRole   = sharederr.New(sharederr.CodeInvalidArgument, "invalid role")
 	ErrUserNotFound  = sharederr.New(sharederr.CodeNotFound, "user not found")

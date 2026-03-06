@@ -31,8 +31,8 @@ func TestNewUser_InvalidEmail(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for empty email")
 	}
-	if err != ErrEmailRequired {
-		t.Errorf("expected ErrEmailRequired, got %v", err)
+	if err != ErrInvalidEmail {
+		t.Errorf("expected ErrInvalidEmail, got %v", err)
 	}
 }
 

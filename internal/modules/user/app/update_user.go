@@ -8,7 +8,7 @@ import (
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
 	"github.com/gnha/gnha-services/internal/shared/auth"
 	"github.com/gnha/gnha-services/internal/shared/events"
-	appmw "github.com/gnha/gnha-services/internal/shared/middleware"
+	"github.com/gnha/gnha-services/internal/shared/netutil"
 )
 
 // UpdateUserCmd holds input for updating a user.
@@ -57,7 +57,7 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*dom
 	if err := h.bus.Publish(ctx, events.TopicUserUpdated, events.UserUpdatedEvent{
 		UserID:    cmd.ID,
 		ActorID:   actorID,
-		IPAddress: appmw.GetClientIP(ctx),
+		IPAddress: netutil.GetClientIP(ctx),
 		At:        time.Now(),
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to publish user.updated event",

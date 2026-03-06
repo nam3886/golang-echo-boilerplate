@@ -95,7 +95,6 @@ func (r *PgUserRepository) List(ctx context.Context, limit int, cursor string) (
 
 	return domain.ListResult{
 		Users:      users,
-		Total:      int64(len(users)),
 		NextCursor: nextCursor,
 		HasMore:    hasMore,
 	}, nil
@@ -116,7 +115,7 @@ func (r *PgUserRepository) Create(ctx context.Context, user *domain.User) error 
 	})
 	if err != nil {
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "users_email_key" {
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "idx_users_email_active" {
 			return domain.ErrEmailTaken
 		}
 		return fmt.Errorf("inserting user: %w", err)

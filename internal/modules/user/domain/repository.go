@@ -7,7 +7,6 @@ import "context"
 // ListResult holds the paginated result from a List query.
 type ListResult struct {
 	Users      []*User
-	Total      int64
 	NextCursor string
 	HasMore    bool
 }

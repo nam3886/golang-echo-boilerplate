@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"net/mail"
 	"time"
 
 	"github.com/google/uuid"
@@ -41,8 +42,8 @@ type User struct {
 
 // NewUser creates a validated User entity.
 func NewUser(email, name, hashedPassword string, role Role) (*User, error) {
-	if email == "" {
-		return nil, ErrEmailRequired
+	if _, err := mail.ParseAddress(email); err != nil {
+		return nil, ErrInvalidEmail
 	}
 	if name == "" {
 		return nil, ErrNameRequired

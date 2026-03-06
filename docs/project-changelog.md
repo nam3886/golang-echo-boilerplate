@@ -4,6 +4,37 @@ All notable changes to GNHA Services are documented here.
 
 ## [Unreleased]
 
+### Boilerplate Verified Fixes (2026-03-06)
+
+**Summary:** Implemented 6 critical and important fixes verified through cross-referenced review sessions. Fixed database constraints, architecture violations, domain validation, and soft-delete compatibility.
+
+#### Fixed
+- **DB CHECK Constraint** — Added missing `viewer` role to users table constraint (migration 00003)
+- **Architecture Violation** — Replaced `appmw.GetClientIP` with `netutil.GetClientIP` in `update_user.go` and `delete_user.go` to eliminate app→adapter dependency violation
+- **Misleading ListResult Field** — Removed `Total` field that returned page size instead of actual DB count (not used by any handler)
+- **Password Validation** — Added 8-character minimum length check in domain layer (`password.go`)
+- **Email Validation** — Added email format validation via `net/mail.ParseAddress` in `NewUser()` with new `ErrInvalidEmail` error type
+- **Soft-Delete Index** — Fixed unique index to partial `WHERE deleted_at IS NULL`, allowing email re-registration after soft-delete
+
+#### Files Modified
+- `db/migrations/00003_fix_role_constraint.sql` — role constraint + partial unique index
+- `internal/shared/auth/password.go` — min password length
+- `internal/modules/user/domain/user.go` — email validation
+- `internal/modules/user/domain/errors.go` — ErrInvalidEmail
+- `internal/modules/user/app/update_user.go` — netutil import
+- `internal/modules/user/app/delete_user.go` — netutil import
+- `internal/modules/user/adapters/postgres/repository.go` — removed Total field
+- `internal/modules/user/domain/repository.go` — removed Total field
+- `internal/modules/user/app/list_users.go` — removed Total mapping
+- Tests updated in `user_test.go` for new ErrInvalidEmail error
+
+#### Verification
+- All 6 fixes verified against actual codebase from independent review sessions
+- `go build ./...` passes
+- All tests pass including new email validation test
+
+---
+
 ### Module Scaffold Generator (2026-03-05)
 
 **Summary:** Implemented CLI tool for scaffolding complete CRUD modules. Automates creation of 19 files (proto, migrations, SQL queries, domain, app, adapters, tests) following hexagonal architecture patterns.

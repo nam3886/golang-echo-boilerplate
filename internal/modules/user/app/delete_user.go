@@ -8,7 +8,7 @@ import (
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
 	"github.com/gnha/gnha-services/internal/shared/auth"
 	"github.com/gnha/gnha-services/internal/shared/events"
-	appmw "github.com/gnha/gnha-services/internal/shared/middleware"
+	"github.com/gnha/gnha-services/internal/shared/netutil"
 )
 
 // DeleteUserHandler handles soft-deleting a user.
@@ -35,7 +35,7 @@ func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
 	if err := h.bus.Publish(ctx, events.TopicUserDeleted, events.UserDeletedEvent{
 		UserID:    id,
 		ActorID:   actorID,
-		IPAddress: appmw.GetClientIP(ctx),
+		IPAddress: netutil.GetClientIP(ctx),
 		At:        time.Now(),
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to publish user.deleted event",

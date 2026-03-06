@@ -18,6 +18,9 @@ const (
 	argonKeyLen  = 32
 	argonSaltLen = 16
 
+	// minPasswordBytes is the minimum allowed password size in bytes.
+	minPasswordBytes = 8
+
 	// maxPasswordBytes is the maximum allowed password size in bytes.
 	// Argon2id (like bcrypt) silently truncates beyond 72 bytes, so we reject early.
 	maxPasswordBytes = 72
@@ -38,6 +41,9 @@ func NewPasswordHasher() PasswordHasher {
 
 // Hash creates an argon2id hash of the password.
 func (h *argon2Hasher) Hash(password string) (string, error) {
+	if len([]byte(password)) < minPasswordBytes {
+		return "", fmt.Errorf("password must be at least %d characters", minPasswordBytes)
+	}
 	if len([]byte(password)) > maxPasswordBytes {
 		return "", fmt.Errorf("password exceeds maximum length of %d bytes", maxPasswordBytes)
 	}

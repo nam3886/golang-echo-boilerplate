@@ -34,5 +34,8 @@ Thumbs.db
 # Generated (track in git, but ignore local artifacts)
 # gen/
 
+# Plans & reports
+plans/
+
 # Dependencies
 node_modules/
