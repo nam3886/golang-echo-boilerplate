@@ -16,6 +16,14 @@
 .golangci.yml
 .lefthook.yml
 .task
+Taskfile.yml
+
+# Code gen configs (not needed at runtime)
+buf.yaml
+buf.gen.yaml
+buf.lock
+sqlc.yaml
+proto/
 
 # Environment
 .env
@@ -25,7 +33,7 @@
 # Docs & plans
 docs/
 plans/
-README.md
+*.md
 
 # Build artifacts
 server
