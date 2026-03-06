@@ -86,14 +86,12 @@ func (mr *MockUserRepositoryMockRecorder) GetByID(ctx, id any) *gomock.Call {
 }
 
 // List mocks base method.
-func (m *MockUserRepository) List(ctx context.Context, limit int, cursor string) ([]*domain.User, string, bool, error) {
+func (m *MockUserRepository) List(ctx context.Context, limit int, cursor string) (domain.ListResult, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "List", ctx, limit, cursor)
-	ret0, _ := ret[0].([]*domain.User)
-	ret1, _ := ret[1].(string)
-	ret2, _ := ret[2].(bool)
-	ret3, _ := ret[3].(error)
-	return ret0, ret1, ret2, ret3
+	ret0, _ := ret[0].(domain.ListResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // List indicates an expected call of List.

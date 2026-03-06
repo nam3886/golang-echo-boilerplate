@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -79,6 +80,130 @@ func TestCreateUserHandler_EmailTaken(t *testing.T) {
 		t.Errorf("expected ErrEmailTaken, got %v", err)
 	}
 }
+
+func TestCreateUserHandler_InvalidRole(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMockUserRepository(ctrl)
+
+	// Email check returns not found (role validation happens after)
+	mockRepo.EXPECT().
+		GetByEmail(gomock.Any(), "user@example.com").
+		Return(nil, sharederr.ErrNotFound)
+
+	bus := events.NewEventBus(&noopPublisher{})
+	handler := NewCreateUserHandler(mockRepo, &stubHasher{}, bus)
+
+	_, err := handler.Handle(context.Background(), CreateUserCmd{
+		Email:    "user@example.com",
+		Name:     "User",
+		Password: "secret123",
+		Role:     "superadmin", // not a valid role
+	})
+	if err == nil {
+		t.Fatal("expected error for invalid role")
+	}
+	if err != domain.ErrInvalidRole {
+		t.Errorf("expected ErrInvalidRole, got %v", err)
+	}
+}
+
+func TestCreateUserHandler_HasherFailure(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMockUserRepository(ctrl)
+
+	mockRepo.EXPECT().
+		GetByEmail(gomock.Any(), "user@example.com").
+		Return(nil, sharederr.ErrNotFound)
+
+	bus := events.NewEventBus(&noopPublisher{})
+	handler := NewCreateUserHandler(mockRepo, &failHasher{}, bus)
+
+	_, err := handler.Handle(context.Background(), CreateUserCmd{
+		Email:    "user@example.com",
+		Name:     "User",
+		Password: "secret123",
+		Role:     "member",
+	})
+	if err == nil {
+		t.Fatal("expected error from hasher failure")
+	}
+}
+
+func TestCreateUserHandler_RepoCreateFailure(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMockUserRepository(ctrl)
+
+	mockRepo.EXPECT().
+		GetByEmail(gomock.Any(), "user@example.com").
+		Return(nil, sharederr.ErrNotFound)
+
+	mockRepo.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		Return(fmt.Errorf("db connection lost"))
+
+	bus := events.NewEventBus(&noopPublisher{})
+	handler := NewCreateUserHandler(mockRepo, &stubHasher{}, bus)
+
+	_, err := handler.Handle(context.Background(), CreateUserCmd{
+		Email:    "user@example.com",
+		Name:     "User",
+		Password: "secret123",
+		Role:     "member",
+	})
+	if err == nil {
+		t.Fatal("expected error from repo failure")
+	}
+}
+
+func TestCreateUserHandler_PublishesEventOnSuccess(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMockUserRepository(ctrl)
+
+	mockRepo.EXPECT().
+		GetByEmail(gomock.Any(), "user@example.com").
+		Return(nil, sharederr.ErrNotFound)
+
+	mockRepo.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		Return(nil)
+
+	recorder := &recordingPublisher{}
+	bus := events.NewEventBus(recorder)
+	handler := NewCreateUserHandler(mockRepo, &stubHasher{}, bus)
+
+	user, err := handler.Handle(context.Background(), CreateUserCmd{
+		Email:    "user@example.com",
+		Name:     "User",
+		Password: "secret123",
+		Role:     "admin",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if user == nil {
+		t.Fatal("expected user, got nil")
+	}
+	if recorder.topic != events.TopicUserCreated {
+		t.Errorf("expected topic %s, got %s", events.TopicUserCreated, recorder.topic)
+	}
+}
+
+// failHasher always returns an error.
+type failHasher struct{}
+
+func (f *failHasher) Hash(_ string) (string, error) { return "", fmt.Errorf("hasher unavailable") }
+func (f *failHasher) Verify(_, _ string) (bool, error) { return false, nil }
+
+// recordingPublisher captures the last published topic.
+type recordingPublisher struct {
+	topic string
+}
+
+func (r *recordingPublisher) Publish(topic string, _ ...*message.Message) error {
+	r.topic = topic
+	return nil
+}
+func (r *recordingPublisher) Close() error { return nil }
 
 // noopPublisher is a Watermill publisher that discards all messages.
 type noopPublisher struct{}

@@ -16,8 +16,8 @@ import (
 func RegisterRoutes(e *echo.Echo, handler *UserServiceHandler, cfg *config.Config, rdb *redis.Client) {
 	path, h := userv1connect.NewUserServiceHandler(handler,
 		connect.WithInterceptors(
-			validate.NewInterceptor(),
 			appmw.RBACInterceptor(),
+			validate.NewInterceptor(),
 		),
 	)
 

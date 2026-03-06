@@ -1,5 +1,5 @@
 -- name: GetUserByID :one
-SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL;
+SELECT id, email, name, role, created_at, updated_at, deleted_at FROM users WHERE id = $1 AND deleted_at IS NULL;
 
 -- name: GetUserByEmail :one
 SELECT * FROM users WHERE email = $1 AND deleted_at IS NULL;
@@ -8,7 +8,7 @@ SELECT * FROM users WHERE email = $1 AND deleted_at IS NULL;
 SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL FOR UPDATE;
 
 -- name: ListUsers :many
-SELECT * FROM users
+SELECT id, email, name, role, created_at, updated_at, deleted_at FROM users
 WHERE deleted_at IS NULL
   AND (sqlc.narg('cursor_created_at')::timestamptz IS NULL
        OR (created_at, id) < (sqlc.narg('cursor_created_at'), sqlc.narg('cursor_id')::uuid))

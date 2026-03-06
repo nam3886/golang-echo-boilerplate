@@ -19,10 +19,15 @@ type TokenClaims struct {
 	Permissions []string `json:"perms,omitempty"`
 }
 
+// jwtAudience is the intended audience for access tokens issued by this service.
+const jwtAudience = "gnha-services"
+
 // GenerateAccessToken creates a signed JWT access token.
 func GenerateAccessToken(cfg *config.Config, userID, role string, permissions []string) (string, error) {
 	claims := TokenClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:    cfg.AppName,
+			Audience:  jwt.ClaimStrings{jwtAudience},
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(cfg.JWTAccessTTL)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ID:        uuid.NewString(),
@@ -42,7 +47,10 @@ func ValidateAccessToken(cfg *config.Config, tokenStr string) (*TokenClaims, err
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
 		return []byte(cfg.JWTSecret), nil
-	})
+	},
+		jwt.WithIssuer(cfg.AppName),
+		jwt.WithAudience(jwtAudience),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("parsing token: %w", err)
 	}

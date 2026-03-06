@@ -17,6 +17,10 @@ const (
 	argonThreads = 4
 	argonKeyLen  = 32
 	argonSaltLen = 16
+
+	// maxPasswordBytes is the maximum allowed password size in bytes.
+	// Argon2id (like bcrypt) silently truncates beyond 72 bytes, so we reject early.
+	maxPasswordBytes = 72
 )
 
 // PasswordHasher hashes and verifies passwords.
@@ -34,6 +38,10 @@ func NewPasswordHasher() PasswordHasher {
 
 // Hash creates an argon2id hash of the password.
 func (h *argon2Hasher) Hash(password string) (string, error) {
+	if len([]byte(password)) > maxPasswordBytes {
+		return "", fmt.Errorf("password exceeds maximum length of %d bytes", maxPasswordBytes)
+	}
+
 	salt := make([]byte, argonSaltLen)
 	if _, err := rand.Read(salt); err != nil {
 		return "", fmt.Errorf("generating salt: %w", err)

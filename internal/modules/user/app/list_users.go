@@ -32,14 +32,14 @@ func (h *ListUsersHandler) Handle(ctx context.Context, limit int, cursor string)
 		limit = 100
 	}
 
-	users, nextCursor, hasMore, err := h.repo.List(ctx, limit, cursor)
+	result, err := h.repo.List(ctx, limit, cursor)
 	if err != nil {
 		return nil, err
 	}
 
 	return &ListUsersResult{
-		Users:      users,
-		NextCursor: nextCursor,
-		HasMore:    hasMore,
+		Users:      result.Users,
+		NextCursor: result.NextCursor,
+		HasMore:    result.HasMore,
 	}, nil
 }

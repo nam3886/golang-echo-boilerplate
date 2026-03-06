@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 
+	"github.com/gnha/gnha-services/internal/shared/netutil"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 )
@@ -10,7 +11,6 @@ import (
 type contextKey string
 
 const requestIDKey contextKey = "request_id"
-const clientIPKey contextKey = "client_ip"
 
 // RequestID generates a UUID request ID if X-Request-ID header is missing,
 // and injects it into both the response header and request context.
@@ -24,7 +24,7 @@ func RequestID() echo.MiddlewareFunc {
 			c.Response().Header().Set("X-Request-ID", id)
 
 			ctx := context.WithValue(c.Request().Context(), requestIDKey, id)
-			ctx = context.WithValue(ctx, clientIPKey, c.RealIP())
+			ctx = netutil.WithClientIP(ctx, c.RealIP())
 			c.SetRequest(c.Request().WithContext(ctx))
 
 			return next(c)
@@ -41,9 +41,8 @@ func GetRequestID(ctx context.Context) string {
 }
 
 // GetClientIP extracts the client IP from context.
+//
+// Deprecated: use netutil.GetClientIP directly.
 func GetClientIP(ctx context.Context) string {
-	if ip, ok := ctx.Value(clientIPKey).(string); ok {
-		return ip
-	}
-	return ""
+	return netutil.GetClientIP(ctx)
 }

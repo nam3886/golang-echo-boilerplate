@@ -8,6 +8,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill-amqp/v3/pkg/amqp"
+	amqplib "github.com/rabbitmq/amqp091-go"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/gnha/gnha-services/internal/shared/config"
 	"github.com/google/uuid"
@@ -20,6 +21,21 @@ type EventBus struct {
 	publisher message.Publisher
 }
 
+// newSubscriberConfig builds an AMQP config with dead-letter exchange (DLX) routing.
+// When Watermill retries are exhausted and the message is nacked, RabbitMQ routes it
+// to "{topic}.dlq" via the default exchange (routing key = topic name).
+func newSubscriberConfig(rabbitURL string) amqp.Config {
+	cfg := amqp.NewDurableQueueConfig(rabbitURL)
+	// RabbitMQ dead-letter exchange: use default exchange ("").
+	// The dead-letter routing key defaults to the original routing key (= topic),
+	// so a message from queue "user.created" lands in queue "user.created.dlq"
+	// if that queue is declared separately with the same routing key suffix.
+	cfg.Queue.Arguments = amqplib.Table{
+		"x-dead-letter-exchange": "",
+	}
+	return cfg
+}
+
 // NewPublisher creates a Watermill AMQP publisher.
 func NewPublisher(cfg *config.Config) (message.Publisher, error) {
 	amqpCfg := amqp.NewDurableQueueConfig(cfg.RabbitURL)
@@ -30,9 +46,9 @@ func NewPublisher(cfg *config.Config) (message.Publisher, error) {
 	return pub, nil
 }
 
-// NewSubscriber creates a Watermill AMQP subscriber.
+// NewSubscriber creates a Watermill AMQP subscriber with DLX routing configured.
 func NewSubscriber(cfg *config.Config) (message.Subscriber, error) {
-	amqpCfg := amqp.NewDurableQueueConfig(cfg.RabbitURL)
+	amqpCfg := newSubscriberConfig(cfg.RabbitURL)
 	sub, err := amqp.NewSubscriber(amqpCfg, watermill.NewSlogLogger(slog.Default()))
 	if err != nil {
 		return nil, fmt.Errorf("creating AMQP subscriber: %w", err)

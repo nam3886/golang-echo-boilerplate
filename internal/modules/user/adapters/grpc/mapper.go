@@ -2,6 +2,8 @@ package grpc
 
 import (
 	"errors"
+	"fmt"
+	"log/slog"
 
 	userv1 "github.com/gnha/gnha-services/gen/proto/user/v1"
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
@@ -23,13 +25,15 @@ func toProto(u *domain.User) *userv1.User {
 }
 
 // domainErrorToConnect maps DomainError to Connect RPC error codes.
+// Non-domain errors are logged and returned as a generic internal error to avoid leaking internals.
 func domainErrorToConnect(err error) error {
 	var domErr *sharederr.DomainError
 	if errors.As(err, &domErr) {
 		code := codeToConnect[domErr.Code]
 		return connect.NewError(code, err)
 	}
-	return connect.NewError(connect.CodeInternal, err)
+	slog.Error("unhandled internal error", "err", err)
+	return connect.NewError(connect.CodeInternal, fmt.Errorf("internal error"))
 }
 
 var codeToConnect = map[sharederr.ErrorCode]connect.Code{

@@ -41,7 +41,7 @@ func (r *PgUserRepository) GetByID(ctx context.Context, id domain.UserID) (*doma
 		}
 		return nil, fmt.Errorf("getting user by id: %w", err)
 	}
-	return toDomain(row), nil
+	return toDomainFromGetRow(row), nil
 }
 
 func (r *PgUserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
@@ -56,7 +56,8 @@ func (r *PgUserRepository) GetByEmail(ctx context.Context, email string) (*domai
 	return toDomain(row), nil
 }
 
-func (r *PgUserRepository) List(ctx context.Context, limit int, cursor string) ([]*domain.User, string, bool, error) {
+// List returns a paginated list of users.
+func (r *PgUserRepository) List(ctx context.Context, limit int, cursor string) (domain.ListResult, error) {
 	q := sqlcgen.New(r.pool)
 
 	// Fetch limit+1 to detect whether more pages exist.
@@ -71,12 +72,12 @@ func (r *PgUserRepository) List(ctx context.Context, limit int, cursor string) (
 
 	rows, err := q.ListUsers(ctx, params)
 	if err != nil {
-		return nil, "", false, fmt.Errorf("listing users: %w", err)
+		return domain.ListResult{}, fmt.Errorf("listing users: %w", err)
 	}
 
 	users := make([]*domain.User, 0, len(rows))
 	for _, row := range rows {
-		users = append(users, toDomain(row))
+		users = append(users, toDomainFromListRow(row))
 	}
 
 	hasMore := len(users) > limit
@@ -92,7 +93,12 @@ func (r *PgUserRepository) List(ctx context.Context, limit int, cursor string) (
 		}
 	}
 
-	return users, nextCursor, hasMore, nil
+	return domain.ListResult{
+		Users:      users,
+		Total:      int64(len(users)),
+		NextCursor: nextCursor,
+		HasMore:    hasMore,
+	}, nil
 }
 
 func (r *PgUserRepository) Create(ctx context.Context, user *domain.User) error {
@@ -183,7 +189,7 @@ func parseUserID(id domain.UserID) (uuid.UUID, error) {
 	return uid, nil
 }
 
-// toDomain converts a sqlc row to a domain entity.
+// toDomain converts a sqlc User row (with password) to a domain entity.
 func toDomain(row sqlcgen.User) *domain.User {
 	var deletedAt *time.Time
 	if row.DeletedAt.Valid {
@@ -192,6 +198,34 @@ func toDomain(row sqlcgen.User) *domain.User {
 	return domain.Reconstitute(
 		domain.UserID(row.ID.String()),
 		row.Email, row.Name, row.Password,
+		domain.Role(row.Role),
+		row.CreatedAt, row.UpdatedAt, deletedAt,
+	)
+}
+
+// toDomainFromGetRow converts a GetUserByIDRow (no password) to a domain entity.
+func toDomainFromGetRow(row sqlcgen.GetUserByIDRow) *domain.User {
+	var deletedAt *time.Time
+	if row.DeletedAt.Valid {
+		deletedAt = &row.DeletedAt.Time
+	}
+	return domain.Reconstitute(
+		domain.UserID(row.ID.String()),
+		row.Email, row.Name, "",
+		domain.Role(row.Role),
+		row.CreatedAt, row.UpdatedAt, deletedAt,
+	)
+}
+
+// toDomainFromListRow converts a ListUsersRow (no password) to a domain entity.
+func toDomainFromListRow(row sqlcgen.ListUsersRow) *domain.User {
+	var deletedAt *time.Time
+	if row.DeletedAt.Valid {
+		deletedAt = &row.DeletedAt.Time
+	}
+	return domain.Reconstitute(
+		domain.UserID(row.ID.String()),
+		row.Email, row.Name, "",
 		domain.Role(row.Role),
 		row.CreatedAt, row.UpdatedAt, deletedAt,
 	)

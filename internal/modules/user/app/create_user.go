@@ -11,7 +11,7 @@ import (
 	"github.com/gnha/gnha-services/internal/shared/auth"
 	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
 	"github.com/gnha/gnha-services/internal/shared/events"
-	appmw "github.com/gnha/gnha-services/internal/shared/middleware"
+	"github.com/gnha/gnha-services/internal/shared/netutil"
 )
 
 // CreateUserCmd holds input for creating a user.
@@ -70,7 +70,7 @@ func (h *CreateUserHandler) Handle(ctx context.Context, cmd CreateUserCmd) (*dom
 		Email:     user.Email(),
 		Name:      user.Name(),
 		Role:      string(user.Role()),
-		IPAddress: appmw.GetClientIP(ctx),
+		IPAddress: netutil.GetClientIP(ctx),
 		At:        time.Now(),
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to publish user.created event",

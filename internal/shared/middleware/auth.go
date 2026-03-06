@@ -24,9 +24,13 @@ func Auth(cfg *config.Config, rdb *redis.Client) echo.MiddlewareFunc {
 				return domainerr.ErrUnauthorized
 			}
 
-			// Check token blacklist (logout)
+			// Check token blacklist (logout). Fail closed: any Redis error rejects the token.
 			ctx := c.Request().Context()
-			if blacklisted, _ := rdb.Exists(ctx, "blacklist:"+claims.RegisteredClaims.ID).Result(); blacklisted > 0 {
+			blacklisted, err := rdb.Exists(ctx, "blacklist:"+claims.RegisteredClaims.ID).Result()
+			if err != nil {
+				return domainerr.ErrUnauthorized
+			}
+			if blacklisted > 0 {
 				return domainerr.ErrUnauthorized
 			}
 

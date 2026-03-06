@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/gnha/gnha-services/internal/shared/auth"
@@ -17,8 +18,9 @@ func RateLimit(rdb *redis.Client, limit int, window time.Duration) echo.Middlewa
 			key := rateLimitKey(c)
 			count, err := slidingWindowCount(c.Request().Context(), rdb, key, window)
 			if err != nil {
-				// On Redis failure, allow request (fail open)
-				return next(c)
+				// On Redis failure, fail closed (503 Service Unavailable).
+				slog.ErrorContext(c.Request().Context(), "rate limiter redis error", "err", err)
+				return echo.NewHTTPError(503, "service unavailable")
 			}
 			if count >= int64(limit) {
 				c.Response().Header().Set("Retry-After", fmt.Sprintf("%d", int(window.Seconds())))

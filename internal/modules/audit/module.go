@@ -9,7 +9,7 @@ import (
 
 // Module provides the audit module to the Fx container.
 var Module = fx.Module("audit",
-	fx.Provide(func(pool *pgxpool.Pool) *sqlcgen.Queries {
+	fx.Provide(fx.Private, func(pool *pgxpool.Pool) *sqlcgen.Queries {
 		return sqlcgen.New(pool)
 	}),
 	fx.Provide(NewHandler),

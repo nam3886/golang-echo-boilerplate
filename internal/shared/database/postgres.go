@@ -18,9 +18,9 @@ func NewPostgresPool(cfg *config.Config) (*pgxpool.Pool, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parsing database URL: %w", err)
 	}
-	poolCfg.MaxConns = 25
-	poolCfg.MinConns = 5
-	poolCfg.MaxConnLifetime = 1 * time.Hour
+	poolCfg.MaxConns = cfg.DBMaxConns
+	poolCfg.MinConns = cfg.DBMinConns
+	poolCfg.MaxConnLifetime = cfg.DBMaxConnLifetime
 	poolCfg.MaxConnIdleTime = 30 * time.Minute
 
 	var pool *pgxpool.Pool

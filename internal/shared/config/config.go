@@ -14,7 +14,10 @@ type Config struct {
 	Port    int    `env:"PORT" envDefault:"8080"`
 
 	// Database
-	DatabaseURL string `env:"DATABASE_URL,required"`
+	DatabaseURL        string        `env:"DATABASE_URL,required"`
+	DBMaxConns         int32         `env:"DB_MAX_CONNS" envDefault:"25"`
+	DBMinConns         int32         `env:"DB_MIN_CONNS" envDefault:"5"`
+	DBMaxConnLifetime  time.Duration `env:"DB_MAX_CONN_LIFETIME" envDefault:"1h"`
 
 	// Redis
 	RedisURL string `env:"REDIS_URL,required"`
@@ -37,9 +40,12 @@ type Config struct {
 	OTLPEndpoint string `env:"OTEL_EXPORTER_OTLP_ENDPOINT" envDefault:"http://localhost:4317"`
 
 	// SMTP
-	SMTPHost string `env:"SMTP_HOST" envDefault:"localhost"`
-	SMTPPort int    `env:"SMTP_PORT" envDefault:"1025"`
-	SMTPFrom string `env:"SMTP_FROM" envDefault:"noreply@app.local"`
+	SMTPHost      string `env:"SMTP_HOST" envDefault:"localhost"`
+	SMTPPort      int    `env:"SMTP_PORT" envDefault:"1025"`
+	SMTPFrom      string `env:"SMTP_FROM" envDefault:"noreply@app.local"`
+	SMTPUser      string `env:"SMTP_USER"`
+	SMTPPassword  string `env:"SMTP_PASSWORD"`
+	SMTPFromAlias string `env:"SMTP_FROM_ALIAS"`
 
 	// CORS
 	CORSOrigins []string `env:"CORS_ORIGINS" envSeparator:"," envDefault:"http://localhost:3000"`
