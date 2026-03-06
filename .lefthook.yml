@@ -1,0 +1,19 @@
+pre-commit:
+  parallel: true
+  commands:
+    lint:
+      glob: "*.go"
+      run: golangci-lint run --fix {staged_files}
+      stage_fixed: true
+    generated:
+      run: |
+        buf generate 2>/dev/null
+        sqlc generate 2>/dev/null
+        git diff --exit-code gen/
+      fail_text: "Generated code is stale. Run 'task generate' and commit."
+
+pre-push:
+  commands:
+    test:
+      run: go test -race -count=1 ./internal/...
+      fail_text: "Tests failed. Fix before pushing."

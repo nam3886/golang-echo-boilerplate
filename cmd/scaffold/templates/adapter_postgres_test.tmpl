@@ -1,0 +1,119 @@
+//go:build integration
+
+package postgres
+
+import (
+	"context"
+	"testing"
+
+	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
+	sharederr "{{.GoModule}}/internal/shared/errors"
+	"{{.GoModule}}/internal/shared/testutil"
+)
+
+func setupRepo(t *testing.T) *Pg{{.NameTitle}}Repository {
+	t.Helper()
+	pool := testutil.NewTestPostgres(t)
+	testutil.RunMigrations(t, pool)
+	return NewPg{{.NameTitle}}Repository(pool)
+}
+
+func createTest{{.NameTitle}}(t *testing.T, name string) *domain.{{.NameTitle}} {
+	t.Helper()
+	entity, err := domain.New{{.NameTitle}}(name)
+	if err != nil {
+		t.Fatalf("creating test {{.Name}}: %v", err)
+	}
+	return entity
+}
+
+func TestPg{{.NameTitle}}Repository_Create(t *testing.T) {
+	repo := setupRepo(t)
+	ctx := context.Background()
+
+	entity := createTest{{.NameTitle}}(t, "Test Name")
+	if err := repo.Create(ctx, entity); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	got, err := repo.GetByID(ctx, entity.ID())
+	if err != nil {
+		t.Fatalf("GetByID: %v", err)
+	}
+	if got.ID() != entity.ID() {
+		t.Errorf("ID mismatch: got %s, want %s", got.ID(), entity.ID())
+	}
+	if got.Name() != "Test Name" {
+		t.Errorf("Name mismatch: got %s, want Test Name", got.Name())
+	}
+}
+
+func TestPg{{.NameTitle}}Repository_GetByID_NotFound(t *testing.T) {
+	repo := setupRepo(t)
+	ctx := context.Background()
+
+	_, err := repo.GetByID(ctx, domain.{{.NameID}}("00000000-0000-0000-0000-000000000000"))
+	if err == nil {
+		t.Fatal("expected error for not found")
+	}
+	if err != sharederr.ErrNotFound {
+		t.Errorf("expected ErrNotFound, got %v", err)
+	}
+}
+
+func TestPg{{.NameTitle}}Repository_SoftDelete(t *testing.T) {
+	repo := setupRepo(t)
+	ctx := context.Background()
+
+	entity := createTest{{.NameTitle}}(t, "Delete Me")
+	if err := repo.Create(ctx, entity); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	if err := repo.SoftDelete(ctx, entity.ID()); err != nil {
+		t.Fatalf("SoftDelete: %v", err)
+	}
+
+	_, err := repo.GetByID(ctx, entity.ID())
+	if err != sharederr.ErrNotFound {
+		t.Errorf("expected ErrNotFound after soft delete, got %v", err)
+	}
+}
+
+func TestPg{{.NameTitle}}Repository_List_Pagination(t *testing.T) {
+	repo := setupRepo(t)
+	ctx := context.Background()
+
+	names := []string{"Item 1", "Item 2", "Item 3"}
+	for _, name := range names {
+		entity := createTest{{.NameTitle}}(t, name)
+		if err := repo.Create(ctx, entity); err != nil {
+			t.Fatalf("Create %s: %v", name, err)
+		}
+	}
+
+	items, cursor, hasMore, err := repo.List(ctx, 2, "")
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if len(items) != 2 {
+		t.Errorf("expected 2 items, got %d", len(items))
+	}
+	if !hasMore {
+		t.Error("expected hasMore=true")
+	}
+	if cursor == "" {
+		t.Error("expected non-empty cursor")
+	}
+
+	items2, _, hasMore2, err := repo.List(ctx, 2, cursor)
+	if err != nil {
+		t.Fatalf("List page 2: %v", err)
+	}
+	if len(items2) != 1 {
+		t.Errorf("expected 1 item on page 2, got %d", len(items2))
+	}
+	if hasMore2 {
+		t.Error("expected hasMore=false on last page")
+	}
+}

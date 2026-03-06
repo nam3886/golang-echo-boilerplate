@@ -1,0 +1,28 @@
+package app
+
+import (
+	"context"
+
+	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
+)
+
+// Delete{{.NameTitle}}Handler handles soft-deleting a {{.Name}}.
+type Delete{{.NameTitle}}Handler struct {
+	repo domain.{{.NameTitle}}Repository
+}
+
+// NewDelete{{.NameTitle}}Handler constructs the handler.
+func NewDelete{{.NameTitle}}Handler(repo domain.{{.NameTitle}}Repository) *Delete{{.NameTitle}}Handler {
+	return &Delete{{.NameTitle}}Handler{repo: repo}
+}
+
+// Handle soft-deletes a {{.Name}} by ID.
+func (h *Delete{{.NameTitle}}Handler) Handle(ctx context.Context, id string) error {
+	if err := h.repo.SoftDelete(ctx, domain.{{.NameID}}(id)); err != nil {
+		return err
+	}
+
+	// TODO: publish {{.Name}}.deleted event
+
+	return nil
+}

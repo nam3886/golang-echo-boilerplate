@@ -1,0 +1,44 @@
+package app
+
+import (
+	"context"
+
+	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
+)
+
+// Update{{.NameTitle}}Cmd holds input for updating a {{.Name}}.
+type Update{{.NameTitle}}Cmd struct {
+	ID   string
+	Name *string
+}
+
+// Update{{.NameTitle}}Handler handles {{.Name}} updates via closure-based UoW.
+type Update{{.NameTitle}}Handler struct {
+	repo domain.{{.NameTitle}}Repository
+}
+
+// NewUpdate{{.NameTitle}}Handler constructs the handler.
+func NewUpdate{{.NameTitle}}Handler(repo domain.{{.NameTitle}}Repository) *Update{{.NameTitle}}Handler {
+	return &Update{{.NameTitle}}Handler{repo: repo}
+}
+
+// Handle applies partial updates to a {{.Name}} within a transaction.
+func (h *Update{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Update{{.NameTitle}}Cmd) (*domain.{{.NameTitle}}, error) {
+	var updated *domain.{{.NameTitle}}
+	err := h.repo.Update(ctx, domain.{{.NameID}}(cmd.ID), func(entity *domain.{{.NameTitle}}) error {
+		if cmd.Name != nil {
+			if err := entity.ChangeName(*cmd.Name); err != nil {
+				return err
+			}
+		}
+		updated = entity
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: publish {{.Name}}.updated event
+
+	return updated, nil
+}

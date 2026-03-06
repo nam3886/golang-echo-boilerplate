@@ -1,0 +1,39 @@
+# Version control
+.git
+.gitignore
+
+# CI/CD
+.gitlab-ci.yml
+.github
+
+# Claude / IDE
+.claude
+.vscode
+.idea
+
+# Dev tools
+.air.toml
+.golangci.yml
+.lefthook.yml
+.task
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Docs & plans
+docs/
+plans/
+README.md
+
+# Build artifacts
+server
+bin/
+tmp/
+coverage.*
+
+# OS
+.DS_Store
+Thumbs.db
+node_modules/

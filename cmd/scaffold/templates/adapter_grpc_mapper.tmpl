@@ -1,0 +1,42 @@
+package grpc
+
+import (
+	"errors"
+
+	{{.Name}}v1 "{{.GoModule}}/gen/proto/{{.Name}}/v1"
+	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
+	sharederr "{{.GoModule}}/internal/shared/errors"
+	"connectrpc.com/connect"
+	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+// toProto converts a domain {{.NameTitle}} to a protobuf {{.NameTitle}}.
+func toProto(e *domain.{{.NameTitle}}) *{{.Name}}v1.{{.NameTitle}} {
+	return &{{.Name}}v1.{{.NameTitle}}{
+		Id:        string(e.ID()),
+		Name:      e.Name(),
+		CreatedAt: timestamppb.New(e.CreatedAt()),
+		UpdatedAt: timestamppb.New(e.UpdatedAt()),
+	}
+}
+
+// domainErrorToConnect maps DomainError to Connect RPC error codes.
+func domainErrorToConnect(err error) error {
+	var domErr *sharederr.DomainError
+	if errors.As(err, &domErr) {
+		code := codeToConnect[domErr.Code]
+		return connect.NewError(code, err)
+	}
+	return connect.NewError(connect.CodeInternal, err)
+}
+
+var codeToConnect = map[sharederr.ErrorCode]connect.Code{
+	sharederr.CodeInvalidArgument:    connect.CodeInvalidArgument,
+	sharederr.CodeNotFound:           connect.CodeNotFound,
+	sharederr.CodeAlreadyExists:      connect.CodeAlreadyExists,
+	sharederr.CodePermissionDenied:   connect.CodePermissionDenied,
+	sharederr.CodeUnauthenticated:    connect.CodeUnauthenticated,
+	sharederr.CodeFailedPrecondition: connect.CodeFailedPrecondition,
+	sharederr.CodeInternal:           connect.CodeInternal,
+	sharederr.CodeUnavailable:        connect.CodeUnavailable,
+}

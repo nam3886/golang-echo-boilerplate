@@ -1,0 +1,58 @@
+package domain
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
+
+// {{.NameID}} is a typed identifier for {{.NamePlural}}.
+type {{.NameID}} string
+
+// {{.NameTitle}} is the domain entity with encapsulated fields.
+type {{.NameTitle}} struct {
+	id        {{.NameID}}
+	name      string
+	createdAt time.Time
+	updatedAt time.Time
+	deletedAt *time.Time
+}
+
+// New{{.NameTitle}} creates a validated {{.NameTitle}} entity.
+func New{{.NameTitle}}(name string) (*{{.NameTitle}}, error) {
+	if name == "" {
+		return nil, ErrNameRequired
+	}
+	now := time.Now()
+	return &{{.NameTitle}}{
+		id:        {{.NameID}}(uuid.NewString()),
+		name:      name,
+		createdAt: now,
+		updatedAt: now,
+	}, nil
+}
+
+// Reconstitute rebuilds a {{.NameTitle}} from persistence data (no validation).
+func Reconstitute(id {{.NameID}}, name string, createdAt, updatedAt time.Time, deletedAt *time.Time) *{{.NameTitle}} {
+	return &{{.NameTitle}}{
+		id: id, name: name,
+		createdAt: createdAt, updatedAt: updatedAt, deletedAt: deletedAt,
+	}
+}
+
+// Getters
+func (e *{{.NameTitle}}) ID() {{.NameID}}       { return e.id }
+func (e *{{.NameTitle}}) Name() string          { return e.name }
+func (e *{{.NameTitle}}) CreatedAt() time.Time  { return e.createdAt }
+func (e *{{.NameTitle}}) UpdatedAt() time.Time  { return e.updatedAt }
+func (e *{{.NameTitle}}) DeletedAt() *time.Time { return e.deletedAt }
+
+// ChangeName updates the name.
+func (e *{{.NameTitle}}) ChangeName(name string) error {
+	if name == "" {
+		return ErrNameRequired
+	}
+	e.name = name
+	e.updatedAt = time.Now()
+	return nil
+}

@@ -1,0 +1,38 @@
+# Environment
+.env
+*.pem
+*.key
+
+# Build
+server
+bin/
+tmp/
+vendor/
+
+# Coverage
+coverage.out
+coverage.html
+
+# Logs
+*.log
+.claude/hooks/.logs/
+
+# Task runner
+.task/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated (track in git, but ignore local artifacts)
+# gen/
+
+# Dependencies
+node_modules/

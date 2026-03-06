@@ -1,0 +1,22 @@
+package app
+
+import (
+	"context"
+
+	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
+)
+
+// Get{{.NameTitle}}Handler handles fetching a single {{.Name}}.
+type Get{{.NameTitle}}Handler struct {
+	repo domain.{{.NameTitle}}Repository
+}
+
+// NewGet{{.NameTitle}}Handler constructs the handler.
+func NewGet{{.NameTitle}}Handler(repo domain.{{.NameTitle}}Repository) *Get{{.NameTitle}}Handler {
+	return &Get{{.NameTitle}}Handler{repo: repo}
+}
+
+// Handle returns a {{.Name}} by ID.
+func (h *Get{{.NameTitle}}Handler) Handle(ctx context.Context, id string) (*domain.{{.NameTitle}}, error) {
+	return h.repo.GetByID(ctx, domain.{{.NameID}}(id))
+}

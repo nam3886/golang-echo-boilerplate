@@ -1,0 +1,44 @@
+package app
+
+import (
+	"context"
+	"testing"
+
+	"{{.GoModule}}/internal/shared/mocks"
+	"go.uber.org/mock/gomock"
+)
+
+func TestCreate{{.NameTitle}}Handler_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMock{{.NameTitle}}Repository(ctrl)
+
+	mockRepo.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		Return(nil)
+
+	handler := NewCreate{{.NameTitle}}Handler(mockRepo)
+
+	entity, err := handler.Handle(context.Background(), Create{{.NameTitle}}Cmd{
+		Name: "Test Name",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if entity.Name() != "Test Name" {
+		t.Errorf("expected name Test Name, got %s", entity.Name())
+	}
+}
+
+func TestCreate{{.NameTitle}}Handler_EmptyName(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMock{{.NameTitle}}Repository(ctrl)
+
+	handler := NewCreate{{.NameTitle}}Handler(mockRepo)
+
+	_, err := handler.Handle(context.Background(), Create{{.NameTitle}}Cmd{
+		Name: "",
+	})
+	if err == nil {
+		t.Fatal("expected error for empty name")
+	}
+}

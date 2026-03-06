@@ -1,0 +1,57 @@
+package domain
+
+import (
+	"testing"
+)
+
+func TestNew{{.NameTitle}}_Success(t *testing.T) {
+	entity, err := New{{.NameTitle}}("Test Name")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if entity.Name() != "Test Name" {
+		t.Errorf("expected name Test Name, got %s", entity.Name())
+	}
+	if entity.ID() == "" {
+		t.Error("expected non-empty ID")
+	}
+	if entity.CreatedAt().IsZero() {
+		t.Error("expected non-zero CreatedAt")
+	}
+}
+
+func TestNew{{.NameTitle}}_EmptyName(t *testing.T) {
+	_, err := New{{.NameTitle}}("")
+	if err == nil {
+		t.Fatal("expected error for empty name")
+	}
+	if err != ErrNameRequired {
+		t.Errorf("expected ErrNameRequired, got %v", err)
+	}
+}
+
+func Test{{.NameTitle}}_ChangeName(t *testing.T) {
+	entity, _ := New{{.NameTitle}}("Old Name")
+	oldUpdated := entity.UpdatedAt()
+
+	if err := entity.ChangeName("New Name"); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if entity.Name() != "New Name" {
+		t.Errorf("expected name New Name, got %s", entity.Name())
+	}
+	if entity.UpdatedAt().Before(oldUpdated) {
+		t.Error("expected updatedAt to not go backwards")
+	}
+}
+
+func Test{{.NameTitle}}_ChangeName_Empty(t *testing.T) {
+	entity, _ := New{{.NameTitle}}("Test Name")
+	err := entity.ChangeName("")
+	if err == nil {
+		t.Fatal("expected error for empty name")
+	}
+	if err != ErrNameRequired {
+		t.Errorf("expected ErrNameRequired, got %v", err)
+	}
+}

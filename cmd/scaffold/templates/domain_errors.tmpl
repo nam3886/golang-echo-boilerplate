@@ -1,0 +1,11 @@
+package domain
+
+import (
+	sharederr "{{.GoModule}}/internal/shared/errors"
+)
+
+// Module-specific domain errors.
+var (
+	Err{{.NameTitle}}NotFound = sharederr.New(sharederr.CodeNotFound, "{{.Name}} not found")
+	ErrNameRequired          = sharederr.New(sharederr.CodeInvalidArgument, "name is required")
+)

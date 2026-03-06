@@ -1,0 +1,95 @@
+package grpc
+
+import (
+	"context"
+
+	{{.Name}}v1 "{{.GoModule}}/gen/proto/{{.Name}}/v1"
+	"{{.GoModule}}/gen/proto/{{.Name}}/v1/{{.Name}}v1connect"
+	"{{.GoModule}}/internal/modules/{{.Name}}/app"
+	"connectrpc.com/connect"
+)
+
+// {{.NameTitle}}ServiceHandler implements the Connect RPC {{.NameTitle}}Service.
+type {{.NameTitle}}ServiceHandler struct {
+	create{{.NameTitle}} *app.Create{{.NameTitle}}Handler
+	get{{.NameTitle}}    *app.Get{{.NameTitle}}Handler
+	list{{.NamePluralTitle}}  *app.List{{.NamePluralTitle}}Handler
+	update{{.NameTitle}} *app.Update{{.NameTitle}}Handler
+	delete{{.NameTitle}} *app.Delete{{.NameTitle}}Handler
+}
+
+// New{{.NameTitle}}ServiceHandler constructs the handler.
+func New{{.NameTitle}}ServiceHandler(
+	create{{.NameTitle}} *app.Create{{.NameTitle}}Handler,
+	get{{.NameTitle}} *app.Get{{.NameTitle}}Handler,
+	list{{.NamePluralTitle}} *app.List{{.NamePluralTitle}}Handler,
+	update{{.NameTitle}} *app.Update{{.NameTitle}}Handler,
+	delete{{.NameTitle}} *app.Delete{{.NameTitle}}Handler,
+) *{{.NameTitle}}ServiceHandler {
+	return &{{.NameTitle}}ServiceHandler{
+		create{{.NameTitle}}: create{{.NameTitle}},
+		get{{.NameTitle}}:    get{{.NameTitle}},
+		list{{.NamePluralTitle}}:  list{{.NamePluralTitle}},
+		update{{.NameTitle}}: update{{.NameTitle}},
+		delete{{.NameTitle}}: delete{{.NameTitle}},
+	}
+}
+
+// Verify interface compliance.
+var _ {{.Name}}v1connect.{{.NameTitle}}ServiceHandler = (*{{.NameTitle}}ServiceHandler)(nil)
+
+func (h *{{.NameTitle}}ServiceHandler) Create{{.NameTitle}}(ctx context.Context, req *connect.Request[{{.Name}}v1.Create{{.NameTitle}}Request]) (*connect.Response[{{.Name}}v1.Create{{.NameTitle}}Response], error) {
+	entity, err := h.create{{.NameTitle}}.Handle(ctx, app.Create{{.NameTitle}}Cmd{
+		Name: req.Msg.Name,
+	})
+	if err != nil {
+		return nil, domainErrorToConnect(err)
+	}
+	return connect.NewResponse(&{{.Name}}v1.Create{{.NameTitle}}Response{ {{- .NameTitle}}: toProto(entity)}), nil
+}
+
+func (h *{{.NameTitle}}ServiceHandler) Get{{.NameTitle}}(ctx context.Context, req *connect.Request[{{.Name}}v1.Get{{.NameTitle}}Request]) (*connect.Response[{{.Name}}v1.Get{{.NameTitle}}Response], error) {
+	entity, err := h.get{{.NameTitle}}.Handle(ctx, req.Msg.Id)
+	if err != nil {
+		return nil, domainErrorToConnect(err)
+	}
+	return connect.NewResponse(&{{.Name}}v1.Get{{.NameTitle}}Response{ {{- .NameTitle}}: toProto(entity)}), nil
+}
+
+func (h *{{.NameTitle}}ServiceHandler) List{{.NamePluralTitle}}(ctx context.Context, req *connect.Request[{{.Name}}v1.List{{.NamePluralTitle}}Request]) (*connect.Response[{{.Name}}v1.List{{.NamePluralTitle}}Response], error) {
+	result, err := h.list{{.NamePluralTitle}}.Handle(ctx, int(req.Msg.Limit), req.Msg.Cursor)
+	if err != nil {
+		return nil, domainErrorToConnect(err)
+	}
+
+	items := make([]*{{.Name}}v1.{{.NameTitle}}, 0, len(result.Items))
+	for _, item := range result.Items {
+		items = append(items, toProto(item))
+	}
+
+	return connect.NewResponse(&{{.Name}}v1.List{{.NamePluralTitle}}Response{
+		Items:      items,
+		NextCursor: result.NextCursor,
+		HasMore:    result.HasMore,
+	}), nil
+}
+
+func (h *{{.NameTitle}}ServiceHandler) Update{{.NameTitle}}(ctx context.Context, req *connect.Request[{{.Name}}v1.Update{{.NameTitle}}Request]) (*connect.Response[{{.Name}}v1.Update{{.NameTitle}}Response], error) {
+	cmd := app.Update{{.NameTitle}}Cmd{ID: req.Msg.Id}
+	if req.Msg.Name != nil {
+		cmd.Name = req.Msg.Name
+	}
+
+	entity, err := h.update{{.NameTitle}}.Handle(ctx, cmd)
+	if err != nil {
+		return nil, domainErrorToConnect(err)
+	}
+	return connect.NewResponse(&{{.Name}}v1.Update{{.NameTitle}}Response{ {{- .NameTitle}}: toProto(entity)}), nil
+}
+
+func (h *{{.NameTitle}}ServiceHandler) Delete{{.NameTitle}}(ctx context.Context, req *connect.Request[{{.Name}}v1.Delete{{.NameTitle}}Request]) (*connect.Response[{{.Name}}v1.Delete{{.NameTitle}}Response], error) {
+	if err := h.delete{{.NameTitle}}.Handle(ctx, req.Msg.Id); err != nil {
+		return nil, domainErrorToConnect(err)
+	}
+	return connect.NewResponse(&{{.Name}}v1.Delete{{.NameTitle}}Response{}), nil
+}

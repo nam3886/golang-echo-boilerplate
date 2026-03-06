@@ -1,0 +1,26 @@
+package {{.Name}}
+
+import (
+	"{{.GoModule}}/internal/modules/{{.Name}}/adapters/grpc"
+	"{{.GoModule}}/internal/modules/{{.Name}}/adapters/postgres"
+	"{{.GoModule}}/internal/modules/{{.Name}}/app"
+	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
+	"go.uber.org/fx"
+)
+
+// Module provides the {{.Name}} module to the Fx container.
+var Module = fx.Module("{{.Name}}",
+	fx.Provide(
+		fx.Annotate(
+			postgres.NewPg{{.NameTitle}}Repository,
+			fx.As(new(domain.{{.NameTitle}}Repository)),
+		),
+	),
+	fx.Provide(app.NewCreate{{.NameTitle}}Handler),
+	fx.Provide(app.NewGet{{.NameTitle}}Handler),
+	fx.Provide(app.NewList{{.NamePluralTitle}}Handler),
+	fx.Provide(app.NewUpdate{{.NameTitle}}Handler),
+	fx.Provide(app.NewDelete{{.NameTitle}}Handler),
+	fx.Provide(grpc.New{{.NameTitle}}ServiceHandler),
+	fx.Invoke(grpc.RegisterRoutes),
+)

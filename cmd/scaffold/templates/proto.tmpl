@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package {{.Name}}.v1;
+
+option go_package = "{{.GoModule}}/gen/proto/{{.Name}}/v1;{{.Name}}v1";
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+service {{.NameTitle}}Service {
+  rpc Get{{.NameTitle}}(Get{{.NameTitle}}Request) returns (Get{{.NameTitle}}Response);
+  rpc List{{.NamePluralTitle}}(List{{.NamePluralTitle}}Request) returns (List{{.NamePluralTitle}}Response);
+  rpc Create{{.NameTitle}}(Create{{.NameTitle}}Request) returns (Create{{.NameTitle}}Response);
+  rpc Update{{.NameTitle}}(Update{{.NameTitle}}Request) returns (Update{{.NameTitle}}Response);
+  rpc Delete{{.NameTitle}}(Delete{{.NameTitle}}Request) returns (Delete{{.NameTitle}}Response);
+}
+
+message {{.NameTitle}} {
+  string id = 1;
+  string name = 2;
+  google.protobuf.Timestamp created_at = 3;
+  google.protobuf.Timestamp updated_at = 4;
+}
+
+message Create{{.NameTitle}}Request {
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 255}];
+}
+
+message Create{{.NameTitle}}Response {
+  {{.NameTitle}} {{.Name}} = 1;
+}
+
+message Get{{.NameTitle}}Request {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+
+message Get{{.NameTitle}}Response {
+  {{.NameTitle}} {{.Name}} = 1;
+}
+
+message List{{.NamePluralTitle}}Request {
+  int32 limit = 1 [(buf.validate.field).int32 = {gte: 1, lte: 100}];
+  string cursor = 2;
+}
+
+message List{{.NamePluralTitle}}Response {
+  repeated {{.NameTitle}} items = 1;
+  string next_cursor = 2;
+  bool has_more = 3;
+}
+
+message Update{{.NameTitle}}Request {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  optional string name = 2;
+}
+
+message Update{{.NameTitle}}Response {
+  {{.NameTitle}} {{.Name}} = 1;
+}
+
+message Delete{{.NameTitle}}Request {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+
+message Delete{{.NameTitle}}Response {}

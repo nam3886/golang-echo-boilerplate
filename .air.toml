@@ -1,0 +1,22 @@
+# Air hot reload config
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  bin = "./tmp/server"
+  cmd = "go build -o ./tmp/server ./cmd/server"
+  delay = 1000
+  exclude_dir = ["tmp", "gen", "node_modules", "vendor", "bin", "deploy", "plans", "docs"]
+  exclude_regex = ["_test\\.go$"]
+  exclude_unchanged = true
+  follow_symlink = false
+  include_ext = ["go", "sql", "proto"]
+  kill_delay = 500
+  send_interrupt = true
+  stop_on_error = true
+
+[log]
+  time = false
+
+[misc]
+  clean_on_exit = true

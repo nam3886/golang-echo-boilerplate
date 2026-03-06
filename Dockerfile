@@ -1,0 +1,21 @@
+# Stage 1: Build
+FROM golang:1.26-alpine AS builder
+RUN apk add --no-cache git ca-certificates tzdata
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -ldflags="-s -w" \
+    -o /server ./cmd/server
+
+# Stage 2: Runtime
+FROM alpine:3.19
+RUN apk add --no-cache ca-certificates tzdata curl && \
+    addgroup -S app && adduser -S app -G app
+COPY --from=builder /server /server
+USER app
+EXPOSE 8080
+HEALTHCHECK --interval=10s --timeout=3s --retries=3 \
+    CMD curl -f http://localhost:8080/healthz || exit 1
+ENTRYPOINT ["/server"]

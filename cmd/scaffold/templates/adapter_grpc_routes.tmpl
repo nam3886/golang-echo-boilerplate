@@ -1,0 +1,23 @@
+package grpc
+
+import (
+	"net/http"
+
+	"connectrpc.com/connect"
+	"connectrpc.com/validate"
+	"{{.GoModule}}/gen/proto/{{.Name}}/v1/{{.Name}}v1connect"
+	"{{.GoModule}}/internal/shared/config"
+	appmw "{{.GoModule}}/internal/shared/middleware"
+	"github.com/labstack/echo/v4"
+	"github.com/redis/go-redis/v9"
+)
+
+// RegisterRoutes mounts the Connect RPC {{.NameTitle}}Service handler on Echo with auth.
+func RegisterRoutes(e *echo.Echo, handler *{{.NameTitle}}ServiceHandler, cfg *config.Config, rdb *redis.Client) {
+	path, h := {{.Name}}v1connect.New{{.NameTitle}}ServiceHandler(handler,
+		connect.WithInterceptors(validate.NewInterceptor()),
+	)
+
+	g := e.Group(path, appmw.Auth(cfg, rdb))
+	g.Any("*", echo.WrapHandler(http.StripPrefix(path, h)))
+}

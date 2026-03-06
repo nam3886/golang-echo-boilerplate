@@ -1,0 +1,167 @@
+version: '3'
+
+dotenv: ['.env']
+
+vars:
+  APP_NAME: gnha-services
+  BUILD_DIR: bin
+
+tasks:
+  dev:setup:
+    desc: Install tools, start infra, migrate, seed
+    cmds:
+      - task: dev:tools
+      - task: dev:deps
+      - cp -n .env.example .env || true
+      - task: migrate:up
+      - task: seed
+
+  dev:tools:
+    desc: Install development tools
+    cmds:
+      - go install github.com/air-verse/air@latest
+      - go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+      - go install github.com/bufbuild/buf/cmd/buf@latest
+      - go install github.com/pressly/goose/v3/cmd/goose@latest
+      - go install github.com/evilmartians/lefthook@latest
+      - go install go.uber.org/mock/mockgen@latest
+      - lefthook install || true
+
+  dev:deps:
+    desc: Start infrastructure containers
+    cmds:
+      - docker compose -f deploy/docker-compose.dev.yml up -d
+      - echo "Waiting for services to be healthy..."
+      - sleep 5
+
+  dev:
+    desc: Run app with hot reload
+    cmds:
+      - air -c .air.toml
+
+  generate:
+    desc: Run all code generators
+    cmds:
+      - task: generate:proto
+      - task: generate:sqlc
+      - task: generate:mocks
+
+  generate:proto:
+    desc: Generate from protobuf
+    sources:
+      - proto/**/*.proto
+      - buf.gen.yaml
+    generates:
+      - gen/proto/**/*.go
+      - gen/ts/**/*.ts
+    cmds:
+      - buf lint
+      - buf breaking --against '.git#branch=main' || true
+      - buf generate
+
+  generate:sqlc:
+    desc: Generate from SQL
+    sources:
+      - db/queries/*.sql
+      - db/migrations/*.sql
+      - sqlc.yaml
+    generates:
+      - gen/sqlc/*.go
+    cmds:
+      - sqlc generate
+
+  generate:mocks:
+    desc: Generate mocks via go generate
+    cmds:
+      - go generate ./...
+
+  module:create:
+    desc: Scaffold a new CRUD module
+    cmds:
+      - go run ./cmd/scaffold -name={{.name}} {{if .plural}}-plural={{.plural}}{{end}}
+      - task: generate
+    requires:
+      vars: [name]
+
+  lint:
+    desc: Run linter
+    cmds:
+      - golangci-lint run ./...
+
+  test:
+    desc: Run unit tests
+    cmds:
+      - go test -race -count=1 -coverprofile=coverage.out ./internal/...
+      - go tool cover -func=coverage.out
+
+  test:integration:
+    desc: Run integration tests (requires Docker)
+    cmds:
+      - go test -race -count=1 -tags=integration ./...
+
+  test:coverage:
+    desc: Generate HTML coverage report
+    cmds:
+      - task: test
+      - go tool cover -html=coverage.out -o coverage.html
+
+  check:
+    desc: Run lint + tests
+    cmds:
+      - task: lint
+      - task: test
+
+  build:
+    desc: Build production binary
+    cmds:
+      - CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o {{.BUILD_DIR}}/server ./cmd/server
+
+  migrate:up:
+    desc: Run database migrations
+    cmds:
+      - goose -dir db/migrations postgres "$DATABASE_URL" up
+
+  migrate:down:
+    desc: Rollback last migration
+    cmds:
+      - goose -dir db/migrations postgres "$DATABASE_URL" down
+
+  migrate:status:
+    desc: Check migration status
+    cmds:
+      - goose -dir db/migrations postgres "$DATABASE_URL" status
+
+  migrate:create:
+    desc: Create a new migration
+    cmds:
+      - goose -dir db/migrations create {{.CLI_ARGS}} sql
+
+  seed:
+    desc: Run database seeder
+    cmds:
+      - go run ./cmd/seed
+
+  docker:build:
+    desc: Build Docker image
+    cmds:
+      - docker build -t {{.APP_NAME}}:latest .
+
+  docker:run:
+    desc: Run Docker image
+    cmds:
+      - docker run --rm --env-file .env -p 8080:8080 {{.APP_NAME}}:latest
+
+  monitor:up:
+    desc: Start SigNoz monitoring
+    cmds:
+      - docker compose -f deploy/docker-compose.monitor.yml up -d
+
+  monitor:down:
+    desc: Stop SigNoz monitoring
+    cmds:
+      - docker compose -f deploy/docker-compose.monitor.yml down
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf {{.BUILD_DIR}} tmp coverage.out coverage.html
