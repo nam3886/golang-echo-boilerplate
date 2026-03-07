@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/caarlos0/env/v11"
@@ -14,19 +15,16 @@ type Config struct {
 	Port    int    `env:"PORT" envDefault:"8080"`
 
 	// Database
-	DatabaseURL        string        `env:"DATABASE_URL,required"`
-	DBMaxConns         int32         `env:"DB_MAX_CONNS" envDefault:"25"`
-	DBMinConns         int32         `env:"DB_MIN_CONNS" envDefault:"5"`
-	DBMaxConnLifetime  time.Duration `env:"DB_MAX_CONN_LIFETIME" envDefault:"1h"`
+	DatabaseURL       string        `env:"DATABASE_URL,required"`
+	DBMaxConns        int32         `env:"DB_MAX_CONNS" envDefault:"25"`
+	DBMinConns        int32         `env:"DB_MIN_CONNS" envDefault:"5"`
+	DBMaxConnLifetime time.Duration `env:"DB_MAX_CONN_LIFETIME" envDefault:"1h"`
 
 	// Redis
 	RedisURL string `env:"REDIS_URL,required"`
 
 	// RabbitMQ
 	RabbitURL string `env:"RABBITMQ_URL,required"`
-
-	// Elasticsearch
-	ESURL string `env:"ELASTICSEARCH_URL" envDefault:"http://localhost:9200"`
 
 	// JWT
 	JWTSecret     string        `env:"JWT_SECRET,required"`
@@ -71,4 +69,48 @@ func (c *Config) IsDevelopment() bool {
 // IsProduction returns true when running in production.
 func (c *Config) IsProduction() bool {
 	return c.AppEnv == "production"
+}
+
+// String returns a human-readable config summary with sensitive fields masked.
+// Safe to log or print without leaking credentials.
+func (c Config) String() string {
+	return fmt.Sprintf(
+		"Config{AppEnv:%s AppName:%s Port:%d DatabaseURL:%s RedisURL:%s RabbitURL:%s JWTSecret:%s LogLevel:%s SMTPHost:%s SMTPPort:%d SMTPUser:%s SMTPPassword:%s}",
+		c.AppEnv,
+		c.AppName,
+		c.Port,
+		maskURL(c.DatabaseURL),
+		maskURL(c.RedisURL),
+		maskURL(c.RabbitURL),
+		mask(c.JWTSecret),
+		c.LogLevel,
+		c.SMTPHost,
+		c.SMTPPort,
+		c.SMTPUser,
+		mask(c.SMTPPassword),
+	)
+}
+
+// mask replaces a non-empty secret string with "***".
+func mask(s string) string {
+	if s == "" {
+		return ""
+	}
+	return "***"
+}
+
+// maskURL redacts the userinfo (credentials) from a URL string.
+// If parsing fails the entire value is masked.
+func maskURL(raw string) string {
+	if raw == "" {
+		return ""
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "***"
+	}
+	if u.User != nil {
+		u.User = url.UserPassword("***", "***")
+	}
+	return u.String()
 }

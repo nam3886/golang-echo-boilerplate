@@ -71,14 +71,28 @@ func Reconstitute(id UserID, email, name, password string, role Role, createdAt,
 	}
 }
 
-// Getters
-func (u *User) ID() UserID        { return u.id }
-func (u *User) Email() string     { return u.email }
-func (u *User) Name() string      { return u.name }
-func (u *User) Password() string  { return u.password }
-func (u *User) Role() Role        { return u.role }
+// ID returns the user's unique identifier.
+func (u *User) ID() UserID { return u.id }
+
+// Email returns the user's email address.
+func (u *User) Email() string { return u.email }
+
+// Name returns the user's display name.
+func (u *User) Name() string { return u.name }
+
+// Password returns the user's hashed password.
+func (u *User) Password() string { return u.password }
+
+// Role returns the user's authorization role.
+func (u *User) Role() Role { return u.role }
+
+// CreatedAt returns the time the user was created.
 func (u *User) CreatedAt() time.Time { return u.createdAt }
+
+// UpdatedAt returns the time the user was last updated.
 func (u *User) UpdatedAt() time.Time { return u.updatedAt }
+
+// DeletedAt returns the soft-delete timestamp, or nil if not deleted.
 func (u *User) DeletedAt() *time.Time { return u.deletedAt }
 
 // ChangeName updates the user's name.
