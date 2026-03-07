@@ -46,23 +46,6 @@ services:
       timeout: 5s
       retries: 5
 
-  elasticsearch:
-    image: elasticsearch:8.13.0
-    restart: unless-stopped
-    ports:
-      - "9200:9200"
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
-    volumes:
-      - esdata:/usr/share/elasticsearch/data
-    healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\\|yellow\"'"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
   mailpit:
     image: axllent/mailpit:latest
     restart: unless-stopped
@@ -74,4 +57,3 @@ volumes:
   pgdata:
   redisdata:
   rabbitmqdata:
-  esdata:

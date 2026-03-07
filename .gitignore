@@ -1,7 +1,11 @@
 # Environment
 .env
+.env.figma
 *.pem
 *.key
+
+# Figma Make auth state
+figma-auth.json
 
 # Build
 server

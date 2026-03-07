@@ -27,7 +27,7 @@ message User {
 message CreateUserRequest {
   string email = 1 [(buf.validate.field).string.email = true];
   string name = 2 [(buf.validate.field).string = {min_len: 1, max_len: 255}];
-  string password = 3 [(buf.validate.field).string.min_len = 8];
+  string password = 3 [(buf.validate.field).string = {min_len: 8, max_len: 72}];
   string role = 4 [(buf.validate.field).string = {in: ["admin", "member", "viewer"]}];
 }
 
