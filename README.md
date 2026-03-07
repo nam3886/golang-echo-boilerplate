@@ -31,7 +31,7 @@ All other tools (buf, sqlc, air, lefthook, goose, mockgen) are installed automat
 
 ## Stack
 
-Go 1.26 | Echo | Connect RPC | Watermill | PostgreSQL | Redis | RabbitMQ | SigNoz
+Go 1.26 | Echo | Connect RPC | Watermill | PostgreSQL | Redis | RabbitMQ
 
 ## Architecture
 
@@ -74,20 +74,13 @@ See [docs/adding-a-module.md](docs/adding-a-module.md)
 | PostgreSQL | :5432 | — |
 | Redis | :6379 | — |
 | RabbitMQ | :5672 | http://localhost:15672 (guest/guest) |
-| Elasticsearch | :9200 | — |
-| MailHog | :1025 | http://localhost:8025 |
+| Mailpit | :1025 | http://localhost:8025 |
 
 ## API
 
 - Connect RPC on :8080
 - Swagger UI: http://localhost:8080/swagger/ (dev only)
 - Proto definitions: `proto/<module>/v1/*.proto`
-
-## Monitoring
-
-```bash
-task monitor:up    # Start SigNoz → http://localhost:3301
-```
 
 ## Deploy
 
