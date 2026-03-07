@@ -62,4 +62,3 @@ func RequestLogger() echo.MiddlewareFunc {
 		}
 	}
 }
-

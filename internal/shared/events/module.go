@@ -12,7 +12,12 @@ import (
 var Module = fx.Module("events",
 	fx.Provide(NewPublisher),
 	fx.Provide(NewSubscriber),
-	fx.Provide(NewEventBus),
+	fx.Provide(
+		fx.Annotate(
+			NewEventBus,
+			fx.As(new(EventPublisher)),
+		),
+	),
 	fx.Provide(NewRouter),
 	fx.Invoke(StartRouter),
 	fx.Invoke(registerAMQPShutdown),

@@ -23,6 +23,7 @@ type ModuleData struct {
 	NamePlural      string // "products"
 	NamePluralTitle string // "Products"
 	NameSnake       string // "product" (same for single word, "order_item" for multi)
+	NamePackage     string // Go package identifier: "product" or "orderitem" (underscores stripped)
 	NameID          string // "ProductID"
 	Timestamp       string // "20260305153000" (for migration)
 	GoModule        string // read from go.mod
@@ -74,11 +75,12 @@ func main() {
 
 	// Derive naming variants.
 	data := ModuleData{
-		Name:      *name,
-		NameTitle: toTitle(*name),
-		NameSnake: *name,
-		Timestamp: time.Now().Format("20060102150405"),
-		GoModule:  readGoModule(),
+		Name:        *name,
+		NameTitle:   toTitle(*name),
+		NameSnake:   *name,
+		NamePackage: strings.ReplaceAll(*name, "_", ""),
+		Timestamp:   time.Now().Format("20060102150405"),
+		GoModule:    readGoModule(),
 	}
 	if *plural != "" {
 		data.NamePlural = *plural
@@ -168,16 +170,16 @@ func validateIdentifier(s, label string) {
 	}
 	for _, r := range s {
 		if !unicode.IsLetter(r) && r != '_' {
-			fmt.Fprintf(os.Stderr, "error: %s must contain only letters and underscores, got %q\n", label, s)
+			fmt.Fprintf(os.Stderr, "error: %s must use snake_case (e.g. order_item), got %q\n", label, s)
 			os.Exit(1)
 		}
 	}
 	if s != strings.ToLower(s) {
-		fmt.Fprintf(os.Stderr, "error: %s must be lowercase, got %q\n", label, s)
+		fmt.Fprintf(os.Stderr, "error: %s must use snake_case (e.g. order_item), got %q\n", label, s)
 		os.Exit(1)
 	}
 	if strings.HasPrefix(s, "_") || strings.HasSuffix(s, "_") {
-		fmt.Fprintf(os.Stderr, "error: %s must not start or end with underscore, got %q\n", label, s)
+		fmt.Fprintf(os.Stderr, "error: %s must use snake_case (e.g. order_item), got %q\n", label, s)
 		os.Exit(1)
 	}
 }

@@ -22,11 +22,11 @@ func RequirePermission(perms ...Permission) echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			user := auth.UserFromContext(c.Request().Context())
 			if user == nil {
-				return domainerr.ErrUnauthorized
+				return domainerr.ErrUnauthorized()
 			}
 			for _, p := range perms {
 				if !user.HasPermission(string(p)) {
-					return domainerr.ErrForbidden
+					return domainerr.ErrForbidden()
 				}
 			}
 			return next(c)
@@ -40,14 +40,14 @@ func RequireRole(roles ...string) echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			user := auth.UserFromContext(c.Request().Context())
 			if user == nil {
-				return domainerr.ErrUnauthorized
+				return domainerr.ErrUnauthorized()
 			}
 			for _, r := range roles {
 				if user.Role == r {
 					return next(c)
 				}
 			}
-			return domainerr.ErrForbidden
+			return domainerr.ErrForbidden()
 		}
 	}
 }

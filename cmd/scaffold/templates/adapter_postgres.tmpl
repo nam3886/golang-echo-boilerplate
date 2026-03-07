@@ -10,7 +10,7 @@ import (
 
 	sqlcgen "{{.GoModule}}/gen/sqlc"
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
-	sharederr "{{.GoModule}}/internal/shared/errors"
+	domainerr "{{.GoModule}}/internal/shared/errors"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -36,7 +36,7 @@ func (r *Pg{{.NameTitle}}Repository) GetByID(ctx context.Context, id domain.{{.N
 	row, err := q.Get{{.NameTitle}}ByID(ctx, uid)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, sharederr.ErrNotFound
+			return nil, domainerr.ErrNotFound
 		}
 		return nil, fmt.Errorf("getting {{.Name}} by id: %w", err)
 	}
@@ -114,7 +114,7 @@ func (r *Pg{{.NameTitle}}Repository) Update(ctx context.Context, id domain.{{.Na
 	row, err := q.Get{{.NameTitle}}ByIDForUpdate(ctx, uid)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return sharederr.ErrNotFound
+			return domainerr.ErrNotFound
 		}
 		return fmt.Errorf("fetching {{.Name}} for update: %w", err)
 	}
@@ -147,7 +147,7 @@ func (r *Pg{{.NameTitle}}Repository) SoftDelete(ctx context.Context, id domain.{
 		return fmt.Errorf("soft deleting {{.Name}}: %w", err)
 	}
 	if rows == 0 {
-		return sharederr.ErrNotFound
+		return domainerr.ErrNotFound
 	}
 	return nil
 }
@@ -156,7 +156,7 @@ func (r *Pg{{.NameTitle}}Repository) SoftDelete(ctx context.Context, id domain.{
 func parse{{.NameTitle}}ID(id domain.{{.NameID}}) (uuid.UUID, error) {
 	uid, err := uuid.Parse(string(id))
 	if err != nil {
-		return uuid.UUID{}, sharederr.New(sharederr.CodeInvalidArgument, "invalid {{.Name}} ID format")
+		return uuid.UUID{}, domainerr.New(domainerr.CodeInvalidArgument, "invalid {{.Name}} ID format")
 	}
 	return uid, nil
 }

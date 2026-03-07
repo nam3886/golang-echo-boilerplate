@@ -14,11 +14,11 @@ import (
 // DeleteUserHandler handles soft-deleting a user.
 type DeleteUserHandler struct {
 	repo domain.UserRepository
-	bus  *events.EventBus
+	bus  events.EventPublisher
 }
 
 // NewDeleteUserHandler constructs the handler.
-func NewDeleteUserHandler(repo domain.UserRepository, bus *events.EventBus) *DeleteUserHandler {
+func NewDeleteUserHandler(repo domain.UserRepository, bus events.EventPublisher) *DeleteUserHandler {
 	return &DeleteUserHandler{repo: repo, bus: bus}
 }
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"strings"
 	"testing"
@@ -62,14 +61,31 @@ func extractGooseUp(content string) string {
 }
 
 // findMigrationsDir locates db/migrations/ relative to the project root.
+// It checks MIGRATIONS_DIR env var first (useful with -trimpath builds),
+// then falls back to the current working directory (project root when running `go test ./...`).
 func findMigrationsDir(t *testing.T) string {
 	t.Helper()
-	_, filename, _, _ := runtime.Caller(0)
-	// Navigate from internal/shared/testutil/ up to project root
-	root := filepath.Join(filepath.Dir(filename), "..", "..", "..")
-	dir := filepath.Join(root, "db", "migrations")
-	if _, err := os.Stat(dir); err != nil {
-		t.Fatalf("migrations dir not found at %s: %v", dir, err)
+
+	if envDir := os.Getenv("MIGRATIONS_DIR"); envDir != "" {
+		if _, err := os.Stat(envDir); err != nil {
+			t.Fatalf("MIGRATIONS_DIR %q not found: %v", envDir, err)
+		}
+		return envDir
 	}
-	return dir
+
+	// Fallback: walk up from cwd until we find db/migrations.
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getting working directory: %v", err)
+	}
+	dir := filepath.Join(cwd, "db", "migrations")
+	for i := 0; i < 6; i++ {
+		if _, err := os.Stat(dir); err == nil {
+			return dir
+		}
+		cwd = filepath.Dir(cwd)
+		dir = filepath.Join(cwd, "db", "migrations")
+	}
+	t.Fatalf("migrations dir not found (set MIGRATIONS_DIR env var or run tests from project root)")
+	return ""
 }

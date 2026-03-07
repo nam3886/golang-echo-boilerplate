@@ -9,9 +9,10 @@ import (
 
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
 	"github.com/gnha/gnha-services/internal/shared/auth"
-	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
 	"github.com/gnha/gnha-services/internal/shared/events"
 	"github.com/gnha/gnha-services/internal/shared/netutil"
+
+	domainerr "github.com/gnha/gnha-services/internal/shared/errors"
 )
 
 // CreateUserCmd holds input for creating a user.
@@ -26,11 +27,11 @@ type CreateUserCmd struct {
 type CreateUserHandler struct {
 	repo   domain.UserRepository
 	hasher auth.PasswordHasher
-	bus    *events.EventBus
+	bus    events.EventPublisher
 }
 
 // NewCreateUserHandler constructs the handler.
-func NewCreateUserHandler(repo domain.UserRepository, hasher auth.PasswordHasher, bus *events.EventBus) *CreateUserHandler {
+func NewCreateUserHandler(repo domain.UserRepository, hasher auth.PasswordHasher, bus events.EventPublisher) *CreateUserHandler {
 	return &CreateUserHandler{repo: repo, hasher: hasher, bus: bus}
 }
 
@@ -38,7 +39,7 @@ func NewCreateUserHandler(repo domain.UserRepository, hasher auth.PasswordHasher
 func (h *CreateUserHandler) Handle(ctx context.Context, cmd CreateUserCmd) (*domain.User, error) {
 	// Check email uniqueness
 	existing, err := h.repo.GetByEmail(ctx, cmd.Email)
-	if err != nil && !errors.Is(err, sharederr.ErrNotFound) {
+	if err != nil && !errors.Is(err, domainerr.ErrNotFound()) {
 		return nil, fmt.Errorf("checking email: %w", err)
 	}
 	if existing != nil {

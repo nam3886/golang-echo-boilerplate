@@ -24,7 +24,7 @@ func ErrorHandler(err error, c echo.Context) {
 
 	var domErr *domainerr.DomainError
 	if errors.As(err, &domErr) {
-		c.JSON(domErr.HTTPStatus(), ErrorResponse{
+		_ = c.JSON(domErr.HTTPStatus(), ErrorResponse{
 			Code:    string(domErr.Code),
 			Message: domErr.Message,
 		})
@@ -37,7 +37,7 @@ func ErrorHandler(err error, c echo.Context) {
 		if m, ok := echoErr.Message.(string); ok {
 			msg = m
 		}
-		c.JSON(echoErr.Code, ErrorResponse{
+		_ = c.JSON(echoErr.Code, ErrorResponse{
 			Code:    domainerr.CodeInternal.String(),
 			Message: msg,
 		})
@@ -46,7 +46,7 @@ func ErrorHandler(err error, c echo.Context) {
 
 	// Unexpected error — log and return generic 500
 	slog.Error("unhandled error", "err", err, "path", c.Request().URL.Path)
-	c.JSON(http.StatusInternalServerError, ErrorResponse{
+	_ = c.JSON(http.StatusInternalServerError, ErrorResponse{
 		Code:    string(domainerr.CodeInternal),
 		Message: "internal error",
 	})

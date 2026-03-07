@@ -2,28 +2,29 @@ package middleware
 
 import (
 	"context"
-	"strings"
 
 	"connectrpc.com/connect"
 	"github.com/gnha/gnha-services/internal/shared/auth"
 )
 
-// procedurePermissions maps Connect RPC procedure suffixes to required permissions.
+// procedurePermissions maps exact Connect RPC procedure paths to required permissions.
+// Key format: "/package.Service/MethodName" (full procedure path from req.Spec().Procedure).
+// Read-only methods are omitted — they are gated at the Echo route group level via RequirePermission.
 var procedurePermissions = map[string]Permission{
-	"Create": PermUserWrite,
-	"Update": PermUserWrite,
-	"Delete": PermUserDelete,
+	"/user.v1.UserService/CreateUser": PermUserWrite,
+	"/user.v1.UserService/UpdateUser": PermUserWrite,
+	"/user.v1.UserService/DeleteUser": PermUserDelete,
 }
 
-// RBACInterceptor checks permissions based on the Connect RPC procedure name.
+// RBACInterceptor checks permissions based on the exact Connect RPC procedure path.
 // Read operations require user:read (enforced at Echo group level).
 // Write/delete operations require additional permissions checked here.
 func RBACInterceptor() connect.UnaryInterceptorFunc {
 	return func(next connect.UnaryFunc) connect.UnaryFunc {
 		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
 			procedure := req.Spec().Procedure // e.g. "/user.v1.UserService/CreateUser"
-			requiredPerm := permissionForProcedure(procedure)
-			if requiredPerm == "" {
+			requiredPerm, ok := procedurePermissions[procedure]
+			if !ok {
 				return next(ctx, req)
 			}
 
@@ -38,20 +39,4 @@ func RBACInterceptor() connect.UnaryInterceptorFunc {
 			return next(ctx, req)
 		}
 	}
-}
-
-// permissionForProcedure extracts the method name and returns the required permission.
-func permissionForProcedure(procedure string) Permission {
-	// procedure format: "/package.Service/MethodName"
-	idx := strings.LastIndex(procedure, "/")
-	if idx < 0 {
-		return ""
-	}
-	method := procedure[idx+1:]
-	for prefix, perm := range procedurePermissions {
-		if strings.HasPrefix(method, prefix) {
-			return perm
-		}
-	}
-	return ""
 }

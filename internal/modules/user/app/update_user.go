@@ -21,11 +21,11 @@ type UpdateUserCmd struct {
 // UpdateUserHandler handles user updates via closure-based UoW.
 type UpdateUserHandler struct {
 	repo domain.UserRepository
-	bus  *events.EventBus
+	bus  events.EventPublisher
 }
 
 // NewUpdateUserHandler constructs the handler.
-func NewUpdateUserHandler(repo domain.UserRepository, bus *events.EventBus) *UpdateUserHandler {
+func NewUpdateUserHandler(repo domain.UserRepository, bus events.EventPublisher) *UpdateUserHandler {
 	return &UpdateUserHandler{repo: repo, bus: bus}
 }
 

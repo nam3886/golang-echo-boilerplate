@@ -3,10 +3,10 @@ package grpc
 import (
 	"context"
 
+	"connectrpc.com/connect"
 	userv1 "github.com/gnha/gnha-services/gen/proto/user/v1"
 	"github.com/gnha/gnha-services/gen/proto/user/v1/userv1connect"
 	"github.com/gnha/gnha-services/internal/modules/user/app"
-	"connectrpc.com/connect"
 )
 
 // UserServiceHandler implements the Connect RPC UserService.

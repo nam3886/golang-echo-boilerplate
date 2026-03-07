@@ -11,9 +11,9 @@ import (
 	"github.com/gnha/gnha-services/internal/modules/user"
 	"github.com/gnha/gnha-services/internal/shared"
 	"github.com/gnha/gnha-services/internal/shared/auth"
+	"github.com/gnha/gnha-services/internal/shared/config"
 	"github.com/gnha/gnha-services/internal/shared/cron"
 	"github.com/gnha/gnha-services/internal/shared/events"
-	"github.com/gnha/gnha-services/internal/shared/config"
 	appmw "github.com/gnha/gnha-services/internal/shared/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
@@ -21,8 +21,12 @@ import (
 	"go.uber.org/fx"
 )
 
+// Version is injected at build time via -ldflags="-X main.Version=$(git describe --tags --always)".
+var Version = "dev"
+
 func main() {
 	fx.New(
+		fx.Supply(Version),
 		shared.Module,
 		fx.Provide(auth.NewPasswordHasher),
 		fx.Provide(newEcho),

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"log/slog"
 
+	"connectrpc.com/connect"
 	userv1 "github.com/gnha/gnha-services/gen/proto/user/v1"
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
-	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
-	"connectrpc.com/connect"
+	domainerr "github.com/gnha/gnha-services/internal/shared/errors"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -27,7 +27,7 @@ func toProto(u *domain.User) *userv1.User {
 // domainErrorToConnect maps DomainError to Connect RPC error codes.
 // Non-domain errors are logged and returned as a generic internal error to avoid leaking internals.
 func domainErrorToConnect(err error) error {
-	var domErr *sharederr.DomainError
+	var domErr *domainerr.DomainError
 	if errors.As(err, &domErr) {
 		code := codeToConnect[domErr.Code]
 		return connect.NewError(code, err)
@@ -36,13 +36,13 @@ func domainErrorToConnect(err error) error {
 	return connect.NewError(connect.CodeInternal, fmt.Errorf("internal error"))
 }
 
-var codeToConnect = map[sharederr.ErrorCode]connect.Code{
-	sharederr.CodeInvalidArgument:    connect.CodeInvalidArgument,
-	sharederr.CodeNotFound:           connect.CodeNotFound,
-	sharederr.CodeAlreadyExists:      connect.CodeAlreadyExists,
-	sharederr.CodePermissionDenied:   connect.CodePermissionDenied,
-	sharederr.CodeUnauthenticated:    connect.CodeUnauthenticated,
-	sharederr.CodeFailedPrecondition: connect.CodeFailedPrecondition,
-	sharederr.CodeInternal:           connect.CodeInternal,
-	sharederr.CodeUnavailable:        connect.CodeUnavailable,
+var codeToConnect = map[domainerr.ErrorCode]connect.Code{
+	domainerr.CodeInvalidArgument:    connect.CodeInvalidArgument,
+	domainerr.CodeNotFound:           connect.CodeNotFound,
+	domainerr.CodeAlreadyExists:      connect.CodeAlreadyExists,
+	domainerr.CodePermissionDenied:   connect.CodePermissionDenied,
+	domainerr.CodeUnauthenticated:    connect.CodeUnauthenticated,
+	domainerr.CodeFailedPrecondition: connect.CodeFailedPrecondition,
+	domainerr.CodeInternal:           connect.CodeInternal,
+	domainerr.CodeUnavailable:        connect.CodeUnavailable,
 }

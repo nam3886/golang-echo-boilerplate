@@ -7,9 +7,9 @@ import (
 	"net/netip"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/google/uuid"
 	sqlcgen "github.com/gnha/gnha-services/gen/sqlc"
 	"github.com/gnha/gnha-services/internal/shared/events"
+	"github.com/google/uuid"
 )
 
 // Handler processes audit-related events.

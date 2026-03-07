@@ -20,9 +20,9 @@ type RouterParams struct {
 
 // HandlerRegistration describes how to register an event handler.
 type HandlerRegistration struct {
-	Name         string
-	Topic        string
-	HandlerFunc  message.NoPublishHandlerFunc
+	Name        string
+	Topic       string
+	HandlerFunc message.NoPublishHandlerFunc
 }
 
 // NewRouter creates and configures the Watermill message router.
@@ -38,8 +38,9 @@ func NewRouter(params RouterParams) (*message.Router, error) {
 	router.AddMiddleware(
 		middleware.Recoverer,
 		middleware.Retry{
-			MaxRetries:      3,
-			InitialInterval: time.Second,
+			MaxRetries:          3,
+			InitialInterval:     time.Second,
+			RandomizationFactor: 0.5,
 		}.Middleware,
 	)
 

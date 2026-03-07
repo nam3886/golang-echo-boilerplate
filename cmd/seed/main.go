@@ -11,7 +11,7 @@ import (
 	"github.com/gnha/gnha-services/internal/shared/auth"
 	"github.com/gnha/gnha-services/internal/shared/config"
 	"github.com/gnha/gnha-services/internal/shared/database"
-	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
+	domainerr "github.com/gnha/gnha-services/internal/shared/errors"
 )
 
 type seedUser struct {
@@ -59,7 +59,7 @@ func main() {
 
 func seedOne(ctx context.Context, repo domain.UserRepository, hasher auth.PasswordHasher, s seedUser) error {
 	existing, err := repo.GetByEmail(ctx, s.email)
-	if err != nil && !errors.Is(err, sharederr.ErrNotFound) {
+	if err != nil && !errors.Is(err, domainerr.ErrNotFound()) {
 		return err
 	}
 	if existing != nil {

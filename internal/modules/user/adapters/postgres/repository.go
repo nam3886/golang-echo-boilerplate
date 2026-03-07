@@ -10,7 +10,7 @@ import (
 
 	sqlcgen "github.com/gnha/gnha-services/gen/sqlc"
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
-	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
+	domainerr "github.com/gnha/gnha-services/internal/shared/errors"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -37,7 +37,7 @@ func (r *PgUserRepository) GetByID(ctx context.Context, id domain.UserID) (*doma
 	row, err := q.GetUserByID(ctx, uid)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, sharederr.ErrNotFound
+			return nil, domainerr.ErrNotFound()
 		}
 		return nil, fmt.Errorf("getting user by id: %w", err)
 	}
@@ -49,7 +49,7 @@ func (r *PgUserRepository) GetByEmail(ctx context.Context, email string) (*domai
 	row, err := q.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, sharederr.ErrNotFound
+			return nil, domainerr.ErrNotFound()
 		}
 		return nil, fmt.Errorf("getting user by email: %w", err)
 	}
@@ -133,13 +133,13 @@ func (r *PgUserRepository) Update(ctx context.Context, id domain.UserID, fn func
 	if err != nil {
 		return fmt.Errorf("beginning transaction: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	q := sqlcgen.New(tx)
 	row, err := q.GetUserByIDForUpdate(ctx, uid)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return sharederr.ErrNotFound
+			return domainerr.ErrNotFound()
 		}
 		return fmt.Errorf("fetching user for update: %w", err)
 	}
@@ -174,7 +174,7 @@ func (r *PgUserRepository) SoftDelete(ctx context.Context, id domain.UserID) err
 		return fmt.Errorf("soft deleting user: %w", err)
 	}
 	if rows == 0 {
-		return sharederr.ErrNotFound
+		return domainerr.ErrNotFound()
 	}
 	return nil
 }
@@ -183,7 +183,7 @@ func (r *PgUserRepository) SoftDelete(ctx context.Context, id domain.UserID) err
 func parseUserID(id domain.UserID) (uuid.UUID, error) {
 	uid, err := uuid.Parse(string(id))
 	if err != nil {
-		return uuid.UUID{}, sharederr.New(sharederr.CodeInvalidArgument, "invalid user ID format")
+		return uuid.UUID{}, domainerr.New(domainerr.CodeInvalidArgument, "invalid user ID format")
 	}
 	return uid, nil
 }

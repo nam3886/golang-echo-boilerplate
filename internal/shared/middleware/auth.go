@@ -16,22 +16,22 @@ func Auth(cfg *config.Config, rdb *redis.Client) echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			token := extractBearerToken(c)
 			if token == "" {
-				return domainerr.ErrUnauthorized
+				return domainerr.ErrUnauthorized()
 			}
 
 			claims, err := auth.ValidateAccessToken(cfg, token)
 			if err != nil {
-				return domainerr.ErrUnauthorized
+				return domainerr.ErrUnauthorized()
 			}
 
 			// Check token blacklist (logout). Fail closed: any Redis error rejects the token.
 			ctx := c.Request().Context()
 			blacklisted, err := rdb.Exists(ctx, "blacklist:"+claims.RegisteredClaims.ID).Result()
 			if err != nil {
-				return domainerr.ErrUnauthorized
+				return domainerr.ErrUnauthorized()
 			}
 			if blacklisted > 0 {
-				return domainerr.ErrUnauthorized
+				return domainerr.ErrUnauthorized()
 			}
 
 			ctx = auth.WithUser(ctx, claims)
