@@ -9,6 +9,7 @@ import (
 
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gnha/gnha-services/internal/shared/config"
+	"github.com/gnha/gnha-services/internal/shared/retry"
 )
 
 // Client wraps the official Elasticsearch client with an index prefix.
@@ -17,48 +18,42 @@ type Client struct {
 	IndexPrefix string
 }
 
-// NewClient creates an Elasticsearch client. Returns nil when ElasticsearchURL
-// is empty, making the entire search subsystem a no-op.
+// NewClient creates an Elasticsearch client. Returns (nil, nil) when
+// ElasticsearchURL is empty, disabling the search subsystem.
+// IMPORTANT: All consumers MUST nil-check the returned *Client before use.
 func NewClient(cfg *config.Config) (*Client, error) {
 	if cfg.ElasticsearchURL == "" {
 		slog.Info("elasticsearch disabled (ELASTICSEARCH_URL empty)")
 		return nil, nil
 	}
 
-	var (
-		es  *elasticsearch.Client
-		err error
-	)
-
 	esCfg := elasticsearch.Config{
 		Addresses: []string{cfg.ElasticsearchURL},
 	}
 
-	for i := range 10 {
-		es, err = elasticsearch.NewClient(esCfg)
-		if err == nil {
-			res, pingErr := es.Ping()
-			if pingErr == nil && !res.IsError() {
-				_ = res.Body.Close()
-				slog.Info("elasticsearch connected", "url", cfg.ElasticsearchURL)
-				return &Client{
-					ES:          es,
-					IndexPrefix: cfg.ElasticsearchIndexPrefix,
-				}, nil
-			}
-			if res != nil {
-				_ = res.Body.Close()
-			}
-			if pingErr != nil {
-				err = pingErr
-			} else {
-				err = fmt.Errorf("elasticsearch ping returned status %s", res.Status())
-			}
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	client, err := retry.Connect(ctx, "elasticsearch", 10, func() (*Client, error) {
+		es, err := elasticsearch.NewClient(esCfg)
+		if err != nil {
+			return nil, err
 		}
-		slog.Warn("elasticsearch not ready, retrying", "attempt", i+1, "err", err)
-		time.Sleep(time.Duration(i+1) * time.Second)
+		res, err := es.Ping()
+		if err != nil {
+			return nil, err
+		}
+		defer func() { _ = res.Body.Close() }()
+		if res.IsError() {
+			return nil, fmt.Errorf("ping returned %s", res.Status())
+		}
+		return &Client{ES: es, IndexPrefix: cfg.ElasticsearchIndexPrefix}, nil
+	})
+	if err != nil {
+		return nil, err
 	}
-	return nil, fmt.Errorf("elasticsearch connection failed after 10 retries: %w", err)
+	slog.Info("elasticsearch connected", "url", cfg.ElasticsearchURL)
+	return client, nil
 }
 
 // IndexName returns the fully qualified index name with prefix.

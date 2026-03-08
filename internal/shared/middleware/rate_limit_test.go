@@ -67,8 +67,10 @@ func TestRateLimit_OverLimit_Returns429(t *testing.T) {
 	}
 }
 
-func TestRateLimit_RedisFailure_Returns503(t *testing.T) {
+func TestRateLimit_RedisFailure_FailsOpen(t *testing.T) {
 	// Nothing listening on this port — simulates Redis outage.
+	// The limiter must fail open (allow the request) so a Redis blip
+	// does not take down the entire service.
 	rdb := redis.NewClient(&redis.Options{Addr: "localhost:19998"})
 
 	e := newRateLimitEcho(rdb, 10, time.Minute)
@@ -76,8 +78,8 @@ func TestRateLimit_RedisFailure_Returns503(t *testing.T) {
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusServiceUnavailable {
-		t.Errorf("expected 503 on redis failure (fail-closed), got %d", rec.Code)
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected 200 on redis failure (fail-open), got %d", rec.Code)
 	}
 }
 

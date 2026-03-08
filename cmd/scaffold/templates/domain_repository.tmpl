@@ -5,10 +5,11 @@ import "context"
 //go:generate mockgen -source=repository.go -destination=../../../shared/mocks/mock_{{.Name}}_repository.go -package=mocks
 
 // ListResult holds paginated results from a List query.
+// Convention: use the entity-specific plural field name (e.g. Users, Products) — not Items.
 type ListResult struct {
-	Items      []*{{.NameTitle}}
-	NextCursor string
-	HasMore    bool
+	{{.NamePluralTitle}} []*{{.NameTitle}}
+	NextCursor          string
+	HasMore             bool
 }
 
 // {{.NameTitle}}Repository is the port for {{.Name}} persistence.

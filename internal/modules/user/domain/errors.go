@@ -7,11 +7,6 @@ import (
 // Module-specific domain errors — constructor functions return fresh instances
 // to prevent data races when errors are wrapped concurrently.
 
-// ErrEmailRequired indicates the email field is missing.
-func ErrEmailRequired() *sharederr.DomainError {
-	return sharederr.New(sharederr.CodeInvalidArgument, "email is required")
-}
-
 // ErrInvalidEmail indicates the email format is invalid.
 func ErrInvalidEmail() *sharederr.DomainError {
 	return sharederr.New(sharederr.CodeInvalidArgument, "invalid email format")

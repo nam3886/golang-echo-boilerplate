@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log/slog"
 	"strings"
 
 	"github.com/gnha/gnha-services/internal/shared/auth"
@@ -28,6 +29,7 @@ func Auth(cfg *config.Config, rdb *redis.Client) echo.MiddlewareFunc {
 			ctx := c.Request().Context()
 			blacklisted, err := auth.IsBlacklisted(ctx, rdb, claims.ID)
 			if err != nil {
+				slog.ErrorContext(ctx, "blacklist check failed", "err", err, "jti", claims.ID)
 				return domainerr.ErrUnauthorized()
 			}
 			if blacklisted {

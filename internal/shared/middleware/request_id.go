@@ -12,13 +12,29 @@ type contextKey string
 
 const requestIDKey contextKey = "request_id"
 
-// RequestID generates a UUID request ID if X-Request-ID header is missing,
+// isValidRequestID checks that the ID contains only safe characters
+// (alphanumeric, hyphen, underscore, dot) and is within length bounds.
+// Prevents HTTP response splitting and log injection via the X-Request-ID header.
+func isValidRequestID(id string) bool {
+	if len(id) == 0 || len(id) > 128 {
+		return false
+	}
+	for _, r := range id {
+		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') ||
+			(r >= '0' && r <= '9') || r == '-' || r == '_' || r == '.') {
+			return false
+		}
+	}
+	return true
+}
+
+// RequestID generates a UUID request ID if X-Request-ID header is missing or invalid,
 // and injects it into both the response header and request context.
 func RequestID() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			id := c.Request().Header.Get("X-Request-ID")
-			if id == "" || len(id) > 128 {
+			if !isValidRequestID(id) {
 				id = uuid.NewString()
 			}
 			c.Response().Header().Set("X-Request-ID", id)
@@ -38,11 +54,4 @@ func GetRequestID(ctx context.Context) string {
 		return id
 	}
 	return ""
-}
-
-// GetClientIP extracts the client IP from context.
-//
-// Deprecated: use netutil.GetClientIP directly.
-func GetClientIP(ctx context.Context) string {
-	return netutil.GetClientIP(ctx)
 }

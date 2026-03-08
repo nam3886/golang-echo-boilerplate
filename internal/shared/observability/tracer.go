@@ -14,7 +14,7 @@ import (
 )
 
 // NewTracerProvider creates an OTel tracer provider exporting to OTLP.
-func NewTracerProvider(cfg *config.Config, version string) (*sdktrace.TracerProvider, error) {
+func NewTracerProvider(cfg *config.Config, version config.AppVersion) (*sdktrace.TracerProvider, error) {
 	ctx := context.Background()
 
 	opts := []otlptracegrpc.Option{
@@ -33,7 +33,7 @@ func NewTracerProvider(cfg *config.Config, version string) (*sdktrace.TracerProv
 		sdktrace.WithResource(resource.NewWithAttributes(
 			semconv.SchemaURL,
 			semconv.ServiceName(cfg.AppName),
-			semconv.ServiceVersion(version),
+			semconv.ServiceVersion(string(version)),
 			semconv.DeploymentEnvironment(cfg.AppEnv),
 		)),
 	)

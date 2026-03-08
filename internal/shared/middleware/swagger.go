@@ -11,6 +11,14 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// Pin swagger-ui-dist to a specific version for supply-chain safety.
+// Avoid using floating tags like "@5" which can resolve to arbitrary versions.
+const (
+	swaggerUIVersion = "5.18.2"
+	swaggerCSSURL    = "https://unpkg.com/swagger-ui-dist@" + swaggerUIVersion + "/swagger-ui.css"
+	swaggerJSURL     = "https://unpkg.com/swagger-ui-dist@" + swaggerUIVersion + "/swagger-ui-bundle.js"
+)
+
 // MountSwagger serves OpenAPI specs and Swagger UI in non-production environments.
 func MountSwagger(e *echo.Echo, cfg *config.Config) {
 	if cfg.AppEnv == "production" {
@@ -59,10 +67,10 @@ func buildSwaggerHTML(specs []string) string {
 	}
 	return `<!DOCTYPE html>
 <html><head><title>API Docs</title>
-<link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
+<link rel="stylesheet" href="` + swaggerCSSURL + `" crossorigin="anonymous">
 </head><body>
 <div id="swagger-ui"></div>
-<script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+<script src="` + swaggerJSURL + `" crossorigin="anonymous"></script>
 <script>SwaggerUIBundle({urls:[` + urlEntries + `],dom_id:"#swagger-ui","urls.primaryName":"` + html.EscapeString(strings.TrimSuffix(filepath.Base(specs[0]), ".swagger.json")) + `"})</script>
 </body></html>`
 }

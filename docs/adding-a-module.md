@@ -91,6 +91,7 @@ package product.v1;
 option go_package = "github.com/gnha/gnha-services/gen/proto/product/v1;productv1";
 
 import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
 
 service ProductService {
   rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
@@ -101,8 +102,8 @@ service ProductService {
 message Product {
   string id = 1;
   string name = 2;
-  string created_at = 3;
-  string updated_at = 4;
+  google.protobuf.Timestamp created_at = 3;
+  google.protobuf.Timestamp updated_at = 4;
 }
 
 message CreateProductRequest {
@@ -133,12 +134,15 @@ Create migration `db/migrations/000X_create_products.sql`:
 ```sql
 -- +goose Up
 CREATE TABLE products (
-  id         UUID PRIMARY KEY,
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name       TEXT NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   deleted_at TIMESTAMPTZ
 );
+
+CREATE INDEX idx_products_name ON products (name) WHERE deleted_at IS NULL;
+CREATE INDEX idx_products_cursor ON products (created_at DESC, id DESC) WHERE deleted_at IS NULL;
 
 -- +goose Down
 DROP TABLE IF EXISTS products;
@@ -149,6 +153,9 @@ Create `db/queries/product.sql`:
 ```sql
 -- name: GetProductByID :one
 SELECT * FROM products WHERE id = $1 AND deleted_at IS NULL;
+
+-- name: GetProductByIDForUpdate :one
+SELECT * FROM products WHERE id = $1 AND deleted_at IS NULL FOR UPDATE;
 
 -- name: ListProducts :many
 SELECT * FROM products
@@ -208,7 +215,7 @@ type Product struct {
 // NewProduct creates a validated Product entity.
 func NewProduct(name string) (*Product, error) {
     if name == "" {
-        return nil, ErrNameRequired
+        return nil, ErrNameRequired()
     }
     now := time.Now()
     return &Product{
@@ -236,7 +243,7 @@ func (p *Product) UpdatedAt() time.Time { return p.updatedAt }
 // ChangeName updates the product name.
 func (p *Product) ChangeName(name string) error {
     if name == "" {
-        return ErrNameRequired
+        return ErrNameRequired()
     }
     p.name = name
     p.updatedAt = time.Now()
@@ -251,10 +258,16 @@ package domain
 
 import sharederr "github.com/gnha/gnha-services/internal/shared/errors"
 
-var (
-    ErrNameRequired    = sharederr.New(sharederr.CodeInvalidArgument, "name is required")
-    ErrProductNotFound = sharederr.New(sharederr.CodeNotFound, "product not found")
-)
+// Constructor functions return fresh instances to prevent data races
+// when errors are wrapped concurrently.
+
+func ErrNameRequired() *sharederr.DomainError {
+    return sharederr.New(sharederr.CodeInvalidArgument, "name is required")
+}
+
+func ErrProductNotFound() *sharederr.DomainError {
+    return sharederr.New(sharederr.CodeNotFound, "product not found")
+}
 ```
 
 ### domain/repository.go — Interface with mockgen directive
@@ -316,7 +329,7 @@ func (r *PgProductRepository) GetByID(ctx context.Context, id domain.ProductID) 
     row, err := q.GetProductByID(ctx, uid)
     if err != nil {
         if errors.Is(err, pgx.ErrNoRows) {
-            return nil, sharederr.ErrNotFound
+            return nil, sharederr.ErrNotFound()
         }
         return nil, fmt.Errorf("getting product by id: %w", err)
     }
@@ -427,6 +440,10 @@ var Module = fx.Module("product",
 ```
 
 ## 5. Event Publishing (optional)
+
+> **Note:** Event topics and types are defined in each module's `domain/events.go` file,
+> NOT in `internal/shared/events/`. The shared events package provides only infrastructure
+> (bus, router, subscriber config).
 
 ### domain/events.go — Define Topics & Event Types
 

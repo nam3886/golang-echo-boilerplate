@@ -31,8 +31,10 @@ func (c ErrorCode) String() string   { return string(c) }
 func (e *DomainError) Error() string { return e.Message }
 func (e *DomainError) Unwrap() error { return e.Err }
 
-// Is implements errors.Is support by matching on ErrorCode.
-// This allows errors.Is(err, ErrNotFound()) to work even when the pointers differ.
+// Is matches by error category (ErrorCode), not by specific error identity.
+// This means errors.Is(ErrUserNotFound(), ErrOrderNotFound()) returns true
+// because both have CodeNotFound. This is intentional for HTTP status mapping.
+// For identity-specific matching, use errors.As and check the Message field.
 func (e *DomainError) Is(target error) bool {
 	var t *DomainError
 	if !errors.As(target, &t) {

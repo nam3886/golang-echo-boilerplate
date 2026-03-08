@@ -1,17 +1,14 @@
+// Package postgres implements the {{.Name}} repository using pgx and sqlc.
 package postgres
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	sqlcgen "{{.GoModule}}/gen/sqlc"
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
 	sharederr "{{.GoModule}}/internal/shared/errors"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -77,12 +74,16 @@ func (r *Pg{{.NameTitle}}Repository) List(ctx context.Context, limit int, cursor
 	var nextCursor string
 	if hasMore && len(items) > 0 {
 		last := items[len(items)-1]
-		if uid, err := uuid.Parse(string(last.ID())); err == nil {
+		if uid, err := parse{{.NameTitle}}ID(last.ID()); err == nil {
 			nextCursor = encodeCursor(last.CreatedAt(), uid)
 		}
 	}
 
-	return domain.ListResult{Items: items, NextCursor: nextCursor, HasMore: hasMore}, nil
+	return domain.ListResult{
+		{{.NamePluralTitle}}: items,
+		NextCursor:          nextCursor,
+		HasMore:             hasMore,
+	}, nil
 }
 
 // Create persists a new {{.Name}}.
@@ -162,49 +163,4 @@ func (r *Pg{{.NameTitle}}Repository) SoftDelete(ctx context.Context, id domain.{
 		return sharederr.ErrNotFound()
 	}
 	return nil
-}
-
-// parse{{.NameTitle}}ID safely parses a domain.{{.NameID}} into a uuid.UUID.
-func parse{{.NameTitle}}ID(id domain.{{.NameID}}) (uuid.UUID, error) {
-	uid, err := uuid.Parse(string(id))
-	if err != nil {
-		return uuid.UUID{}, sharederr.New(sharederr.CodeInvalidArgument, "invalid {{.Name}} ID format")
-	}
-	return uid, nil
-}
-
-// toDomain converts a sqlc row to a domain entity.
-func toDomain(row sqlcgen.{{.NameTitle}}) *domain.{{.NameTitle}} {
-	var deletedAt *time.Time
-	if row.DeletedAt.Valid {
-		deletedAt = &row.DeletedAt.Time
-	}
-	return domain.Reconstitute(
-		domain.{{.NameID}}(row.ID.String()),
-		row.Name,
-		row.CreatedAt, row.UpdatedAt, deletedAt,
-	)
-}
-
-// Cursor helpers for keyset pagination.
-type cursorPayload struct {
-	T time.Time `json:"t"`
-	U uuid.UUID `json:"u"`
-}
-
-func encodeCursor(t time.Time, id uuid.UUID) string {
-	data, _ := json.Marshal(cursorPayload{T: t, U: id})
-	return base64.URLEncoding.EncodeToString(data)
-}
-
-func decodeCursor(cursor string) (*cursorPayload, error) {
-	data, err := base64.URLEncoding.DecodeString(cursor)
-	if err != nil {
-		return nil, err
-	}
-	var c cursorPayload
-	if err := json.Unmarshal(data, &c); err != nil {
-		return nil, err
-	}
-	return &c, nil
 }

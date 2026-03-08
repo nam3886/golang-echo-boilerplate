@@ -23,7 +23,7 @@ import (
 )
 
 // Version is injected at build time via -ldflags="-X main.Version=$(git describe --tags --always)".
-var Version = "dev"
+var Version config.AppVersion = "dev"
 
 func main() {
 	fx.New(

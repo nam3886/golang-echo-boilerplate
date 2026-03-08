@@ -21,7 +21,7 @@ type {{.NameTitle}} struct {
 // New{{.NameTitle}} creates a validated {{.NameTitle}} entity.
 func New{{.NameTitle}}(name string) (*{{.NameTitle}}, error) {
 	if name == "" {
-		return nil, ErrNameRequired
+		return nil, ErrNameRequired()
 	}
 	now := time.Now()
 	return &{{.NameTitle}}{
@@ -50,7 +50,7 @@ func (e *{{.NameTitle}}) DeletedAt() *time.Time { return e.deletedAt }
 // ChangeName updates the name.
 func (e *{{.NameTitle}}) ChangeName(name string) error {
 	if name == "" {
-		return ErrNameRequired
+		return ErrNameRequired()
 	}
 	e.name = name
 	e.updatedAt = time.Now()

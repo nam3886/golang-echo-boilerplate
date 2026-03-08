@@ -62,8 +62,8 @@ func (h *{{.NameTitle}}ServiceHandler) List{{.NamePluralTitle}}(ctx context.Cont
 		return nil, domainErrorToConnect(err)
 	}
 
-	items := make([]*{{.Name}}v1.{{.NameTitle}}, 0, len(result.Items))
-	for _, item := range result.Items {
+	items := make([]*{{.Name}}v1.{{.NameTitle}}, 0, len(result.{{.NamePluralTitle}}))
+	for _, item := range result.{{.NamePluralTitle}} {
 		items = append(items, toProto(item))
 	}
 

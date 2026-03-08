@@ -27,8 +27,9 @@ func NewHandler(sender Sender) *Handler {
 func (h *Handler) HandleUserCreated(msg *message.Message) error {
 	var event domain.UserCreatedEvent
 	if err := json.Unmarshal(msg.Payload, &event); err != nil {
-		slog.Error("notification: failed to unmarshal event", "err", err)
-		return err
+		slog.Error("notification: failed to unmarshal event", "err", err,
+			"payload", string(msg.Payload))
+		return nil // ack — schema mismatch is permanent, retrying won't help
 	}
 
 	var buf bytes.Buffer
@@ -55,10 +56,12 @@ func (h *Handler) HandleUserCreated(msg *message.Message) error {
 // isPermanentSMTPError checks if the error wraps an SMTP 5xx response.
 // SMTP 5xx codes indicate permanent failures (bad address, policy reject, etc.)
 // that won't be resolved by retrying.
+// Codes are matched with a trailing space to reduce false positives
+// (e.g., "after 550ms" won't match "550 ").
 func isPermanentSMTPError(err error) bool {
 	errStr := err.Error()
-	for _, prefix := range []string{"550", "551", "552", "553", "554", "555"} {
-		if strings.Contains(errStr, prefix) {
+	for _, code := range []string{"550 ", "551 ", "552 ", "553 ", "554 ", "555 "} {
+		if strings.Contains(errStr, code) {
 			return true
 		}
 	}

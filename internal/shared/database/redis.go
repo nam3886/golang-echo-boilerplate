@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gnha/gnha-services/internal/shared/config"
+	"github.com/gnha/gnha-services/internal/shared/retry"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -29,13 +30,15 @@ func NewRedisClient(cfg *config.Config) (*redis.Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	for i := range 10 {
-		if err = rdb.Ping(ctx).Err(); err == nil {
-			slog.Info("redis connected", "addr", opt.Addr)
-			return rdb, nil
+	_, err = retry.Connect(ctx, "redis", 10, func() (struct{}, error) {
+		if pingErr := rdb.Ping(ctx).Err(); pingErr != nil {
+			return struct{}{}, pingErr
 		}
-		slog.Warn("redis not ready, retrying", "attempt", i+1, "err", err)
-		time.Sleep(time.Duration(i+1) * time.Second)
+		return struct{}{}, nil
+	})
+	if err != nil {
+		return nil, err
 	}
-	return nil, fmt.Errorf("redis connection failed after 10 retries: %w", err)
+	slog.Info("redis connected", "addr", opt.Addr)
+	return rdb, nil
 }

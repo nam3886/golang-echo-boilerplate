@@ -2,7 +2,6 @@ package audit
 
 import (
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"net/netip"
 
@@ -55,7 +54,8 @@ func parseActorID(actorIDStr string, entityID uuid.UUID) uuid.UUID {
 }
 
 // handleAuditEvent is the generic audit handler; unmarshal is done by the caller.
-func (h *Handler) handleAuditEvent(msg *message.Message, ev auditEvent, raw any, action string) error {
+// changes is the raw JSON payload from the event message, preserving all fields.
+func (h *Handler) handleAuditEvent(msg *message.Message, ev auditEvent, changes json.RawMessage, action string) error {
 	entityID, err := uuid.Parse(ev.userID())
 	if err != nil {
 		slog.Error("audit: invalid user ID in event", "user_id", ev.userID(), "err", err)
@@ -69,18 +69,13 @@ func (h *Handler) handleAuditEvent(msg *message.Message, ev auditEvent, raw any,
 		msgID = uuid.New()
 	}
 
-	changes, err := json.Marshal(raw)
-	if err != nil {
-		return fmt.Errorf("audit: marshaling %s event changes: %w", action, err)
-	}
-
 	return h.queries.CreateAuditLog(msg.Context(), sqlcgen.CreateAuditLogParams{
 		ID:         msgID,
 		EntityType: "user",
 		EntityID:   entityID,
 		Action:     action,
 		ActorID:    parseActorID(ev.actorID(), entityID),
-		Changes:    changes,
+		Changes:    changes, // raw JSON preserves all event fields (email, name, role, etc.)
 		IpAddress:  parseIPAddress(ev.ipAddress()),
 	})
 }
@@ -89,28 +84,31 @@ func (h *Handler) handleAuditEvent(msg *message.Message, ev auditEvent, raw any,
 func (h *Handler) HandleUserCreated(msg *message.Message) error {
 	var ev auditPayload
 	if err := json.Unmarshal(msg.Payload, &ev); err != nil {
-		slog.Error("audit: failed to unmarshal user.created event", "err", err)
-		return err
+		slog.Error("audit: failed to unmarshal user.created event", "err", err,
+			"payload", string(msg.Payload))
+		return nil // ack — schema mismatch is permanent, retrying won't help
 	}
-	return h.handleAuditEvent(msg, ev, ev, "created")
+	return h.handleAuditEvent(msg, ev, json.RawMessage(msg.Payload), "created")
 }
 
 // HandleUserUpdated logs a user update event.
 func (h *Handler) HandleUserUpdated(msg *message.Message) error {
 	var ev auditPayload
 	if err := json.Unmarshal(msg.Payload, &ev); err != nil {
-		slog.Error("audit: failed to unmarshal user.updated event", "err", err)
-		return err
+		slog.Error("audit: failed to unmarshal user.updated event", "err", err,
+			"payload", string(msg.Payload))
+		return nil // ack — schema mismatch is permanent, retrying won't help
 	}
-	return h.handleAuditEvent(msg, ev, ev, "updated")
+	return h.handleAuditEvent(msg, ev, json.RawMessage(msg.Payload), "updated")
 }
 
 // HandleUserDeleted logs a user deletion event.
 func (h *Handler) HandleUserDeleted(msg *message.Message) error {
 	var ev auditPayload
 	if err := json.Unmarshal(msg.Payload, &ev); err != nil {
-		slog.Error("audit: failed to unmarshal user.deleted event", "err", err)
-		return err
+		slog.Error("audit: failed to unmarshal user.deleted event", "err", err,
+			"payload", string(msg.Payload))
+		return nil // ack — schema mismatch is permanent, retrying won't help
 	}
-	return h.handleAuditEvent(msg, ev, ev, "deleted")
+	return h.handleAuditEvent(msg, ev, json.RawMessage(msg.Payload), "deleted")
 }

@@ -37,8 +37,8 @@ generated-check:
   stage: quality
   before_script:
     - apk add --no-cache git curl
-    - go install github.com/bufbuild/buf/cmd/buf@latest
-    - go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+    - go install github.com/bufbuild/buf/cmd/buf@v1.51.0
+    - go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.28.0
   script:
     - buf generate
     - git diff --exit-code gen/proto || (echo "Proto files out of date. Run 'task generate:proto'" && exit 1)

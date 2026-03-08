@@ -1,6 +1,7 @@
 package config
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -95,7 +96,7 @@ func TestMaskURL_RedactsCredentials(t *testing.T) {
 	if result == "" {
 		t.Fatal("expected non-empty masked URL")
 	}
-	if contains(result, "pass") {
+	if strings.Contains(result, "pass") {
 		t.Errorf("password should be redacted, got %s", result)
 	}
 }
@@ -115,11 +116,3 @@ func TestMaskURL_Empty(t *testing.T) {
 	}
 }
 
-func contains(s, substr string) bool {
-	for i := 0; i < len(s)-len(substr)+1; i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}

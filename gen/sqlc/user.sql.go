@@ -174,7 +174,7 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]ListUse
 }
 
 const softDeleteUser = `-- name: SoftDeleteUser :execrows
-UPDATE users SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL
+UPDATE users SET deleted_at = NOW(), updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL
 `
 
 func (q *Queries) SoftDeleteUser(ctx context.Context, id uuid.UUID) (int64, error) {

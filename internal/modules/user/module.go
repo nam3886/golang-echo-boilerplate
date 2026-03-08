@@ -2,7 +2,6 @@ package user
 
 import (
 	"context"
-	"log/slog"
 
 	"github.com/gnha/gnha-services/internal/modules/user/adapters/grpc"
 	"github.com/gnha/gnha-services/internal/modules/user/adapters/postgres"
@@ -35,7 +34,7 @@ var Module = fx.Module("user",
 		provideSearchHandlers,
 		fx.ResultTags(`group:"event_handlers"`),
 	)),
-	fx.Invoke(ensureSearchIndex),
+	fx.Invoke(registerSearchLifecycle),
 )
 
 func provideSearchHandlers(ix *usersearch.Indexer) []events.HandlerRegistration {
@@ -49,11 +48,16 @@ func provideSearchHandlers(ix *usersearch.Indexer) []events.HandlerRegistration 
 	}
 }
 
-func ensureSearchIndex(repo *usersearch.Repository) {
+// registerSearchLifecycle registers the search index creation as an Fx lifecycle
+// hook so it runs with the startup context (timeout-aware) and errors surface
+// through the normal Fx startup failure path.
+func registerSearchLifecycle(lc fx.Lifecycle, repo *usersearch.Repository) {
 	if repo == nil {
 		return
 	}
-	if err := repo.EnsureIndex(context.Background()); err != nil {
-		slog.Error("search: failed to ensure users index", "err", err)
-	}
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			return repo.EnsureIndex(ctx)
+		},
+	})
 }

@@ -98,6 +98,7 @@ func main() {
 		{"domain_entity.tmpl", filepath.Join("internal", "modules", data.Name, "domain", data.Name+".go")},
 		{"domain_repository.tmpl", filepath.Join("internal", "modules", data.Name, "domain", "repository.go")},
 		{"domain_errors.tmpl", filepath.Join("internal", "modules", data.Name, "domain", "errors.go")},
+		{"domain_events.tmpl", filepath.Join("internal", "modules", data.Name, "domain", "events.go")},
 		{"domain_test.tmpl", filepath.Join("internal", "modules", data.Name, "domain", data.Name+"_test.go")},
 		{"app_create.tmpl", filepath.Join("internal", "modules", data.Name, "app", "create_"+data.Name+".go")},
 		{"app_create_test.tmpl", filepath.Join("internal", "modules", data.Name, "app", "create_"+data.Name+"_test.go")},
@@ -106,6 +107,8 @@ func main() {
 		{"app_update.tmpl", filepath.Join("internal", "modules", data.Name, "app", "update_"+data.Name+".go")},
 		{"app_delete.tmpl", filepath.Join("internal", "modules", data.Name, "app", "delete_"+data.Name+".go")},
 		{"adapter_postgres.tmpl", filepath.Join("internal", "modules", data.Name, "adapters", "postgres", "repository.go")},
+		{"adapter_postgres_cursor.tmpl", filepath.Join("internal", "modules", data.Name, "adapters", "postgres", "cursor.go")},
+		{"adapter_postgres_mapper.tmpl", filepath.Join("internal", "modules", data.Name, "adapters", "postgres", "domain_mapper.go")},
 		{"adapter_postgres_test.tmpl", filepath.Join("internal", "modules", data.Name, "adapters", "postgres", "repository_test.go")},
 		{"adapter_grpc_handler.tmpl", filepath.Join("internal", "modules", data.Name, "adapters", "grpc", "handler.go")},
 		{"adapter_grpc_mapper.tmpl", filepath.Join("internal", "modules", data.Name, "adapters", "grpc", "mapper.go")},
@@ -158,7 +161,7 @@ func main() {
 	fmt.Printf("  3. Customize SQL queries:        db/queries/%s.sql\n", data.Name)
 	fmt.Println("  4. Run code generation (required before tests compile): task generate")
 	fmt.Printf("  5. Update generated code:        toDomain(), Create/UpdateParams, toProto()\n")
-	fmt.Println("  6. Add event topics/structs to:  internal/modules/<name>/domain/events.go")
+	fmt.Printf("  6. Extend event structs if needed: internal/modules/%s/domain/events.go\n", data.Name)
 	fmt.Printf("  7. Register module in:           cmd/server/main.go\n")
 	fmt.Printf("  8. Add RBAC procedure entries:   internal/shared/middleware/rbac_interceptor.go\n")
 	fmt.Println("  9. Run:                          task migrate:up && task check")

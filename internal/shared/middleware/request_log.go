@@ -15,9 +15,8 @@ func RequestLogger() echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			start := time.Now()
 			err := next(c)
-			if err != nil {
-				c.Error(err)
-			}
+			// Do NOT call c.Error(err) -- returning err lets Echo's
+			// centralized ErrorHandler handle it exactly once.
 
 			req := c.Request()
 			res := c.Response()

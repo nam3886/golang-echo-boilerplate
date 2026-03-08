@@ -25,7 +25,7 @@ func SetupMiddleware(e *echo.Echo, cfg *config.Config, rdb *redis.Client) {
 	// 6. Gzip
 	e.Use(echomw.GzipWithConfig(echomw.GzipConfig{Level: 5}))
 	// 7. Security Headers
-	e.Use(SecurityHeaders())
+	e.Use(SecurityHeaders(cfg))
 	// 8. CORS
 	// Only enable credentials when origins are explicitly listed (not wildcard).
 	// Access-Control-Allow-Origin: * with AllowCredentials: true is rejected by browsers.

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gnha/gnha-services/internal/shared/config"
+	"github.com/gnha/gnha-services/internal/shared/retry"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -24,18 +25,20 @@ func NewPostgresPool(cfg *config.Config) (*pgxpool.Pool, error) {
 	poolCfg.MaxConnLifetime = cfg.DBMaxConnLifetime
 	poolCfg.MaxConnIdleTime = 30 * time.Minute
 
-	var pool *pgxpool.Pool
-	for i := range 10 {
-		pool, err = pgxpool.NewWithConfig(ctx, poolCfg)
-		if err == nil {
-			if pingErr := pool.Ping(ctx); pingErr == nil {
-				slog.Info("postgres connected", "host", poolCfg.ConnConfig.Host)
-				return pool, nil
-			}
-			pool.Close()
+	pool, err := retry.Connect(ctx, "postgres", 10, func() (*pgxpool.Pool, error) {
+		p, err := pgxpool.NewWithConfig(ctx, poolCfg)
+		if err != nil {
+			return nil, err
 		}
-		slog.Warn("postgres not ready, retrying", "attempt", i+1, "err", err)
-		time.Sleep(time.Duration(i+1) * time.Second)
+		if err := p.Ping(ctx); err != nil {
+			p.Close()
+			return nil, err
+		}
+		return p, nil
+	})
+	if err != nil {
+		return nil, err
 	}
-	return nil, fmt.Errorf("postgres connection failed after 10 retries: %w", err)
+	slog.Info("postgres connected", "host", poolCfg.ConnConfig.Host)
+	return pool, nil
 }

@@ -69,6 +69,7 @@ func NewUser(email, name, hashedPassword string, role Role) (*User, error) {
 }
 
 // Reconstitute rebuilds a User from persistence data (no validation).
+// For persistence adapters ONLY. Do not call from application code.
 func Reconstitute(id UserID, email, name, password string, role Role, createdAt, updatedAt time.Time, deletedAt *time.Time) *User {
 	return &User{
 		id: id, email: email, name: name, password: password, role: role,
@@ -101,9 +102,13 @@ func (u *User) UpdatedAt() time.Time { return u.updatedAt }
 func (u *User) DeletedAt() *time.Time { return u.deletedAt }
 
 // ChangeName updates the user's name.
+// No-op when the new name is identical to the current value.
 func (u *User) ChangeName(name string) error {
 	if name == "" {
 		return ErrNameRequired()
+	}
+	if name == u.name {
+		return nil // no-op
 	}
 	u.name = name
 	u.updatedAt = time.Now()
@@ -126,9 +131,13 @@ func (u *User) ChangeEmail(email string) error {
 }
 
 // ChangeRole updates the user's role.
+// No-op when the new role is identical to the current value.
 func (u *User) ChangeRole(role Role) error {
 	if !role.IsValid() {
 		return ErrInvalidRole()
+	}
+	if role == u.role {
+		return nil // no-op
 	}
 	u.role = role
 	u.updatedAt = time.Now()

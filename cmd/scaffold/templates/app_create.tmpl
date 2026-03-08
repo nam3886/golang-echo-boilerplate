@@ -3,8 +3,12 @@ package app
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
+	"{{.GoModule}}/internal/shared/auth"
+	"{{.GoModule}}/internal/shared/events"
+	"{{.GoModule}}/internal/shared/netutil"
 )
 
 // Create{{.NameTitle}}Cmd holds input for creating a {{.Name}}.
@@ -15,11 +19,12 @@ type Create{{.NameTitle}}Cmd struct {
 // Create{{.NameTitle}}Handler handles {{.Name}} creation.
 type Create{{.NameTitle}}Handler struct {
 	repo domain.{{.NameTitle}}Repository
+	bus  events.EventPublisher
 }
 
 // NewCreate{{.NameTitle}}Handler constructs the handler.
-func NewCreate{{.NameTitle}}Handler(repo domain.{{.NameTitle}}Repository) *Create{{.NameTitle}}Handler {
-	return &Create{{.NameTitle}}Handler{repo: repo}
+func NewCreate{{.NameTitle}}Handler(repo domain.{{.NameTitle}}Repository, bus events.EventPublisher) *Create{{.NameTitle}}Handler {
+	return &Create{{.NameTitle}}Handler{repo: repo, bus: bus}
 }
 
 // Handle creates a new {{.Name}}.
@@ -33,7 +38,21 @@ func (h *Create{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Create{{.N
 		return nil, fmt.Errorf("creating {{.Name}}: %w", err)
 	}
 
-	// TODO: publish {{.Name}}.created event
+	// Publish domain event after successful DB write (fire-and-forget: log but don't fail).
+	var actorID string
+	if actor := auth.UserFromContext(ctx); actor != nil {
+		actorID = actor.UserID
+	}
+	if err := h.bus.Publish(ctx, domain.Topic{{.NameTitle}}Created, domain.{{.NameTitle}}CreatedEvent{
+		{{.NameTitle}}ID: string(entity.ID()),
+		Name:            entity.Name(),
+		ActorID:         actorID,
+		IPAddress:       netutil.GetClientIP(ctx),
+		At:              entity.CreatedAt(),
+	}); err != nil {
+		slog.ErrorContext(ctx, "failed to publish {{.Name}}.created event",
+			"{{.Name}}_id", string(entity.ID()), "err", err)
+	}
 
 	return entity, nil
 }

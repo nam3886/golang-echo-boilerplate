@@ -13,7 +13,7 @@ import (
 )
 
 // NewMeterProvider creates an OTel meter provider exporting to OTLP.
-func NewMeterProvider(cfg *config.Config, version string) (*sdkmetric.MeterProvider, error) {
+func NewMeterProvider(cfg *config.Config, version config.AppVersion) (*sdkmetric.MeterProvider, error) {
 	ctx := context.Background()
 
 	opts := []otlpmetricgrpc.Option{
@@ -32,7 +32,7 @@ func NewMeterProvider(cfg *config.Config, version string) (*sdkmetric.MeterProvi
 		sdkmetric.WithResource(resource.NewWithAttributes(
 			semconv.SchemaURL,
 			semconv.ServiceName(cfg.AppName),
-			semconv.ServiceVersion(version),
+			semconv.ServiceVersion(string(version)),
 		)),
 	)
 

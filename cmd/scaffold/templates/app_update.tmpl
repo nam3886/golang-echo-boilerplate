@@ -2,8 +2,12 @@ package app
 
 import (
 	"context"
+	"log/slog"
 
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
+	"{{.GoModule}}/internal/shared/auth"
+	"{{.GoModule}}/internal/shared/events"
+	"{{.GoModule}}/internal/shared/netutil"
 )
 
 // Update{{.NameTitle}}Cmd holds input for updating a {{.Name}}.
@@ -15,11 +19,12 @@ type Update{{.NameTitle}}Cmd struct {
 // Update{{.NameTitle}}Handler handles {{.Name}} updates via closure-based UoW.
 type Update{{.NameTitle}}Handler struct {
 	repo domain.{{.NameTitle}}Repository
+	bus  events.EventPublisher
 }
 
 // NewUpdate{{.NameTitle}}Handler constructs the handler.
-func NewUpdate{{.NameTitle}}Handler(repo domain.{{.NameTitle}}Repository) *Update{{.NameTitle}}Handler {
-	return &Update{{.NameTitle}}Handler{repo: repo}
+func NewUpdate{{.NameTitle}}Handler(repo domain.{{.NameTitle}}Repository, bus events.EventPublisher) *Update{{.NameTitle}}Handler {
+	return &Update{{.NameTitle}}Handler{repo: repo, bus: bus}
 }
 
 // Handle applies partial updates to a {{.Name}} within a transaction.
@@ -41,7 +46,20 @@ func (h *Update{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Update{{.N
 		return nil, err
 	}
 
-	// TODO: publish {{.Name}}.updated event
+	var actorID string
+	if actor := auth.UserFromContext(ctx); actor != nil {
+		actorID = actor.UserID
+	}
+	if err := h.bus.Publish(ctx, domain.Topic{{.NameTitle}}Updated, domain.{{.NameTitle}}UpdatedEvent{
+		{{.NameTitle}}ID: cmd.ID,
+		Name:            updated.Name(),
+		ActorID:         actorID,
+		IPAddress:       netutil.GetClientIP(ctx),
+		At:              updated.UpdatedAt(),
+	}); err != nil {
+		slog.ErrorContext(ctx, "failed to publish {{.Name}}.updated event",
+			"{{.Name}}_id", cmd.ID, "err", err)
+	}
 
 	return updated, nil
 }

@@ -1,0 +1,32 @@
+package postgres
+
+import (
+	"time"
+
+	sqlcgen "{{.GoModule}}/gen/sqlc"
+	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
+	sharederr "{{.GoModule}}/internal/shared/errors"
+	"github.com/google/uuid"
+)
+
+// parse{{.NameTitle}}ID safely parses a domain.{{.NameID}} into a uuid.UUID.
+func parse{{.NameTitle}}ID(id domain.{{.NameID}}) (uuid.UUID, error) {
+	uid, err := uuid.Parse(string(id))
+	if err != nil {
+		return uuid.UUID{}, sharederr.New(sharederr.CodeInvalidArgument, "invalid {{.Name}} ID format")
+	}
+	return uid, nil
+}
+
+// toDomain converts a sqlc {{.NameTitle}} row to a domain entity.
+func toDomain(row sqlcgen.{{.NameTitle}}) *domain.{{.NameTitle}} {
+	var deletedAt *time.Time
+	if row.DeletedAt.Valid {
+		deletedAt = &row.DeletedAt.Time
+	}
+	return domain.Reconstitute(
+		domain.{{.NameID}}(row.ID.String()),
+		row.Name,
+		row.CreatedAt, row.UpdatedAt, deletedAt,
+	)
+}

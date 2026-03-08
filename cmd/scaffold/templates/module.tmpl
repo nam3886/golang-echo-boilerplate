@@ -9,6 +9,7 @@ import (
 )
 
 // Module provides the {{.Name}} module to the Fx container.
+// EventPublisher (events.EventPublisher) is resolved automatically by Fx from the shared bus provider.
 var Module = fx.Module("{{.Name}}",
 	fx.Provide(
 		fx.Annotate(

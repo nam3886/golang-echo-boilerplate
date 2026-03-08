@@ -8,6 +8,11 @@ import (
 	"github.com/caarlos0/env/v11"
 )
 
+// AppVersion is a named type for the application version string.
+// Using a distinct type avoids Fx ambiguous-injection errors when
+// multiple bare `string` values are registered in the container.
+type AppVersion string
+
 // Config holds all application configuration loaded from environment variables.
 type Config struct {
 	AppEnv  string `env:"APP_ENV" envDefault:"development"`

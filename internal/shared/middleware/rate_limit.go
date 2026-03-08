@@ -7,20 +7,24 @@ import (
 	"time"
 
 	"github.com/gnha/gnha-services/internal/shared/auth"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
 )
 
 // RateLimit applies a Redis sliding window rate limiter.
+// On Redis failure the limiter fails open (allows the request) to prevent
+// a Redis outage from taking down the entire service.
 func RateLimit(rdb *redis.Client, limit int, window time.Duration) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			key := rateLimitKey(c)
 			count, err := slidingWindowCount(c.Request().Context(), rdb, key, window)
 			if err != nil {
-				// On Redis failure, fail closed (503 Service Unavailable).
+				// Fail open: rate limiting is a best-effort control.
+				// A Redis outage must not bring down the service.
 				slog.ErrorContext(c.Request().Context(), "rate limiter redis error", "err", err)
-				return echo.NewHTTPError(503, "service unavailable")
+				return next(c)
 			}
 			if count > int64(limit) {
 				c.Response().Header().Set("Retry-After", fmt.Sprintf("%d", int(window.Seconds())))
@@ -42,9 +46,13 @@ func slidingWindowCount(ctx context.Context, rdb *redis.Client, key string, wind
 	now := time.Now()
 	windowStart := now.Add(-window)
 
+	// Member combines nanosecond timestamp with a random suffix to prevent
+	// collision when two requests arrive within the same nanosecond tick.
+	member := fmt.Sprintf("%d:%s", now.UnixNano(), uuid.NewString()[:8])
+
 	pipe := rdb.Pipeline()
 	pipe.ZRemRangeByScore(ctx, key, "0", fmt.Sprintf("%d", windowStart.UnixMilli()))
-	pipe.ZAdd(ctx, key, redis.Z{Score: float64(now.UnixMilli()), Member: now.UnixNano()})
+	pipe.ZAdd(ctx, key, redis.Z{Score: float64(now.UnixMilli()), Member: member})
 	countCmd := pipe.ZCard(ctx, key)
 	pipe.Expire(ctx, key, window)
 

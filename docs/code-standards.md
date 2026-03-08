@@ -119,16 +119,32 @@ type GetUserHandler struct { }
 
 ### Domain Errors
 
-All errors use the `DomainError` pattern from `internal/shared/errors`:
+All errors use the `DomainError` pattern from `internal/shared/errors`.
+Module-specific errors are **constructor functions**, not package-level vars:
 
 ```go
-// Define module-specific errors
-var (
-    ErrEmailRequired = errors.New(errors.CodeInvalidArgument, "email is required")
-    ErrUserNotFound  = errors.New(errors.CodeNotFound, "user not found")
-    ErrEmailTaken    = errors.New(errors.CodeAlreadyExists, "email already taken")
-)
+// Define module-specific errors as constructor functions
+// (errors.go in domain/)
+func ErrUserNotFound() *sharederr.DomainError {
+    return sharederr.New(sharederr.CodeNotFound, "user not found")
+}
+
+func ErrEmailTaken() *sharederr.DomainError {
+    return sharederr.New(sharederr.CodeAlreadyExists, "email already taken")
+}
 ```
+
+> **Why constructor functions?** Package-level `var` errors are shared mutable pointers.
+> If two goroutines wrap the same error concurrently (`fmt.Errorf("ctx: %w", ErrNotFound)`),
+> they race on the error's internal state. Constructor functions return fresh instances
+> on every call, eliminating the race.
+
+#### DomainError.Is() — Category Matching
+
+`DomainError.Is()` matches by **error category (ErrorCode)**, not by specific error identity.
+This means `errors.Is(ErrUserNotFound(), ErrOrderNotFound())` returns `true` because both have
+`CodeNotFound`. This is intentional — HTTP status mapping relies on the code, not the message.
+For identity-specific matching, use `errors.As` and check the `Message` field.
 
 ### Error Codes
 
@@ -152,7 +168,7 @@ const (
 return nil, fmt.Errorf("checking email: %w", err)
 
 // Return domain errors directly
-return nil, domain.ErrEmailTaken
+return nil, domain.ErrEmailTaken()
 
 // Check wrapped errors
 if errors.Is(err, sharederr.ErrNotFound()) { }
@@ -179,10 +195,10 @@ type User struct {
 // Constructor validates inputs and enforces invariants
 func NewUser(email, name, hashedPassword string, role Role) (*User, error) {
     if email == "" {
-        return nil, ErrEmailRequired
+        return nil, ErrInvalidEmail()
     }
     if !role.IsValid() {
-        return nil, ErrInvalidRole
+        return nil, ErrInvalidRole()
     }
     // ...
 }
@@ -251,7 +267,7 @@ func (h *CreateUserHandler) Handle(ctx context.Context, cmd CreateUserCmd) (*dom
         return nil, fmt.Errorf("checking email: %w", err)
     }
     if existing != nil {
-        return nil, domain.ErrEmailTaken
+        return nil, domain.ErrEmailTaken()
     }
 
     // Business logic
@@ -427,7 +443,7 @@ func (r *PgUserRepository) Create(ctx context.Context, user *domain.User) error 
     if err != nil {
         var pgErr *pgconn.PgError
         if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-            return domain.ErrEmailTaken
+            return domain.ErrEmailTaken()
         }
         return fmt.Errorf("inserting user: %w", err)
     }
@@ -532,7 +548,10 @@ type UserDeletedEvent struct {
 
 ### Topic Constants
 
-Define topics per module in `internal/modules/{name}/domain/events.go`:
+Define topics per module in `internal/modules/{name}/domain/events.go`.
+Event topics and types are defined in each module's `domain/events.go` file,
+NOT in `internal/shared/events/`. The shared events package provides only
+infrastructure (bus, router, subscriber config).
 
 ```go
 // internal/modules/user/domain/events.go
@@ -541,6 +560,35 @@ const (
     TopicUserUpdated = "user.updated"
     TopicUserDeleted = "user.deleted"
 )
+```
+
+### Cross-Module Event Imports
+
+The "no cross-module imports" rule has one pragmatic exception: **event type imports**.
+Subscriber modules (e.g., `notification`) may import event structs from a publisher
+module's `domain/` package (e.g., `user/domain.UserCreatedEvent`). This is acceptable because:
+
+1. Event types are stable data contracts, not business logic.
+2. Moving them to `shared/events/types/` would couple all modules to a shared package unnecessarily.
+3. The subscriber only reads struct fields — no dependency on domain behavior or repository interfaces.
+
+**Convention:** subscriber modules import only `domain/events.go` types, never entities or
+repository interfaces. If the subscriber's coupling is minimal (only a few JSON fields),
+prefer a local struct instead (as the `audit` module does with `auditPayload`).
+
+```go
+// notification/subscriber.go — importing user event type (acceptable)
+import "github.com/gnha/gnha-services/internal/modules/user/domain"
+
+var event domain.UserCreatedEvent
+json.Unmarshal(msg.Payload, &event)
+
+// audit/subscriber.go — local struct (also acceptable, lower coupling)
+type auditPayload struct {
+    UserID    string `json:"user_id"`
+    ActorID   string `json:"actor_id"`
+    IPAddress string `json:"ip_address,omitempty"`
+}
 ```
 
 ## Pagination

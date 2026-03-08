@@ -36,7 +36,8 @@ func NewCreateUserHandler(repo domain.UserRepository, hasher auth.PasswordHasher
 
 // Handle creates a new user after checking email uniqueness.
 func (h *CreateUserHandler) Handle(ctx context.Context, cmd CreateUserCmd) (*domain.User, error) {
-	// Check email uniqueness
+	// Fast-path: check email availability before expensive password hashing.
+	// The DB unique constraint (idx_users_email_active) is the authoritative guard against races.
 	existing, err := h.repo.GetByEmail(ctx, cmd.Email)
 	if err != nil && !errors.Is(err, domainerr.ErrNotFound()) {
 		return nil, fmt.Errorf("checking email: %w", err)

@@ -9,6 +9,7 @@ figma-auth.json
 
 # Build
 server
+scaffold
 bin/
 tmp/
 vendor/

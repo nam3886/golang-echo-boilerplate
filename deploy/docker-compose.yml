@@ -1,3 +1,14 @@
+# Production Docker Compose
+#
+# IMPORTANT: The app container communicates with services via Docker network.
+# Your .env file must use container names (not localhost) for service URLs:
+#   DATABASE_URL=postgres://user:pass@postgres:5432/gnha
+#   REDIS_URL=redis://redis:6379
+#   RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+#
+# Elasticsearch and SMTP are expected as external services in production.
+# Set ELASTICSEARCH_URL and SMTP_HOST to your production endpoints.
+
 services:
   app:
     image: ${DOCKER_IMAGE:-ghcr.io/gnha/gnha-services}:${IMAGE_TAG:-latest}

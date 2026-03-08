@@ -47,7 +47,7 @@ func ErrorHandler(err error, c echo.Context) {
 	// Unexpected error — log and return generic 500
 	slog.Error("unhandled error", "err", err, "path", c.Request().URL.Path)
 	_ = c.JSON(http.StatusInternalServerError, ErrorResponse{
-		Code:    string(domainerr.CodeInternal),
+		Code:    domainerr.CodeInternal.String(),
 		Message: "internal error",
 	})
 }
