@@ -8,6 +8,7 @@
 
 # Claude / IDE
 .claude
+.cursor
 .vscode
 .idea
 
@@ -40,6 +41,7 @@ server
 bin/
 tmp/
 coverage.*
+tests/
 
 # OS
 .DS_Store

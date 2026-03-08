@@ -21,7 +21,9 @@ func NewRedisClient(cfg *config.Config) (*redis.Client, error) {
 	opt.MinIdleConns = 5
 
 	rdb := redis.NewClient(opt)
-	ctx := context.Background()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
 
 	for i := range 10 {
 		if err = rdb.Ping(ctx).Err(); err == nil {

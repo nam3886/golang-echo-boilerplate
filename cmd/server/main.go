@@ -15,6 +15,7 @@ import (
 	"github.com/gnha/gnha-services/internal/shared/cron"
 	"github.com/gnha/gnha-services/internal/shared/events"
 	appmw "github.com/gnha/gnha-services/internal/shared/middleware"
+	"github.com/gnha/gnha-services/internal/shared/search"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
@@ -30,16 +31,22 @@ func main() {
 		shared.Module,
 		fx.Provide(auth.NewPasswordHasher),
 		fx.Provide(newEcho),
+		// Search (optional — no-op when ELASTICSEARCH_URL is empty)
+		search.Module,
+		// Modules
 		user.Module,
-		events.Module,
 		audit.Module,
 		notification.Module,
+		// ADD_MODULE_HERE
+
+		// Infrastructure
+		events.Module,
 		cron.Module,
 		fx.Invoke(startServer),
 	).Run()
 }
 
-func newEcho(cfg *config.Config, pool *pgxpool.Pool, rdb *redis.Client) *echo.Echo {
+func newEcho(cfg *config.Config, pool *pgxpool.Pool, rdb *redis.Client, esClient *search.Client) *echo.Echo {
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
@@ -55,7 +62,7 @@ func newEcho(cfg *config.Config, pool *pgxpool.Pool, rdb *redis.Client) *echo.Ec
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
 	})
 
-	// Readiness — checks DB + Redis connectivity
+	// Readiness — checks DB + Redis + optional ES connectivity
 	e.GET("/readyz", func(c echo.Context) error {
 		ctx := c.Request().Context()
 		if err := pool.Ping(ctx); err != nil {
@@ -63,6 +70,11 @@ func newEcho(cfg *config.Config, pool *pgxpool.Pool, rdb *redis.Client) *echo.Ec
 		}
 		if err := rdb.Ping(ctx).Err(); err != nil {
 			return c.JSON(http.StatusServiceUnavailable, map[string]string{"status": "redis unavailable"})
+		}
+		if esClient != nil {
+			if err := esClient.HealthCheck(ctx); err != nil {
+				return c.JSON(http.StatusServiceUnavailable, map[string]string{"status": "elasticsearch unavailable"})
+			}
 		}
 		return c.JSON(http.StatusOK, map[string]string{"status": "ready"})
 	})

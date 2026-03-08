@@ -21,7 +21,9 @@ func Recovery() echo.MiddlewareFunc {
 						"stack", string(buf[:n]),
 						"path", c.Request().URL.Path,
 					)
-					c.Error(echo.ErrInternalServerError)
+					if !c.Response().Committed {
+						c.Error(echo.ErrInternalServerError)
+					}
 				}
 			}()
 			return next(c)
