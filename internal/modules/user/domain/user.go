@@ -43,16 +43,16 @@ type User struct {
 // NewUser creates a validated User entity.
 func NewUser(email, name, hashedPassword string, role Role) (*User, error) {
 	if _, err := mail.ParseAddress(email); err != nil {
-		return nil, ErrInvalidEmail
+		return nil, ErrInvalidEmail()
 	}
 	if name == "" {
-		return nil, ErrNameRequired
+		return nil, ErrNameRequired()
 	}
 	if !role.IsValid() {
-		return nil, ErrInvalidRole
+		return nil, ErrInvalidRole()
 	}
 	if hashedPassword == "" {
-		return nil, ErrPasswordRequired
+		return nil, ErrPasswordRequired()
 	}
 	now := time.Now()
 	return &User{
@@ -101,7 +101,7 @@ func (u *User) DeletedAt() *time.Time { return u.deletedAt }
 // ChangeName updates the user's name.
 func (u *User) ChangeName(name string) error {
 	if name == "" {
-		return ErrNameRequired
+		return ErrNameRequired()
 	}
 	u.name = name
 	u.updatedAt = time.Now()
@@ -112,7 +112,7 @@ func (u *User) ChangeName(name string) error {
 // Format validation is performed here; uniqueness is enforced at the repository level.
 func (u *User) ChangeEmail(email string) error {
 	if _, err := mail.ParseAddress(email); err != nil {
-		return ErrInvalidEmail
+		return ErrInvalidEmail()
 	}
 	u.email = email
 	u.updatedAt = time.Now()
@@ -122,7 +122,7 @@ func (u *User) ChangeEmail(email string) error {
 // ChangeRole updates the user's role.
 func (u *User) ChangeRole(role Role) error {
 	if !role.IsValid() {
-		return ErrInvalidRole
+		return ErrInvalidRole()
 	}
 	u.role = role
 	u.updatedAt = time.Now()

@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -70,7 +71,7 @@ func TestCreateUserHandler_EmailTaken(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for taken email")
 	}
-	if err != domain.ErrEmailTaken {
+	if !errors.Is(err, domain.ErrEmailTaken()) {
 		t.Errorf("expected ErrEmailTaken, got %v", err)
 	}
 }
@@ -96,7 +97,7 @@ func TestCreateUserHandler_InvalidRole(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for invalid role")
 	}
-	if err != domain.ErrInvalidRole {
+	if !errors.Is(err, domain.ErrInvalidRole()) {
 		t.Errorf("expected ErrInvalidRole, got %v", err)
 	}
 }

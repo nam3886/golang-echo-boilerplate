@@ -43,7 +43,7 @@ func (h *CreateUserHandler) Handle(ctx context.Context, cmd CreateUserCmd) (*dom
 		return nil, fmt.Errorf("checking email: %w", err)
 	}
 	if existing != nil {
-		return nil, domain.ErrEmailTaken
+		return nil, domain.ErrEmailTaken()
 	}
 
 	hashedPwd, err := h.hasher.Hash(cmd.Password)

@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -31,7 +32,7 @@ func TestNewUser_InvalidEmail(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for empty email")
 	}
-	if err != ErrInvalidEmail {
+	if !errors.Is(err, ErrInvalidEmail()) {
 		t.Errorf("expected ErrInvalidEmail, got %v", err)
 	}
 }
@@ -41,7 +42,7 @@ func TestNewUser_InvalidName(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for empty name")
 	}
-	if err != ErrNameRequired {
+	if !errors.Is(err, ErrNameRequired()) {
 		t.Errorf("expected ErrNameRequired, got %v", err)
 	}
 }
@@ -51,7 +52,7 @@ func TestNewUser_InvalidRole(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for invalid role")
 	}
-	if err != ErrInvalidRole {
+	if !errors.Is(err, ErrInvalidRole()) {
 		t.Errorf("expected ErrInvalidRole, got %v", err)
 	}
 }
@@ -77,7 +78,7 @@ func TestUser_ChangeName_Empty(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for empty name")
 	}
-	if err != ErrNameRequired {
+	if !errors.Is(err, ErrNameRequired()) {
 		t.Errorf("expected ErrNameRequired, got %v", err)
 	}
 }
@@ -98,7 +99,7 @@ func TestUser_ChangeRole_Invalid(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for invalid role")
 	}
-	if err != ErrInvalidRole {
+	if !errors.Is(err, ErrInvalidRole()) {
 		t.Errorf("expected ErrInvalidRole, got %v", err)
 	}
 }
@@ -119,7 +120,7 @@ func TestUser_ChangeEmail_Invalid(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for invalid email")
 	}
-	if err != ErrInvalidEmail {
+	if !errors.Is(err, ErrInvalidEmail()) {
 		t.Errorf("expected ErrInvalidEmail, got %v", err)
 	}
 }

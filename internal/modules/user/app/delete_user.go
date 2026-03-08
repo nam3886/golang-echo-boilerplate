@@ -25,7 +25,7 @@ func NewDeleteUserHandler(repo domain.UserRepository, bus events.EventPublisher)
 // Handle soft-deletes a user by ID.
 func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
 	if id == "" {
-		return domain.ErrInvalidArgument
+		return domain.ErrInvalidArgument()
 	}
 	if err := h.repo.SoftDelete(ctx, domain.UserID(id)); err != nil {
 		return err

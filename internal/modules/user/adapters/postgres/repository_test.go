@@ -66,7 +66,7 @@ func TestPgUserRepository_Create_DuplicateEmail(t *testing.T) {
 	}
 	// errors.Is works here because DomainError.Is() compares by ErrorCode,
 	// so wrapped or pointer-distinct DomainError values match the sentinel.
-	if !errors.Is(err, domain.ErrEmailTaken) {
+	if !errors.Is(err, domain.ErrEmailTaken()) {
 		t.Errorf("expected ErrEmailTaken, got %v", err)
 	}
 }
@@ -79,7 +79,7 @@ func TestPgUserRepository_GetByID_NotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for not found")
 	}
-	if !errors.Is(err, sharederr.ErrNotFound) {
+	if !errors.Is(err, sharederr.ErrNotFound()) {
 		t.Errorf("expected ErrNotFound, got %v", err)
 	}
 }
@@ -99,7 +99,7 @@ func TestPgUserRepository_SoftDelete(t *testing.T) {
 
 	// GetByID should return not found after soft delete
 	_, err := repo.GetByID(ctx, user.ID())
-	if !errors.Is(err, sharederr.ErrNotFound) {
+	if !errors.Is(err, sharederr.ErrNotFound()) {
 		t.Errorf("expected ErrNotFound after soft delete, got %v", err)
 	}
 }

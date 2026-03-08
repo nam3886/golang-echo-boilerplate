@@ -58,7 +58,7 @@ func RequestLogger() echo.MiddlewareFunc {
 				slog.Info("request", attrs...)
 			}
 
-			return nil
+			return err
 		}
 	}
 }

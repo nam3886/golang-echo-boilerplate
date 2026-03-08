@@ -33,7 +33,7 @@ func NewUpdateUserHandler(repo domain.UserRepository, bus events.EventPublisher)
 // Handle applies partial updates to a user within a transaction.
 func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*domain.User, error) {
 	if cmd.ID == "" {
-		return nil, domain.ErrInvalidArgument
+		return nil, domain.ErrInvalidArgument()
 	}
 	var updated *domain.User
 	err := h.repo.Update(ctx, domain.UserID(cmd.ID), func(user *domain.User) error {
@@ -66,6 +66,9 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*dom
 	if err := h.bus.Publish(ctx, domain.TopicUserUpdated, domain.UserUpdatedEvent{
 		UserID:    cmd.ID,
 		ActorID:   actorID,
+		Name:      updated.Name(),
+		Email:     updated.Email(),
+		Role:      string(updated.Role()),
 		IPAddress: netutil.GetClientIP(ctx),
 		At:        time.Now(),
 	}); err != nil {

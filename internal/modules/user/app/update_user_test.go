@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -129,7 +130,7 @@ func TestUpdateUserHandler_EmptyName_ReturnsError(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for empty name")
 	}
-	if err != domain.ErrNameRequired {
+	if !errors.Is(err, domain.ErrNameRequired()) {
 		t.Errorf("expected ErrNameRequired, got %v", err)
 	}
 }
@@ -181,7 +182,7 @@ func TestUpdateUserHandler_InvalidEmail_ReturnsError(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for invalid email")
 	}
-	if err != domain.ErrInvalidEmail {
+	if !errors.Is(err, domain.ErrInvalidEmail()) {
 		t.Errorf("expected ErrInvalidEmail, got %v", err)
 	}
 }

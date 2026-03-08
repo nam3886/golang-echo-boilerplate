@@ -117,7 +117,7 @@ func (r *PgUserRepository) Create(ctx context.Context, user *domain.User) error 
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "idx_users_email_active" {
-			return domain.ErrEmailTaken
+			return domain.ErrEmailTaken()
 		}
 		return fmt.Errorf("inserting user: %w", err)
 	}
@@ -162,7 +162,7 @@ func (r *PgUserRepository) Update(ctx context.Context, id domain.UserID, fn func
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return domain.ErrEmailTaken
+			return domain.ErrEmailTaken()
 		}
 		return fmt.Errorf("updating user: %w", err)
 	}
