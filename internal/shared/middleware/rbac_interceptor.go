@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"connectrpc.com/connect"
+	userv1connect "github.com/gnha/gnha-services/gen/proto/user/v1/userv1connect"
 	"github.com/gnha/gnha-services/internal/shared/auth"
 )
 
@@ -11,9 +12,9 @@ import (
 // Key format: "/package.Service/MethodName" (full procedure path from req.Spec().Procedure).
 // Read-only methods are omitted — they are gated at the Echo route group level via RequirePermission.
 var procedurePermissions = map[string]Permission{
-	"/user.v1.UserService/CreateUser": PermUserWrite,
-	"/user.v1.UserService/UpdateUser": PermUserWrite,
-	"/user.v1.UserService/DeleteUser": PermUserDelete,
+	userv1connect.UserServiceCreateUserProcedure: PermUserWrite,
+	userv1connect.UserServiceUpdateUserProcedure: PermUserWrite,
+	userv1connect.UserServiceDeleteUserProcedure: PermUserDelete,
 }
 
 // RBACInterceptor checks permissions based on the exact Connect RPC procedure path.

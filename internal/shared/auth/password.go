@@ -21,8 +21,8 @@ const (
 	// minPasswordBytes is the minimum allowed password size in bytes.
 	minPasswordBytes = 8
 
-	// maxPasswordBytes is the maximum allowed password size in bytes.
-	// Argon2id (like bcrypt) silently truncates beyond 72 bytes, so we reject early.
+	// maxPasswordBytes caps input size to prevent CPU-intensive hashing of very large payloads.
+	// Unlike bcrypt, argon2id does NOT truncate; this is a DoS prevention limit.
 	maxPasswordBytes = 72
 )
 

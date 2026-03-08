@@ -33,12 +33,12 @@ func UserFromContext(ctx context.Context) *AuthUser {
 }
 
 // HasPermission checks if the user has a specific permission.
+// Admin users must have "admin:*" in their permissions claim — role alone is not sufficient.
 func (u *AuthUser) HasPermission(perm string) bool {
 	for _, p := range u.Permissions {
 		if p == perm || p == "admin:*" {
 			return true
 		}
 	}
-	// Admin role has all permissions
-	return u.Role == "admin"
+	return false
 }

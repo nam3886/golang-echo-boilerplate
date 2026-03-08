@@ -5,7 +5,8 @@ SELECT id, email, name, role, created_at, updated_at, deleted_at FROM users WHER
 SELECT * FROM users WHERE email = $1 AND deleted_at IS NULL;
 
 -- name: GetUserByIDForUpdate :one
-SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL FOR UPDATE;
+SELECT id, email, name, password, role, created_at, updated_at, deleted_at
+FROM users WHERE id = $1 AND deleted_at IS NULL FOR UPDATE;
 
 -- name: ListUsers :many
 SELECT id, email, name, role, created_at, updated_at, deleted_at FROM users
@@ -24,6 +25,7 @@ RETURNING *;
 UPDATE users
 SET name = COALESCE(sqlc.narg('name'), name),
     role = COALESCE(sqlc.narg('role'), role),
+    email = COALESCE(sqlc.narg('email'), email),
     updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;

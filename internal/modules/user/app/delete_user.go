@@ -24,6 +24,9 @@ func NewDeleteUserHandler(repo domain.UserRepository, bus events.EventPublisher)
 
 // Handle soft-deletes a user by ID.
 func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
+	if id == "" {
+		return domain.ErrInvalidArgument
+	}
 	if err := h.repo.SoftDelete(ctx, domain.UserID(id)); err != nil {
 		return err
 	}
@@ -32,7 +35,7 @@ func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
 	if actor := auth.UserFromContext(ctx); actor != nil {
 		actorID = actor.UserID
 	}
-	if err := h.bus.Publish(ctx, events.TopicUserDeleted, events.UserDeletedEvent{
+	if err := h.bus.Publish(ctx, domain.TopicUserDeleted, domain.UserDeletedEvent{
 		UserID:    id,
 		ActorID:   actorID,
 		IPAddress: netutil.GetClientIP(ctx),

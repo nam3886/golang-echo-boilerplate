@@ -424,6 +424,7 @@ type UpdateUserRequest struct {
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name          *string                `protobuf:"bytes,2,opt,name=name,proto3,oneof" json:"name,omitempty"`
 	Role          *string                `protobuf:"bytes,3,opt,name=role,proto3,oneof" json:"role,omitempty"`
+	Email         *string                `protobuf:"bytes,4,opt,name=email,proto3,oneof" json:"email,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -475,6 +476,13 @@ func (x *UpdateUserRequest) GetName() string {
 func (x *UpdateUserRequest) GetRole() string {
 	if x != nil && x.Role != nil {
 		return *x.Role
+	}
+	return ""
+}
+
+func (x *UpdateUserRequest) GetEmail() string {
+	if x != nil && x.Email != nil {
+		return *x.Email
 	}
 	return ""
 }
@@ -636,14 +644,16 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\x05items\x18\x01 \x03(\v2\r.user.v1.UserR\x05items\x12\x1f\n" +
 	"\vnext_cursor\x18\x02 \x01(\tR\n" +
 	"nextCursor\x12\x19\n" +
-	"\bhas_more\x18\x03 \x01(\bR\ahasMore\"\x9b\x01\n" +
+	"\bhas_more\x18\x03 \x01(\bR\ahasMore\"\xc9\x01\n" +
 	"\x11UpdateUserRequest\x12\x18\n" +
 	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12#\n" +
 	"\x04name\x18\x02 \x01(\tB\n" +
 	"\xbaH\ar\x05\x10\x01\x18\xff\x01H\x00R\x04name\x88\x01\x01\x125\n" +
-	"\x04role\x18\x03 \x01(\tB\x1c\xbaH\x19r\x17R\x05adminR\x06memberR\x06viewerH\x01R\x04role\x88\x01\x01B\a\n" +
+	"\x04role\x18\x03 \x01(\tB\x1c\xbaH\x19r\x17R\x05adminR\x06memberR\x06viewerH\x01R\x04role\x88\x01\x01\x12\"\n" +
+	"\x05email\x18\x04 \x01(\tB\a\xbaH\x04r\x02`\x01H\x02R\x05email\x88\x01\x01B\a\n" +
 	"\x05_nameB\a\n" +
-	"\x05_role\"7\n" +
+	"\x05_roleB\b\n" +
+	"\x06_email\"7\n" +
 	"\x12UpdateUserResponse\x12!\n" +
 	"\x04user\x18\x01 \x01(\v2\r.user.v1.UserR\x04user\"-\n" +
 	"\x11DeleteUserRequest\x12\x18\n" +

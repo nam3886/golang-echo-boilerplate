@@ -65,7 +65,7 @@ func (h *CreateUserHandler) Handle(ctx context.Context, cmd CreateUserCmd) (*dom
 	if actor := auth.UserFromContext(ctx); actor != nil {
 		actorID = actor.UserID
 	}
-	if err := h.bus.Publish(ctx, events.TopicUserCreated, events.UserCreatedEvent{
+	if err := h.bus.Publish(ctx, domain.TopicUserCreated, domain.UserCreatedEvent{
 		UserID:    string(user.ID()),
 		ActorID:   actorID,
 		Email:     user.Email(),

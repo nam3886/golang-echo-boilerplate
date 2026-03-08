@@ -51,6 +51,9 @@ func NewUser(email, name, hashedPassword string, role Role) (*User, error) {
 	if !role.IsValid() {
 		return nil, ErrInvalidRole
 	}
+	if hashedPassword == "" {
+		return nil, ErrPasswordRequired
+	}
 	now := time.Now()
 	return &User{
 		id:        UserID(uuid.NewString()),
@@ -71,25 +74,25 @@ func Reconstitute(id UserID, email, name, password string, role Role, createdAt,
 	}
 }
 
-// ID returns the user's unique identifier.
-func (u *User) ID() UserID { return u.id }
+// ID returns the user identifier.
+func (u *User) ID() UserID           { return u.id }
 
-// Email returns the user's email address.
-func (u *User) Email() string { return u.email }
+// Email returns the user email address.
+func (u *User) Email() string        { return u.email }
 
-// Name returns the user's display name.
-func (u *User) Name() string { return u.name }
+// Name returns the user display name.
+func (u *User) Name() string         { return u.name }
 
-// Password returns the user's hashed password.
-func (u *User) Password() string { return u.password }
+// Password returns the hashed password.
+func (u *User) Password() string     { return u.password }
 
-// Role returns the user's authorization role.
-func (u *User) Role() Role { return u.role }
+// Role returns the user role.
+func (u *User) Role() Role           { return u.role }
 
-// CreatedAt returns the time the user was created.
+// CreatedAt returns when the user was created.
 func (u *User) CreatedAt() time.Time { return u.createdAt }
 
-// UpdatedAt returns the time the user was last updated.
+// UpdatedAt returns when the user was last updated.
 func (u *User) UpdatedAt() time.Time { return u.updatedAt }
 
 // DeletedAt returns the soft-delete timestamp, or nil if not deleted.
@@ -101,6 +104,17 @@ func (u *User) ChangeName(name string) error {
 		return ErrNameRequired
 	}
 	u.name = name
+	u.updatedAt = time.Now()
+	return nil
+}
+
+// ChangeEmail updates the user's email address.
+// Format validation is performed here; uniqueness is enforced at the repository level.
+func (u *User) ChangeEmail(email string) error {
+	if _, err := mail.ParseAddress(email); err != nil {
+		return ErrInvalidEmail
+	}
+	u.email = email
 	u.updatedAt = time.Now()
 	return nil
 }

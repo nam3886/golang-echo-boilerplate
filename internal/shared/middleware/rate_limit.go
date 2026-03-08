@@ -22,7 +22,7 @@ func RateLimit(rdb *redis.Client, limit int, window time.Duration) echo.Middlewa
 				slog.ErrorContext(c.Request().Context(), "rate limiter redis error", "err", err)
 				return echo.NewHTTPError(503, "service unavailable")
 			}
-			if count >= int64(limit) {
+			if count > int64(limit) {
 				c.Response().Header().Set("Retry-After", fmt.Sprintf("%d", int(window.Seconds())))
 				return echo.NewHTTPError(429, "rate limit exceeded")
 			}

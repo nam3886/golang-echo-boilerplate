@@ -99,7 +99,8 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow
 }
 
 const getUserByIDForUpdate = `-- name: GetUserByIDForUpdate :one
-SELECT id, email, name, password, role, created_at, updated_at, deleted_at FROM users WHERE id = $1 AND deleted_at IS NULL FOR UPDATE
+SELECT id, email, name, password, role, created_at, updated_at, deleted_at
+FROM users WHERE id = $1 AND deleted_at IS NULL FOR UPDATE
 `
 
 func (q *Queries) GetUserByIDForUpdate(ctx context.Context, id uuid.UUID) (User, error) {
@@ -187,19 +188,26 @@ const updateUser = `-- name: UpdateUser :one
 UPDATE users
 SET name = COALESCE($2, name),
     role = COALESCE($3, role),
+    email = COALESCE($4, email),
     updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
 RETURNING id, email, name, password, role, created_at, updated_at, deleted_at
 `
 
 type UpdateUserParams struct {
-	ID   uuid.UUID   `json:"id"`
-	Name pgtype.Text `json:"name"`
-	Role pgtype.Text `json:"role"`
+	ID    uuid.UUID   `json:"id"`
+	Name  pgtype.Text `json:"name"`
+	Role  pgtype.Text `json:"role"`
+	Email pgtype.Text `json:"email"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
-	row := q.db.QueryRow(ctx, updateUser, arg.ID, arg.Name, arg.Role)
+	row := q.db.QueryRow(ctx, updateUser,
+		arg.ID,
+		arg.Name,
+		arg.Role,
+		arg.Email,
+	)
 	var i User
 	err := row.Scan(
 		&i.ID,

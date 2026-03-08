@@ -27,6 +27,15 @@ func SetupMiddleware(e *echo.Echo, cfg *config.Config, rdb *redis.Client) {
 	// 7. Security Headers
 	e.Use(SecurityHeaders())
 	// 8. CORS
+	// Only enable credentials when origins are explicitly listed (not wildcard).
+	// Access-Control-Allow-Origin: * with AllowCredentials: true is rejected by browsers.
+	allowCreds := true
+	for _, o := range cfg.CORSOrigins {
+		if o == "*" {
+			allowCreds = false
+			break
+		}
+	}
 	e.Use(echomw.CORSWithConfig(echomw.CORSConfig{
 		AllowOrigins: cfg.CORSOrigins,
 		AllowMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
@@ -34,7 +43,7 @@ func SetupMiddleware(e *echo.Echo, cfg *config.Config, rdb *redis.Client) {
 			"Accept", "Authorization", "Content-Type",
 			"X-Request-ID", "Connect-Protocol-Version",
 		},
-		AllowCredentials: true,
+		AllowCredentials: allowCreds,
 		MaxAge:           3600,
 	}))
 	// 9. Global Timeout (30s default)

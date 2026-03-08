@@ -58,6 +58,7 @@ message UpdateUserRequest {
   string id = 1 [(buf.validate.field).string.uuid = true];
   optional string name = 2 [(buf.validate.field).string = {min_len: 1, max_len: 255}];
   optional string role = 3 [(buf.validate.field).string = {in: ["admin", "member", "viewer"]}];
+  optional string email = 4 [(buf.validate.field).string.email = true];
 }
 
 message UpdateUserResponse {
