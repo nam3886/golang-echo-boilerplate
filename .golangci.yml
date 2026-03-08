@@ -11,14 +11,30 @@ linters:
     - staticcheck
     - unused
     - revive
-
-linters-settings:
-  revive:
-    rules:
-      - name: unexported-return
-        disabled: true
+    - gosec
+    - gocritic
+  exclusions:
+    paths:
+      - gen
+      - tmp
+      - vendor
+  settings:
+    revive:
+      rules:
+        - name: unexported-return
+          disabled: true
+    gosec:
+      excludes:
+        - G301 # directory perms 0755 OK for scaffold tool
+        - G302 # file perms 0644 OK for generated source files
+        - G115 # integer overflow — safe bounded conversions (pagination limit, hash length)
+        - G304 # file inclusion via variable — false positive in test helpers
+        - G703 # path traversal — false positive in test helpers
+    gocritic:
+      disabled-checks:
+        - ifElseChain    # style preference, not a bug
+        - exitAfterDefer # acceptable in short-lived CLI tools (scaffold, seed)
 
 issues:
-  exclude-dirs: [gen, tmp, vendor]
   max-issues-per-linter: 50
   max-same-issues: 5

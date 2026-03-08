@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"mime"
+	"net/mail"
 	"net/smtp"
 	"strings"
 
@@ -34,6 +35,10 @@ func NewSMTPSender(cfg *config.Config) Sender {
 
 // Send delivers an email via SMTP with CRLF-injection protection.
 func (s *SMTPSender) Send(ctx context.Context, to, subject, body string) error {
+	if _, err := mail.ParseAddress(to); err != nil {
+		return fmt.Errorf("invalid email address %q: %w", to, err)
+	}
+
 	// Sanitize header values to prevent CRLF injection
 	sanitize := func(v string) string {
 		return strings.NewReplacer("\r", "", "\n", "").Replace(v)

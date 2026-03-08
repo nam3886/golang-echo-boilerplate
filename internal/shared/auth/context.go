@@ -20,7 +20,7 @@ func WithUser(ctx context.Context, claims *TokenClaims) context.Context {
 		UserID:      claims.UserID,
 		Role:        claims.Role,
 		Permissions: claims.Permissions,
-		TokenID:     claims.RegisteredClaims.ID,
+		TokenID:     claims.ID,
 	})
 }
 

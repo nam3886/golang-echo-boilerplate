@@ -53,7 +53,7 @@ Mutation Handler (Create/Update/Delete)
     → EventBus.Publish(topic, payload)
     → Watermill Router
     → RabbitMQ Exchange
-    → Subscribers (audit/subscriber.go, notification/subscriber.go)
+    → Per-Handler Subscribers (each via SubscriberFactory with unique queue)
     → Handler logic (DB write, email send, etc.)
     → Log errors (don't fail handler if event publishing fails)
 ```
@@ -63,6 +63,13 @@ Mutation Handler (Create/Update/Delete)
 - ActorID enables full audit trail correlation across mutations
 - Event publishing failures are logged but don't cascade to client responses (graceful degradation)
 - Published *after* successful database persistence to ensure consistency
+
+**Subscriber Architecture:**
+- Each module's event handler gets its own AMQP subscriber via `SubscriberFactory`
+- Prevents round-robin message distribution — every handler receives all messages on its topic
+- Queue name = `{topic}_{handlerName}` (e.g., `user.created_audit.user_created`)
+- Handlers are registered in `module.go` via `event_handlers` fx group
+- See `internal/modules/audit/module.go` and `internal/modules/notification/module.go` for examples
 
 ## Middleware Chain Order
 

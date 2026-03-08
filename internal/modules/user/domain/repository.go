@@ -18,5 +18,5 @@ type UserRepository interface {
 	List(ctx context.Context, limit int, cursor string) (ListResult, error)
 	Create(ctx context.Context, user *User) error
 	Update(ctx context.Context, id UserID, fn func(*User) error) error
-	SoftDelete(ctx context.Context, id UserID) error
+	SoftDelete(ctx context.Context, id UserID) (*User, error)
 }

@@ -103,9 +103,13 @@ func main() {
 		{"app_create.tmpl", filepath.Join("internal", "modules", data.Name, "app", "create_"+data.Name+".go")},
 		{"app_create_test.tmpl", filepath.Join("internal", "modules", data.Name, "app", "create_"+data.Name+"_test.go")},
 		{"app_get.tmpl", filepath.Join("internal", "modules", data.Name, "app", "get_"+data.Name+".go")},
+		{"app_get_test.tmpl", filepath.Join("internal", "modules", data.Name, "app", "get_"+data.Name+"_test.go")},
 		{"app_list.tmpl", filepath.Join("internal", "modules", data.Name, "app", "list_"+data.NamePlural+".go")},
+		{"app_list_test.tmpl", filepath.Join("internal", "modules", data.Name, "app", "list_"+data.NamePlural+"_test.go")},
 		{"app_update.tmpl", filepath.Join("internal", "modules", data.Name, "app", "update_"+data.Name+".go")},
+		{"app_update_test.tmpl", filepath.Join("internal", "modules", data.Name, "app", "update_"+data.Name+"_test.go")},
 		{"app_delete.tmpl", filepath.Join("internal", "modules", data.Name, "app", "delete_"+data.Name+".go")},
+		{"app_delete_test.tmpl", filepath.Join("internal", "modules", data.Name, "app", "delete_"+data.Name+"_test.go")},
 		{"adapter_postgres.tmpl", filepath.Join("internal", "modules", data.Name, "adapters", "postgres", "repository.go")},
 		{"adapter_postgres_cursor.tmpl", filepath.Join("internal", "modules", data.Name, "adapters", "postgres", "cursor.go")},
 		{"adapter_postgres_mapper.tmpl", filepath.Join("internal", "modules", data.Name, "adapters", "postgres", "domain_mapper.go")},
@@ -145,11 +149,11 @@ func main() {
 		}
 
 		if err := tmpl.ExecuteTemplate(out, f.tmpl, data); err != nil {
-			out.Close()
+			_ = out.Close()
 			fmt.Fprintf(os.Stderr, "error executing template %s: %v\n", f.tmpl, err)
 			os.Exit(1)
 		}
-		out.Close()
+		_ = out.Close()
 		fmt.Printf("  created: %s\n", f.out)
 	}
 
@@ -200,7 +204,7 @@ func readGoModule() string {
 		fmt.Fprintf(os.Stderr, "error reading go.mod: %v\n", err)
 		os.Exit(1)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	scanner := bufio.NewScanner(f)
 	if scanner.Scan() {

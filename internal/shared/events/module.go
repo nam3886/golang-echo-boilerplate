@@ -11,7 +11,7 @@ import (
 // Module provides the event infrastructure to the Fx container.
 var Module = fx.Module("events",
 	fx.Provide(NewPublisher),
-	fx.Provide(NewSubscriber),
+	fx.Provide(NewSubscriberFactory),
 	fx.Provide(
 		fx.Annotate(
 			NewEventBus,
@@ -23,19 +23,17 @@ var Module = fx.Module("events",
 	fx.Invoke(StartRouter),
 )
 
-// registerAMQPShutdown closes publisher and subscriber on Fx shutdown.
-func registerAMQPShutdown(lc fx.Lifecycle, pub message.Publisher, sub message.Subscriber) {
+// registerAMQPShutdown closes the publisher on Fx shutdown.
+// NOTE: subscriber is owned by the Watermill router — router.Close() in
+// StartRouter handles its lifecycle. Closing it here would cause a
+// double-close panic because Fx shutdown hook ordering is non-deterministic.
+func registerAMQPShutdown(lc fx.Lifecycle, pub message.Publisher) {
 	lc.Append(fx.Hook{
 		OnStop: func(_ context.Context) error {
 			if err := pub.Close(); err != nil {
 				slog.Warn("amqp publisher close error", "err", err)
 			} else {
 				slog.Info("amqp publisher closed")
-			}
-			if err := sub.Close(); err != nil {
-				slog.Warn("amqp subscriber close error", "err", err)
-			} else {
-				slog.Info("amqp subscriber closed")
 			}
 			return nil
 		},

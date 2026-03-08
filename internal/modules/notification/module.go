@@ -1,8 +1,8 @@
 package notification
 
 import (
-	userdomain "github.com/gnha/gnha-services/internal/modules/user/domain"
 	"github.com/gnha/gnha-services/internal/shared/events"
+	"github.com/gnha/gnha-services/internal/shared/events/contracts"
 	"go.uber.org/fx"
 )
 
@@ -21,6 +21,6 @@ var Module = fx.Module("notification",
 
 func provideHandlers(h *Handler) []events.HandlerRegistration {
 	return []events.HandlerRegistration{
-		{Name: "notify.user_created", Topic: userdomain.TopicUserCreated, HandlerFunc: h.HandleUserCreated},
+		{Name: "notify.user_created", Topic: contracts.TopicUserCreated, HandlerFunc: h.HandleUserCreated},
 	}
 }

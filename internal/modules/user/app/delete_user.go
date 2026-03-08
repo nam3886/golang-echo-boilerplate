@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"log/slog"
-	"time"
 
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
 	"github.com/gnha/gnha-services/internal/shared/auth"
@@ -27,7 +26,8 @@ func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
 	if id == "" {
 		return domain.ErrInvalidArgument()
 	}
-	if err := h.repo.SoftDelete(ctx, domain.UserID(id)); err != nil {
+	user, err := h.repo.SoftDelete(ctx, domain.UserID(id))
+	if err != nil {
 		return err
 	}
 
@@ -39,7 +39,7 @@ func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
 		UserID:    id,
 		ActorID:   actorID,
 		IPAddress: netutil.GetClientIP(ctx),
-		At:        time.Now(),
+		At:        user.UpdatedAt(), // DB-authoritative timestamp
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to publish user.deleted event",
 			"user_id", id, "err", err)

@@ -12,7 +12,6 @@ import (
 	"github.com/gnha/gnha-services/internal/shared"
 	"github.com/gnha/gnha-services/internal/shared/auth"
 	"github.com/gnha/gnha-services/internal/shared/config"
-	"github.com/gnha/gnha-services/internal/shared/cron"
 	"github.com/gnha/gnha-services/internal/shared/events"
 	appmw "github.com/gnha/gnha-services/internal/shared/middleware"
 	"github.com/gnha/gnha-services/internal/shared/search"
@@ -41,7 +40,6 @@ func main() {
 
 		// Infrastructure
 		events.Module,
-		cron.Module,
 		fx.Invoke(startServer),
 	).Run()
 }

@@ -1,40 +1,21 @@
 package domain
 
-import "time"
+import "github.com/gnha/gnha-services/internal/shared/events/contracts"
 
-// Event topics for the user module.
+// Re-export event topics from shared contracts so existing user module code
+// compiles unchanged. External modules (audit, notification) should import
+// from contracts directly to avoid cross-module coupling.
 const (
-	TopicUserCreated = "user.created"
-	TopicUserUpdated = "user.updated"
-	TopicUserDeleted = "user.deleted"
+	TopicUserCreated = contracts.TopicUserCreated
+	TopicUserUpdated = contracts.TopicUserUpdated
+	TopicUserDeleted = contracts.TopicUserDeleted
 )
 
-// UserCreatedEvent is published when a user is created.
-type UserCreatedEvent struct {
-	UserID    string    `json:"user_id"`
-	ActorID   string    `json:"actor_id"`
-	Email     string    `json:"email"`
-	Name      string    `json:"name"`
-	Role      string    `json:"role"`
-	IPAddress string    `json:"ip_address,omitempty"`
-	At        time.Time `json:"at"`
-}
+// UserCreatedEvent is re-exported from shared contracts.
+type UserCreatedEvent = contracts.UserCreatedEvent
 
-// UserUpdatedEvent is published when a user is updated.
-type UserUpdatedEvent struct {
-	UserID    string    `json:"user_id"`
-	ActorID   string    `json:"actor_id"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	Role      string    `json:"role"`
-	IPAddress string    `json:"ip_address,omitempty"`
-	At        time.Time `json:"at"`
-}
+// UserUpdatedEvent is re-exported from shared contracts.
+type UserUpdatedEvent = contracts.UserUpdatedEvent
 
-// UserDeletedEvent is published when a user is soft-deleted.
-type UserDeletedEvent struct {
-	UserID    string    `json:"user_id"`
-	ActorID   string    `json:"actor_id"`
-	IPAddress string    `json:"ip_address,omitempty"`
-	At        time.Time `json:"at"`
-}
+// UserDeletedEvent is re-exported from shared contracts.
+type UserDeletedEvent = contracts.UserDeletedEvent

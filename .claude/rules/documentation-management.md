@@ -1,10 +1,11 @@
 # Project Documentation Management
 
-### Roadmap & Changelog Maintenance
-- **Project Roadmap** (`./docs/development-roadmap.md`): Living document tracking project phases, milestones, and progress
-- **Project Changelog** (`./docs/project-changelog.md`): Detailed record of all significant changes, features, and fixes
-- **System Architecture** (`./docs/system-architecture.md`): Detailed record of all significant changes, features, and fixes
-- **Code Standards** (`./docs/code-standards.md`): Detailed record of all significant changes, features, and fixes
+### Key Documentation
+- **Architecture** (`./docs/architecture.md`): Hexagonal architecture details, layer responsibilities
+- **Code Standards** (`./docs/code-standards.md`): Naming, patterns, domain/app/adapter conventions
+- **Testing Strategy** (`./docs/testing-strategy.md`): Test organization, mocks, testcontainers
+- **Adding a Module** (`./docs/adding-a-module.md`): Step-by-step module creation + scaffold command
+- **Error Codes** (`./docs/error-codes.md`): Error code to HTTP status mapping
 
 ### Automatic Updates Required
 - **After Feature Implementation**: Update roadmap progress status and changelog entries

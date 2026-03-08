@@ -101,11 +101,12 @@ func (mr *MockUserRepositoryMockRecorder) List(ctx, limit, cursor any) *gomock.C
 }
 
 // SoftDelete mocks base method.
-func (m *MockUserRepository) SoftDelete(ctx context.Context, id domain.UserID) error {
+func (m *MockUserRepository) SoftDelete(ctx context.Context, id domain.UserID) (*domain.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SoftDelete", ctx, id)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(*domain.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // SoftDelete indicates an expected call of SoftDelete.

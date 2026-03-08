@@ -33,9 +33,14 @@ func MountSwagger(e *echo.Echo, cfg *config.Config) {
 		return c.Redirect(http.StatusMovedPermanently, "/swagger/")
 	})
 	e.GET("/swagger/", func(c echo.Context) error {
+		// Override the global CSP to allow Swagger UI CDN assets.
+		c.Response().Header().Set("Content-Security-Policy",
+			"default-src 'self'; style-src 'self' https://unpkg.com; "+
+				"script-src 'self' https://unpkg.com 'unsafe-inline'; "+
+				"img-src 'self' data:")
 		specs := discoverSpecs("gen/openapi")
-		html := buildSwaggerHTML(specs)
-		return c.HTML(http.StatusOK, html)
+		swaggerHTML := buildSwaggerHTML(specs)
+		return c.HTML(http.StatusOK, swaggerHTML)
 	})
 }
 

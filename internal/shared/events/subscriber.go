@@ -2,6 +2,7 @@ package events
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -15,9 +16,9 @@ import (
 // RouterParams holds dependencies for the Watermill router.
 type RouterParams struct {
 	fx.In
-	Config     *config.Config
-	Subscriber message.Subscriber
-	Handlers   []HandlerRegistration `group:"event_handlers"`
+	Config   *config.Config
+	Factory  *SubscriberFactory
+	Handlers []HandlerRegistration `group:"event_handlers"`
 }
 
 // HandlerRegistration describes how to register an event handler.
@@ -28,9 +29,9 @@ type HandlerRegistration struct {
 }
 
 // NewRouter creates and configures the Watermill message router.
-// It also declares DLQ queues for all registered topics so that nacked
-// messages after retry exhaustion are routed to "{topic}.dlq" instead of
-// being silently dropped by RabbitMQ.
+// Each handler gets its own subscriber (and thus its own queue) via the
+// SubscriberFactory, ensuring every handler receives all messages on its topic
+// instead of round-robin sharing.
 func NewRouter(params RouterParams) (*message.Router, error) {
 	router, err := message.NewRouter(message.RouterConfig{},
 		watermill.NewSlogLogger(slog.Default()),
@@ -49,13 +50,17 @@ func NewRouter(params RouterParams) (*message.Router, error) {
 		}.Middleware,
 	)
 
-	// Register handlers from all modules
+	// Register handlers — each gets its own subscriber with a unique queue.
 	for _, h := range params.Handlers {
-		router.AddConsumerHandler(h.Name, h.Topic, params.Subscriber, h.HandlerFunc)
+		sub, err := params.Factory.Create(h.Name, h.Topic)
+		if err != nil {
+			return nil, fmt.Errorf("creating subscriber for %s: %w", h.Name, err)
+		}
+		router.AddConsumerHandler(h.Name, h.Topic, sub, h.HandlerFunc)
 	}
 
 	// Declare DLQ queues for all registered topics.
-	// DLQs are a safety net -- failure to declare is non-fatal (warn only).
+	// DLQs are a safety net — failure to declare is non-fatal (warn only).
 	topics := make([]string, 0, len(params.Handlers))
 	for _, h := range params.Handlers {
 		topics = append(topics, h.Topic)
@@ -69,11 +74,15 @@ func NewRouter(params RouterParams) (*message.Router, error) {
 }
 
 // StartRouter starts the Watermill router as part of Fx lifecycle.
+// Uses a cancellable context so the router stops cleanly on shutdown.
 // On fatal router error, triggers Fx shutdown with exit code 1.
 func StartRouter(lc fx.Lifecycle, router *message.Router, shutdowner fx.Shutdowner) {
-	ctx := context.Background()
+	var cancel context.CancelFunc
 	lc.Append(fx.Hook{
 		OnStart: func(_ context.Context) error {
+			var ctx context.Context
+			// nolint:gosec // cancel is called in OnStop hook below
+			ctx, cancel = context.WithCancel(context.Background())
 			go func() {
 				if err := router.Run(ctx); err != nil {
 					slog.Error("watermill router fatal error, initiating shutdown", "err", err)
@@ -83,6 +92,7 @@ func StartRouter(lc fx.Lifecycle, router *message.Router, shutdowner fx.Shutdown
 			return nil
 		},
 		OnStop: func(_ context.Context) error {
+			cancel()
 			return router.Close()
 		},
 	})

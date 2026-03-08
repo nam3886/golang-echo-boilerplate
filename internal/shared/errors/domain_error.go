@@ -16,6 +16,7 @@ const (
 	CodePermissionDenied   ErrorCode = "PERMISSION_DENIED"
 	CodeUnauthenticated    ErrorCode = "UNAUTHENTICATED"
 	CodeFailedPrecondition ErrorCode = "FAILED_PRECONDITION"
+	CodeResourceExhausted  ErrorCode = "RESOURCE_EXHAUSTED"
 	CodeInternal           ErrorCode = "INTERNAL"
 	CodeUnavailable        ErrorCode = "UNAVAILABLE"
 )
@@ -92,6 +93,7 @@ var codeToHTTP = map[ErrorCode]int{
 	CodePermissionDenied:   http.StatusForbidden,
 	CodeUnauthenticated:    http.StatusUnauthorized,
 	CodeFailedPrecondition: http.StatusPreconditionFailed,
+	CodeResourceExhausted:  http.StatusTooManyRequests,
 	CodeInternal:           http.StatusInternalServerError,
 	CodeUnavailable:        http.StatusServiceUnavailable,
 }

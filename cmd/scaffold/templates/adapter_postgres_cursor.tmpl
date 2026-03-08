@@ -3,6 +3,7 @@ package postgres
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,9 +15,12 @@ type cursorPayload struct {
 	U uuid.UUID `json:"u"`
 }
 
-func encodeCursor(t time.Time, id uuid.UUID) string {
-	data, _ := json.Marshal(cursorPayload{T: t, U: id})
-	return base64.URLEncoding.EncodeToString(data)
+func encodeCursor(t time.Time, id uuid.UUID) (string, error) {
+	data, err := json.Marshal(cursorPayload{T: t, U: id})
+	if err != nil {
+		return "", fmt.Errorf("encoding cursor: %w", err)
+	}
+	return base64.URLEncoding.EncodeToString(data), nil
 }
 
 func decodeCursor(cursor string) (*cursorPayload, error) {

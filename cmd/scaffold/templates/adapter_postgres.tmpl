@@ -75,7 +75,11 @@ func (r *Pg{{.NameTitle}}Repository) List(ctx context.Context, limit int, cursor
 	if hasMore && len(items) > 0 {
 		last := items[len(items)-1]
 		if uid, err := parse{{.NameTitle}}ID(last.ID()); err == nil {
-			nextCursor = encodeCursor(last.CreatedAt(), uid)
+			cursor, err := encodeCursor(last.CreatedAt(), uid)
+			if err != nil {
+				return domain.ListResult{}, fmt.Errorf("encoding pagination cursor: %w", err)
+			}
+			nextCursor = cursor
 		}
 	}
 
@@ -149,18 +153,18 @@ func (r *Pg{{.NameTitle}}Repository) Update(ctx context.Context, id domain.{{.Na
 }
 
 // SoftDelete marks a {{.Name}} as deleted without removing the row.
-func (r *Pg{{.NameTitle}}Repository) SoftDelete(ctx context.Context, id domain.{{.NameID}}) error {
+func (r *Pg{{.NameTitle}}Repository) SoftDelete(ctx context.Context, id domain.{{.NameID}}) (*domain.{{.NameTitle}}, error) {
 	uid, err := parse{{.NameTitle}}ID(id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	q := sqlcgen.New(r.pool)
-	rows, err := q.SoftDelete{{.NameTitle}}(ctx, uid)
+	row, err := q.SoftDelete{{.NameTitle}}(ctx, uid)
 	if err != nil {
-		return fmt.Errorf("soft deleting {{.Name}}: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, sharederr.ErrNotFound()
+		}
+		return nil, fmt.Errorf("soft deleting {{.Name}}: %w", err)
 	}
-	if rows == 0 {
-		return sharederr.ErrNotFound()
-	}
-	return nil
+	return toDomain(row), nil
 }

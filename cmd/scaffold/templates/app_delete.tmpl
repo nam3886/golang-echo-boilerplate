@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"log/slog"
-	"time"
 
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
 	"{{.GoModule}}/internal/shared/auth"
@@ -27,7 +26,8 @@ func (h *Delete{{.NameTitle}}Handler) Handle(ctx context.Context, id string) err
 	if id == "" {
 		return domain.ErrInvalidArgument()
 	}
-	if err := h.repo.SoftDelete(ctx, domain.{{.NameID}}(id)); err != nil {
+	entity, err := h.repo.SoftDelete(ctx, domain.{{.NameID}}(id))
+	if err != nil {
 		return err
 	}
 
@@ -39,7 +39,7 @@ func (h *Delete{{.NameTitle}}Handler) Handle(ctx context.Context, id string) err
 		{{.NameTitle}}ID: id,
 		ActorID:         actorID,
 		IPAddress:       netutil.GetClientIP(ctx),
-		At:              time.Now(),
+		At:              entity.UpdatedAt(), // DB-authoritative timestamp
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to publish {{.Name}}.deleted event",
 			"{{.Name}}_id", id, "err", err)

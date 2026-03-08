@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/gnha/gnha-services/internal/modules/user/domain"
+	"github.com/gnha/gnha-services/internal/shared/events/contracts"
 )
 
 // Handler processes notification-related events.
@@ -25,7 +25,7 @@ func NewHandler(sender Sender) *Handler {
 
 // HandleUserCreated sends a welcome email when a user is created.
 func (h *Handler) HandleUserCreated(msg *message.Message) error {
-	var event domain.UserCreatedEvent
+	var event contracts.UserCreatedEvent
 	if err := json.Unmarshal(msg.Payload, &event); err != nil {
 		slog.Error("notification: failed to unmarshal event", "err", err,
 			"payload", string(msg.Payload))

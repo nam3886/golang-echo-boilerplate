@@ -16,7 +16,7 @@ For custom plural naming:
 task module:create name=category plural=categories
 ```
 
-This creates 19 files + runs code generation. Then:
+This creates 26 files + runs code generation. Then:
 1. Customize proto fields in `proto/{name}/v1/{name}.proto`
 2. Customize DB columns in `db/migrations/{timestamp}_create_{plural}.sql`
 3. Customize SQL queries in `db/queries/{name}.sql`
@@ -64,14 +64,27 @@ Use for infrastructure-adjacent modules that react to domain events (no direct u
 **Structure:**
 ```
 internal/modules/audit/
-├── domain/              # Just event types (no entity, no repository)
-│   └── subscriber.go    # Event handler logic
-├── adapters/            # Infrastructure-specific subscribers
-│   └── rabbitmq/        # Watermill subscriber setup
-└── module.go            # fx Module with subscriber registration
+├── handler.go           # Event handler implementation
+└── module.go            # fx Module with event handler registration
 ```
 
 **No:** Proto definitions, migrations, SQL queries, gRPC handlers, or repository interfaces.
+
+**Event Handler Registration:**
+Each handler registers itself via the `event_handlers` fx group. The framework automatically creates a per-handler subscriber queue:
+
+```go
+// module.go
+func provideHandlers(h *Handler) []events.HandlerRegistration {
+    return []events.HandlerRegistration{
+        {Name: "audit.user_created", Topic: contracts.TopicUserCreated, HandlerFunc: h.HandleUserCreated},
+        {Name: "audit.user_updated", Topic: contracts.TopicUserUpdated, HandlerFunc: h.HandleUserUpdated},
+    }
+}
+```
+
+Each handler gets its own AMQP queue (e.g., `user.created_audit.user_created`) via `SubscriberFactory`,
+ensuring it receives all published events instead of round-robin distribution.
 
 ## Manual Steps (Reference)
 

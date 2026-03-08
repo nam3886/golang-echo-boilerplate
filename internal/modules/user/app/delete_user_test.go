@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
 	domainerr "github.com/gnha/gnha-services/internal/shared/errors"
@@ -14,13 +15,22 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
+// deletedUserFixture returns a reconstituted user for SoftDelete mock returns.
+func deletedUserFixture() *domain.User {
+	now := time.Now()
+	return domain.Reconstitute(
+		"user-id-1", "user@example.com", "Test User", "hashed",
+		domain.RoleMember, now, now, &now,
+	)
+}
+
 func TestDeleteUserHandler_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockRepo := mocks.NewMockUserRepository(ctrl)
 
 	mockRepo.EXPECT().
 		SoftDelete(gomock.Any(), domain.UserID("user-id-1")).
-		Return(nil)
+		Return(deletedUserFixture(), nil)
 
 	recorder := &testutil.CapturingPublisher{}
 	bus := events.NewEventBus(recorder)
@@ -41,7 +51,7 @@ func TestDeleteUserHandler_NotFound(t *testing.T) {
 
 	mockRepo.EXPECT().
 		SoftDelete(gomock.Any(), domain.UserID("missing-id")).
-		Return(domainerr.ErrNotFound())
+		Return(nil, domainerr.ErrNotFound())
 
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewDeleteUserHandler(mockRepo, bus)
@@ -62,7 +72,7 @@ func TestDeleteUserHandler_RepoError(t *testing.T) {
 
 	mockRepo.EXPECT().
 		SoftDelete(gomock.Any(), domain.UserID("user-id-1")).
-		Return(fmt.Errorf("db error"))
+		Return(nil, fmt.Errorf("db error"))
 
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewDeleteUserHandler(mockRepo, bus)
@@ -79,7 +89,7 @@ func TestDeleteUserHandler_EventPublishFailureDoesNotFail(t *testing.T) {
 
 	mockRepo.EXPECT().
 		SoftDelete(gomock.Any(), domain.UserID("user-id-1")).
-		Return(nil)
+		Return(deletedUserFixture(), nil)
 
 	bus := events.NewEventBus(&testutil.FailPublisher{})
 	handler := NewDeleteUserHandler(mockRepo, bus)

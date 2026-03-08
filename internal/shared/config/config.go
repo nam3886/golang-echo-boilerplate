@@ -71,7 +71,25 @@ func Load() (*Config, error) {
 	if len(cfg.JWTSecret) < 32 {
 		return nil, fmt.Errorf("JWT_SECRET must be at least 32 characters")
 	}
+	for _, v := range []struct{ name, val string }{
+		{"DATABASE_URL", cfg.DatabaseURL},
+		{"REDIS_URL", cfg.RedisURL},
+		{"RABBITMQ_URL", cfg.RabbitURL},
+	} {
+		if err := validateURL(v.name, v.val); err != nil {
+			return nil, err
+		}
+	}
 	return cfg, nil
+}
+
+// validateURL checks that a config URL has a valid scheme and host.
+func validateURL(name, raw string) error {
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return fmt.Errorf("%s: invalid URL format %q", name, raw)
+	}
+	return nil
 }
 
 // IsDevelopment returns true when running in dev mode.
@@ -88,19 +106,32 @@ func (c *Config) IsProduction() bool {
 // Safe to log or print without leaking credentials.
 func (c Config) String() string {
 	return fmt.Sprintf(
-		"Config{AppEnv:%s AppName:%s Port:%d DatabaseURL:%s RedisURL:%s RabbitURL:%s JWTSecret:%s LogLevel:%s SMTPHost:%s SMTPPort:%d SMTPUser:%s SMTPPassword:%s}",
+		"Config{AppEnv:%s AppName:%s Port:%d DatabaseURL:%s DBMaxConns:%d DBMinConns:%d "+
+			"RedisURL:%s RabbitURL:%s JWTSecret:%s JWTAccessTTL:%s JWTRefreshTTL:%s "+
+			"LogLevel:%s OTLPEndpoint:%s SMTPHost:%s SMTPPort:%d SMTPFrom:%s SMTPUser:%s SMTPPassword:%s SMTPFromAlias:%s "+
+			"ElasticsearchURL:%s ElasticsearchIndexPrefix:%s CORSOrigins:%v}",
 		c.AppEnv,
 		c.AppName,
 		c.Port,
 		maskURL(c.DatabaseURL),
+		c.DBMaxConns,
+		c.DBMinConns,
 		maskURL(c.RedisURL),
 		maskURL(c.RabbitURL),
 		mask(c.JWTSecret),
+		c.JWTAccessTTL,
+		c.JWTRefreshTTL,
 		c.LogLevel,
+		c.OTLPEndpoint,
 		c.SMTPHost,
 		c.SMTPPort,
+		c.SMTPFrom,
 		c.SMTPUser,
 		mask(c.SMTPPassword),
+		c.SMTPFromAlias,
+		c.ElasticsearchURL,
+		c.ElasticsearchIndexPrefix,
+		c.CORSOrigins,
 	)
 }
 

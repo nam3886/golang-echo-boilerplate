@@ -9,6 +9,9 @@ import (
 )
 
 // NewLogger creates a structured logger based on environment.
+// The returned *slog.Logger is provided to Fx for dependency injection, but the
+// primary purpose is the side effect of slog.SetDefault(). Most code uses the
+// global slog functions (slog.Info, slog.Error, etc.) rather than injecting the logger.
 func NewLogger(cfg *config.Config) *slog.Logger {
 	level := parseLevel(cfg.LogLevel)
 	var handler slog.Handler

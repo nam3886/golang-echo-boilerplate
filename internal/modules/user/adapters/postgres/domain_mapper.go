@@ -5,7 +5,7 @@ import (
 
 	sqlcgen "github.com/gnha/gnha-services/gen/sqlc"
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
-	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
+	domainerr "github.com/gnha/gnha-services/internal/shared/errors"
 	"github.com/google/uuid"
 )
 
@@ -13,7 +13,7 @@ import (
 func parseUserID(id domain.UserID) (uuid.UUID, error) {
 	uid, err := uuid.Parse(string(id))
 	if err != nil {
-		return uuid.UUID{}, sharederr.New(sharederr.CodeInvalidArgument, "invalid user ID format")
+		return uuid.UUID{}, domainerr.New(domainerr.CodeInvalidArgument, "invalid user ID format")
 	}
 	return uid, nil
 }

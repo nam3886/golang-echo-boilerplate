@@ -18,5 +18,5 @@ type {{.NameTitle}}Repository interface {
 	List(ctx context.Context, limit int, cursor string) (ListResult, error)
 	Create(ctx context.Context, entity *{{.NameTitle}}) error
 	Update(ctx context.Context, id {{.NameID}}, fn func(*{{.NameTitle}}) error) error
-	SoftDelete(ctx context.Context, id {{.NameID}}) error
+	SoftDelete(ctx context.Context, id {{.NameID}}) (*{{.NameTitle}}, error)
 }

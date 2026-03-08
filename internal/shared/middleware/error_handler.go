@@ -37,8 +37,12 @@ func ErrorHandler(err error, c echo.Context) {
 		if m, ok := echoErr.Message.(string); ok {
 			msg = m
 		}
+		code := domainerr.CodeInternal
+		if echoErr.Code == http.StatusTooManyRequests {
+			code = domainerr.CodeResourceExhausted
+		}
 		_ = c.JSON(echoErr.Code, ErrorResponse{
-			Code:    domainerr.CodeInternal.String(),
+			Code:    code.String(),
 			Message: msg,
 		})
 		return

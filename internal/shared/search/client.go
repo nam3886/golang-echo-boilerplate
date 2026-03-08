@@ -56,6 +56,12 @@ func NewClient(cfg *config.Config) (*Client, error) {
 	return client, nil
 }
 
+// Enabled returns true if the search client is configured and connected.
+// Use this instead of nil-checking the *Client pointer directly.
+func Enabled(c *Client) bool {
+	return c != nil
+}
+
 // IndexName returns the fully qualified index name with prefix.
 func (c *Client) IndexName(suffix string) string {
 	return c.IndexPrefix + "_" + suffix

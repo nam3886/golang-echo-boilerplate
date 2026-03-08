@@ -12,20 +12,23 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// RegisterRoutes mounts the Connect RPC {{.NameTitle}}Service handler on Echo with auth.
+// RegisterRoutes mounts the Connect RPC {{.NameTitle}}Service handler on Echo with auth + RBAC.
 //
-// TODO: Add module-specific permission interceptors for write/delete operations:
-//   - Create{{.NameTitle}} requires "{{.Name}}:write" permission
-//   - Update{{.NameTitle}} requires "{{.Name}}:write" permission
-//   - Delete{{.NameTitle}} requires "{{.Name}}:delete" permission
-//
-// Use appmw.RBACInterceptor() and update procedurePermissions in rbac_interceptor.go
-// to include the new {{.Name}} module permissions before enabling RBAC enforcement here.
+// IMPORTANT: After scaffolding, add {{.Name}} module permissions to procedurePermissions
+// in rbac_interceptor.go to enable per-procedure RBAC enforcement:
+//   - Create{{.NameTitle}} → "{{.Name}}:write"
+//   - Update{{.NameTitle}} → "{{.Name}}:write"
+//   - Delete{{.NameTitle}} → "{{.Name}}:delete"
 func RegisterRoutes(e *echo.Echo, handler *{{.NameTitle}}ServiceHandler, cfg *config.Config, rdb *redis.Client) {
 	path, h := {{.Name}}v1connect.New{{.NameTitle}}ServiceHandler(handler,
-		connect.WithInterceptors(validate.NewInterceptor()),
+		connect.WithInterceptors(
+			appmw.RBACInterceptor(),
+			validate.NewInterceptor(),
+		),
 	)
 
-	g := e.Group(path, appmw.Auth(cfg, rdb))
+	// Mount Connect handler under auth + base read permission.
+	// Write/delete permissions enforced by RBACInterceptor per procedure.
+	g := e.Group(path, appmw.Auth(cfg, rdb), appmw.RequirePermission("{{.Name}}:read"))
 	g.Any("*", echo.WrapHandler(http.StripPrefix(path, h)))
 }

@@ -10,7 +10,7 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
 )
 
 // NewTracerProvider creates an OTel tracer provider exporting to OTLP.
@@ -34,7 +34,7 @@ func NewTracerProvider(cfg *config.Config, version config.AppVersion) (*sdktrace
 			semconv.SchemaURL,
 			semconv.ServiceName(cfg.AppName),
 			semconv.ServiceVersion(string(version)),
-			semconv.DeploymentEnvironment(cfg.AppEnv),
+			semconv.DeploymentEnvironmentName(cfg.AppEnv),
 		)),
 	)
 

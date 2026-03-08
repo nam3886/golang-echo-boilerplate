@@ -47,6 +47,10 @@ func SetupMiddleware(e *echo.Echo, cfg *config.Config, rdb *redis.Client) {
 		MaxAge:           3600,
 	}))
 	// 9. Global Timeout (30s default)
+	// WARNING: ContextTimeout cancels the request context after 30s. If a handler
+	// writes to the DB and then publishes an event, the context may cancel between
+	// the two operations. Handlers doing multi-step writes should use their own
+	// deadline or check ctx.Err() between steps.
 	e.Use(echomw.ContextTimeoutWithConfig(echomw.ContextTimeoutConfig{
 		Timeout: 30 * time.Second,
 	}))

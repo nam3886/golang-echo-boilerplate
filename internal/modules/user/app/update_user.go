@@ -58,6 +58,11 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*dom
 		return nil, err
 	}
 
+	// Skip event if nothing was actually changed.
+	if cmd.Name == nil && cmd.Email == nil && cmd.Role == nil {
+		return updated, nil
+	}
+
 	var actorID string
 	if actor := auth.UserFromContext(ctx); actor != nil {
 		actorID = actor.UserID

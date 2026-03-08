@@ -24,5 +24,5 @@ SET name = COALESCE(sqlc.narg('name'), name),
 WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;
 
--- name: SoftDelete{{.NameTitle}} :execrows
-UPDATE {{.NamePlural}} SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL;
+-- name: SoftDelete{{.NameTitle}} :one
+UPDATE {{.NamePlural}} SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING *;

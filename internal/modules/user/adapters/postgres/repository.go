@@ -8,7 +8,7 @@ import (
 
 	sqlcgen "github.com/gnha/gnha-services/gen/sqlc"
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
-	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
+	domainerr "github.com/gnha/gnha-services/internal/shared/errors"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -35,7 +35,7 @@ func (r *PgUserRepository) GetByID(ctx context.Context, id domain.UserID) (*doma
 	row, err := q.GetUserByID(ctx, uid)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, sharederr.ErrNotFound()
+			return nil, domainerr.ErrNotFound()
 		}
 		return nil, fmt.Errorf("getting user by id: %w", err)
 	}
@@ -47,7 +47,7 @@ func (r *PgUserRepository) GetByEmail(ctx context.Context, email string) (*domai
 	row, err := q.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, sharederr.ErrNotFound()
+			return nil, domainerr.ErrNotFound()
 		}
 		return nil, fmt.Errorf("getting user by email: %w", err)
 	}
@@ -63,7 +63,7 @@ func (r *PgUserRepository) List(ctx context.Context, limit int, cursor string) (
 	if cursor != "" {
 		decoded, err := decodeCursor(cursor)
 		if err != nil {
-			return domain.ListResult{}, sharederr.New(sharederr.CodeInvalidArgument, "invalid pagination cursor")
+			return domain.ListResult{}, domainerr.New(domainerr.CodeInvalidArgument, "invalid pagination cursor")
 		}
 		params.CursorCreatedAt = pgtype.Timestamptz{Time: decoded.T, Valid: true}
 		params.CursorID = pgtype.UUID{Bytes: decoded.U, Valid: true}
@@ -88,7 +88,11 @@ func (r *PgUserRepository) List(ctx context.Context, limit int, cursor string) (
 	if hasMore && len(users) > 0 {
 		last := users[len(users)-1]
 		if uid, err := uuid.Parse(string(last.ID())); err == nil {
-			nextCursor = encodeCursor(last.CreatedAt(), uid)
+			cursor, err := encodeCursor(last.CreatedAt(), uid)
+			if err != nil {
+				return domain.ListResult{}, fmt.Errorf("encoding pagination cursor: %w", err)
+			}
+			nextCursor = cursor
 		}
 	}
 
@@ -138,7 +142,7 @@ func (r *PgUserRepository) Update(ctx context.Context, id domain.UserID, fn func
 	row, err := q.GetUserByIDForUpdate(ctx, uid)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return sharederr.ErrNotFound()
+			return domainerr.ErrNotFound()
 		}
 		return fmt.Errorf("fetching user for update: %w", err)
 	}
@@ -171,18 +175,18 @@ func (r *PgUserRepository) Update(ctx context.Context, id domain.UserID, fn func
 	return tx.Commit(ctx)
 }
 
-func (r *PgUserRepository) SoftDelete(ctx context.Context, id domain.UserID) error {
+func (r *PgUserRepository) SoftDelete(ctx context.Context, id domain.UserID) (*domain.User, error) {
 	uid, err := parseUserID(id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	q := sqlcgen.New(r.pool)
-	rows, err := q.SoftDeleteUser(ctx, uid)
+	row, err := q.SoftDeleteUser(ctx, uid)
 	if err != nil {
-		return fmt.Errorf("soft deleting user: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domainerr.ErrNotFound()
+		}
+		return nil, fmt.Errorf("soft deleting user: %w", err)
 	}
-	if rows == 0 {
-		return sharederr.ErrNotFound()
-	}
-	return nil
+	return toDomain(row), nil
 }

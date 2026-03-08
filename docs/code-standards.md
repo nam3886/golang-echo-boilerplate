@@ -119,7 +119,7 @@ type GetUserHandler struct { }
 
 ### Domain Errors
 
-All errors use the `DomainError` pattern from `internal/shared/errors`.
+All errors use the `DomainError` pattern from `internal/shared/errors` (actually `internal/shared/errors/domainerr`).
 Module-specific errors are **constructor functions**, not package-level vars:
 
 ```go
@@ -152,12 +152,15 @@ Use standard error codes that map to HTTP status codes:
 
 ```go
 const (
-    CodeInvalidArgument    ErrorCode = "INVALID_ARGUMENT"      // 400
-    CodeUnauthenticated    ErrorCode = "UNAUTHENTICATED"       // 401
-    CodePermissionDenied   ErrorCode = "PERMISSION_DENIED"     // 403
-    CodeNotFound           ErrorCode = "NOT_FOUND"             // 404
-    CodeAlreadyExists      ErrorCode = "ALREADY_EXISTS"        // 409
-    CodeInternal           ErrorCode = "INTERNAL"              // 500
+    CodeInvalidArgument      ErrorCode = "INVALID_ARGUMENT"        // 400
+    CodeUnauthenticated      ErrorCode = "UNAUTHENTICATED"         // 401
+    CodePermissionDenied     ErrorCode = "PERMISSION_DENIED"       // 403
+    CodeNotFound             ErrorCode = "NOT_FOUND"               // 404
+    CodeAlreadyExists        ErrorCode = "ALREADY_EXISTS"          // 409
+    CodeFailedPrecondition   ErrorCode = "FAILED_PRECONDITION"     // 412
+    CodeResourceExhausted    ErrorCode = "RESOURCE_EXHAUSTED"      // 429
+    CodeInternal             ErrorCode = "INTERNAL"                // 500
+    CodeUnavailable          ErrorCode = "UNAVAILABLE"             // 503
 )
 ```
 
