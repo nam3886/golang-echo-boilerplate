@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"html/template"
 	"log/slog"
+	"strings"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/gnha/gnha-services/internal/shared/events"
+	"github.com/gnha/gnha-services/internal/modules/user/domain"
 )
 
 // Handler processes notification-related events.
@@ -24,7 +25,7 @@ func NewHandler(sender Sender) *Handler {
 
 // HandleUserCreated sends a welcome email when a user is created.
 func (h *Handler) HandleUserCreated(msg *message.Message) error {
-	var event events.UserCreatedEvent
+	var event domain.UserCreatedEvent
 	if err := json.Unmarshal(msg.Payload, &event); err != nil {
 		slog.Error("notification: failed to unmarshal event", "err", err)
 		return err
@@ -39,11 +40,29 @@ func (h *Handler) HandleUserCreated(msg *message.Message) error {
 	ctx := msg.Context()
 	if err := h.sender.Send(ctx, event.Email, "Welcome!", buf.String()); err != nil {
 		slog.ErrorContext(ctx, "notification: failed to send email", "err", err, "to", event.Email)
+		// Permanent SMTP errors (5xx) won't be fixed by retrying -- ack them.
+		if isPermanentSMTPError(err) {
+			slog.Warn("notification: permanent SMTP error, acking message", "err", err)
+			return nil
+		}
 		return err
 	}
 
 	slog.InfoContext(ctx, "notification: welcome email sent", "to", event.Email)
 	return nil
+}
+
+// isPermanentSMTPError checks if the error wraps an SMTP 5xx response.
+// SMTP 5xx codes indicate permanent failures (bad address, policy reject, etc.)
+// that won't be resolved by retrying.
+func isPermanentSMTPError(err error) bool {
+	errStr := err.Error()
+	for _, prefix := range []string{"550", "551", "552", "553", "554", "555"} {
+		if strings.Contains(errStr, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 const welcomeTemplate = `<!DOCTYPE html>

@@ -35,17 +35,20 @@ func (s *Scheduler) AddJob(spec, name string, fn func(ctx context.Context) error
 		lockKey := "cron:" + name
 		lockVal := uuid.NewString()
 
-		// Acquire distributed lock with unique token.
-		// SetArgs with Mode:"NX" replaces the deprecated SetNX: returns "OK" when the
-		// key was set, empty string when it already existed (another instance holds the lock).
-		result, err := s.rdb.SetArgs(ctx, lockKey, lockVal, redis.SetArgs{
+		// Acquire distributed lock with unique token
+		locked, err := s.rdb.SetArgs(ctx, lockKey, lockVal, redis.SetArgs{
 			Mode: "NX",
 			TTL:  5 * time.Minute,
 		}).Result()
-		if err != nil || result != "OK" {
+		// locked is "OK" when the NX lock was acquired
+		if err != nil || locked != "OK" {
 			return // Another instance has the lock
 		}
-		defer s.rdb.Eval(ctx, unlockScript, []string{lockKey}, lockVal)
+		defer func() {
+			if err := s.rdb.Eval(ctx, unlockScript, []string{lockKey}, lockVal).Err(); err != nil {
+				slog.Warn("cron: failed to unlock", "job", name, "key", lockKey, "err", err)
+			}
+		}()
 
 		if err := fn(ctx); err != nil {
 			slog.Error("cron job failed", "job", name, "err", err)

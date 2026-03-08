@@ -32,7 +32,8 @@ func NewSMTPSender(cfg *config.Config) Sender {
 	}
 }
 
-func (s *SMTPSender) Send(_ context.Context, to, subject, body string) error {
+// Send delivers an email via SMTP with CRLF-injection protection.
+func (s *SMTPSender) Send(ctx context.Context, to, subject, body string) error {
 	// Sanitize header values to prevent CRLF injection
 	sanitize := func(v string) string {
 		return strings.NewReplacer("\r", "", "\n", "").Replace(v)
@@ -52,8 +53,23 @@ func (s *SMTPSender) Send(_ context.Context, to, subject, body string) error {
 		auth = smtp.PlainAuth("", s.user, s.password, s.host)
 	}
 
-	if err := smtp.SendMail(addr, auth, sanitize(s.from), []string{sanitize(to)}, []byte(msg)); err != nil {
-		return fmt.Errorf("sending email to %s: %w", to, err)
+	// Wrap smtp.SendMail in a goroutine to respect context cancellation.
+	// net/smtp has no native context support, so on context cancel this goroutine
+	// leaks until TCP timeout (~30s). The buffered channel prevents goroutine
+	// blocking if the context expires before the result is read. The leak is
+	// bounded by TCP timeout and acceptable without a custom SMTP client.
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- smtp.SendMail(addr, auth, sanitize(s.from), []string{sanitize(to)}, []byte(msg))
+	}()
+
+	select {
+	case err := <-errCh:
+		if err != nil {
+			return fmt.Errorf("sending email to %s: %w", to, err)
+		}
+		return nil
+	case <-ctx.Done():
+		return fmt.Errorf("sending email to %s: %w", to, ctx.Err())
 	}
-	return nil
 }

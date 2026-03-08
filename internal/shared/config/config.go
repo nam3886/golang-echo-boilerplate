@@ -45,6 +45,10 @@ type Config struct {
 	SMTPPassword  string `env:"SMTP_PASSWORD"`
 	SMTPFromAlias string `env:"SMTP_FROM_ALIAS"`
 
+	// Elasticsearch (optional — empty URL disables search)
+	ElasticsearchURL         string `env:"ELASTICSEARCH_URL"`
+	ElasticsearchIndexPrefix string `env:"ELASTICSEARCH_INDEX_PREFIX" envDefault:"gnha"`
+
 	// CORS
 	CORSOrigins []string `env:"CORS_ORIGINS" envSeparator:"," envDefault:"http://localhost:3000"`
 }

@@ -14,12 +14,19 @@ default:
   image: golang:1.26-alpine
   before_script:
     - apk add --no-cache git curl
+  cache:
+    key: go-mod-${CI_COMMIT_REF_SLUG}
+    paths:
+      - .go/pkg/mod/
+    policy: pull-push
+  variables:
+    GOPATH: ${CI_PROJECT_DIR}/.go
 
 # ─── Quality ────────────────────────────────────────────────────────────────
 
 lint:
   stage: quality
-  image: golangci/golangci-lint:v2.1.6
+  image: golangci/golangci-lint:latest
   script:
     - golangci-lint run ./...
   rules:
@@ -112,7 +119,7 @@ deploy-staging:
     - eval $(ssh-agent -s)
     - echo "$STAGING_SSH_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh && chmod 700 ~/.ssh
-    - ssh-keyscan -H $STAGING_HOST >> ~/.ssh/known_hosts
+    - echo "$STAGING_HOST_KEY" >> ~/.ssh/known_hosts
   script:
     - |
       ssh $STAGING_USER@$STAGING_HOST "
@@ -134,7 +141,7 @@ deploy-production:
     - eval $(ssh-agent -s)
     - echo "$PROD_SSH_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh && chmod 700 ~/.ssh
-    - ssh-keyscan -H $PROD_HOST >> ~/.ssh/known_hosts
+    - echo "$PROD_HOST_KEY" >> ~/.ssh/known_hosts
   script:
     - |
       ssh $PROD_USER@$PROD_HOST "

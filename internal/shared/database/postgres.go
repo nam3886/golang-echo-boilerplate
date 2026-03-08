@@ -12,7 +12,8 @@ import (
 
 // NewPostgresPool creates a pgx connection pool with retry logic.
 func NewPostgresPool(cfg *config.Config) (*pgxpool.Pool, error) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
 
 	poolCfg, err := pgxpool.ParseConfig(cfg.DatabaseURL)
 	if err != nil {
