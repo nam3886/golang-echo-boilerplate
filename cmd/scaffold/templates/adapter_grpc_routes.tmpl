@@ -13,6 +13,14 @@ import (
 )
 
 // RegisterRoutes mounts the Connect RPC {{.NameTitle}}Service handler on Echo with auth.
+//
+// TODO: Add module-specific permission interceptors for write/delete operations:
+//   - Create{{.NameTitle}} requires "{{.Name}}:write" permission
+//   - Update{{.NameTitle}} requires "{{.Name}}:write" permission
+//   - Delete{{.NameTitle}} requires "{{.Name}}:delete" permission
+//
+// Use appmw.RBACInterceptor() and update procedurePermissions in rbac_interceptor.go
+// to include the new {{.Name}} module permissions before enabling RBAC enforcement here.
 func RegisterRoutes(e *echo.Echo, handler *{{.NameTitle}}ServiceHandler, cfg *config.Config, rdb *redis.Client) {
 	path, h := {{.Name}}v1connect.New{{.NameTitle}}ServiceHandler(handler,
 		connect.WithInterceptors(validate.NewInterceptor()),

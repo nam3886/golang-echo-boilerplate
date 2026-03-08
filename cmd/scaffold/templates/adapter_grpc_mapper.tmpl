@@ -2,6 +2,8 @@ package grpc
 
 import (
 	"errors"
+	"fmt"
+	"log/slog"
 
 	{{.Name}}v1 "{{.GoModule}}/gen/proto/{{.Name}}/v1"
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
@@ -27,7 +29,8 @@ func domainErrorToConnect(err error) error {
 		code := codeToConnect[domErr.Code]
 		return connect.NewError(code, err)
 	}
-	return connect.NewError(connect.CodeInternal, err)
+	slog.Error("unhandled internal error", "err", err)
+	return connect.NewError(connect.CodeInternal, fmt.Errorf("internal error"))
 }
 
 var codeToConnect = map[sharederr.ErrorCode]connect.Code{

@@ -10,7 +10,7 @@ import (
 
 	sqlcgen "{{.GoModule}}/gen/sqlc"
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
-	domainerr "{{.GoModule}}/internal/shared/errors"
+	sharederr "{{.GoModule}}/internal/shared/errors"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -36,7 +36,7 @@ func (r *Pg{{.NameTitle}}Repository) GetByID(ctx context.Context, id domain.{{.N
 	row, err := q.Get{{.NameTitle}}ByID(ctx, uid)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, domainerr.ErrNotFound
+			return nil, sharederr.ErrNotFound
 		}
 		return nil, fmt.Errorf("getting {{.Name}} by id: %w", err)
 	}
@@ -88,6 +88,9 @@ func (r *Pg{{.NameTitle}}Repository) Create(ctx context.Context, entity *domain.
 		return err
 	}
 	q := sqlcgen.New(r.pool)
+	// TODO: Extend Create{{.NameTitle}}Params with all required columns for this module.
+	// Always use explicit column lists in INSERT statements (never INSERT INTO t VALUES (...))
+	// so that schema additions are backward-compatible and sqlc generates type-safe structs.
 	_, err = q.Create{{.NameTitle}}(ctx, sqlcgen.Create{{.NameTitle}}Params{
 		ID:   uid,
 		Name: entity.Name(),
@@ -114,7 +117,7 @@ func (r *Pg{{.NameTitle}}Repository) Update(ctx context.Context, id domain.{{.Na
 	row, err := q.Get{{.NameTitle}}ByIDForUpdate(ctx, uid)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return domainerr.ErrNotFound
+			return sharederr.ErrNotFound
 		}
 		return fmt.Errorf("fetching {{.Name}} for update: %w", err)
 	}
@@ -147,7 +150,7 @@ func (r *Pg{{.NameTitle}}Repository) SoftDelete(ctx context.Context, id domain.{
 		return fmt.Errorf("soft deleting {{.Name}}: %w", err)
 	}
 	if rows == 0 {
-		return domainerr.ErrNotFound
+		return sharederr.ErrNotFound
 	}
 	return nil
 }
@@ -156,7 +159,7 @@ func (r *Pg{{.NameTitle}}Repository) SoftDelete(ctx context.Context, id domain.{
 func parse{{.NameTitle}}ID(id domain.{{.NameID}}) (uuid.UUID, error) {
 	uid, err := uuid.Parse(string(id))
 	if err != nil {
-		return uuid.UUID{}, domainerr.New(domainerr.CodeInvalidArgument, "invalid {{.Name}} ID format")
+		return uuid.UUID{}, sharederr.New(sharederr.CodeInvalidArgument, "invalid {{.Name}} ID format")
 	}
 	return uid, nil
 }

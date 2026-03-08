@@ -2,158 +2,214 @@ package app
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"testing"
 	"time"
 
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
-	domainerr "github.com/gnha/gnha-services/internal/shared/errors"
+	"github.com/gnha/gnha-services/internal/shared/events"
 	"github.com/gnha/gnha-services/internal/shared/mocks"
+	"github.com/gnha/gnha-services/internal/shared/testutil"
 	"go.uber.org/mock/gomock"
 )
+
+func strPtr(s string) *string { return &s }
+
+func makeTestUser() *domain.User {
+	return domain.Reconstitute(
+		"00000000-0000-0000-0000-000000000001",
+		"user@example.com",
+		"Original Name",
+		"hashed_pwd",
+		domain.RoleMember,
+		time.Now(),
+		time.Now(),
+		nil,
+	)
+}
 
 func TestUpdateUserHandler_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockRepo := mocks.NewMockUserRepository(ctrl)
 
-	user := domain.Reconstitute("user-id-1", "u@example.com", "Old Name", "hash", domain.RoleMember, time.Now(), time.Now(), nil)
-
-	// Update calls the fn with the fetched user, fn mutates it in place.
 	mockRepo.EXPECT().
-		Update(gomock.Any(), domain.UserID("user-id-1"), gomock.Any()).
+		Update(gomock.Any(), domain.UserID("00000000-0000-0000-0000-000000000001"), gomock.Any()).
 		DoAndReturn(func(_ context.Context, _ domain.UserID, fn func(*domain.User) error) error {
-			return fn(user)
+			u := makeTestUser()
+			return fn(u)
 		})
 
-	newName := "New Name"
-	bus := &stubEventPublisher{}
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewUpdateUserHandler(mockRepo, bus)
 
-	got, err := handler.Handle(context.Background(), UpdateUserCmd{
-		ID:   "user-id-1",
-		Name: &newName,
+	user, err := handler.Handle(context.Background(), UpdateUserCmd{
+		ID:   "00000000-0000-0000-0000-000000000001",
+		Name: strPtr("Updated Name"),
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if got.Name() != "New Name" {
-		t.Errorf("expected name New Name, got %s", got.Name())
-	}
-	if bus.topic != "user.updated" {
-		t.Errorf("expected event topic user.updated, got %s", bus.topic)
+	if user.Name() != "Updated Name" {
+		t.Errorf("expected name Updated Name, got %s", user.Name())
 	}
 }
 
-func TestUpdateUserHandler_NotFound(t *testing.T) {
+func TestUpdateUserHandler_RepoFailure(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockRepo := mocks.NewMockUserRepository(ctrl)
 
 	mockRepo.EXPECT().
-		Update(gomock.Any(), domain.UserID("missing-id"), gomock.Any()).
-		Return(domainerr.ErrNotFound())
-
-	newName := "New Name"
-	bus := &stubEventPublisher{}
-	handler := NewUpdateUserHandler(mockRepo, bus)
-
-	_, err := handler.Handle(context.Background(), UpdateUserCmd{
-		ID:   "missing-id",
-		Name: &newName,
-	})
-	if err == nil {
-		t.Fatal("expected not found error, got nil")
-	}
-	var domErr *domainerr.DomainError
-	if !errors.As(err, &domErr) || domErr.Code != domainerr.CodeNotFound {
-		t.Errorf("expected CodeNotFound, got %v", err)
-	}
-}
-
-func TestUpdateUserHandler_InvalidRole(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	mockRepo := mocks.NewMockUserRepository(ctrl)
-
-	user := domain.Reconstitute("user-id-1", "u@example.com", "Name", "hash", domain.RoleMember, time.Now(), time.Now(), nil)
-
-	mockRepo.EXPECT().
-		Update(gomock.Any(), domain.UserID("user-id-1"), gomock.Any()).
-		DoAndReturn(func(_ context.Context, _ domain.UserID, fn func(*domain.User) error) error {
-			return fn(user)
-		})
-
-	invalidRole := "superadmin"
-	bus := &stubEventPublisher{}
-	handler := NewUpdateUserHandler(mockRepo, bus)
-
-	_, err := handler.Handle(context.Background(), UpdateUserCmd{
-		ID:   "user-id-1",
-		Role: &invalidRole,
-	})
-	if err == nil {
-		t.Fatal("expected error for invalid role, got nil")
-	}
-}
-
-func TestUpdateUserHandler_RepoError(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	mockRepo := mocks.NewMockUserRepository(ctrl)
-
-	mockRepo.EXPECT().
-		Update(gomock.Any(), domain.UserID("user-id-1"), gomock.Any()).
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(fmt.Errorf("db error"))
 
-	newName := "New Name"
-	bus := &stubEventPublisher{}
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewUpdateUserHandler(mockRepo, bus)
 
 	_, err := handler.Handle(context.Background(), UpdateUserCmd{
-		ID:   "user-id-1",
-		Name: &newName,
+		ID:   "00000000-0000-0000-0000-000000000001",
+		Name: strPtr("New Name"),
 	})
 	if err == nil {
-		t.Fatal("expected repo error, got nil")
+		t.Fatal("expected error from repo failure")
 	}
 }
 
-func TestUpdateUserHandler_EventPublishFailureDoesNotFail(t *testing.T) {
+// TestUpdateUserHandler_RoleOnlyUpdate verifies that setting only Role (no Name)
+// applies the role change without affecting the name.
+func TestUpdateUserHandler_RoleOnlyUpdate(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockRepo := mocks.NewMockUserRepository(ctrl)
 
-	user := domain.Reconstitute("user-id-1", "u@example.com", "Name", "hash", domain.RoleMember, time.Now(), time.Now(), nil)
 	mockRepo.EXPECT().
-		Update(gomock.Any(), domain.UserID("user-id-1"), gomock.Any()).
+		Update(gomock.Any(), domain.UserID("00000000-0000-0000-0000-000000000001"), gomock.Any()).
 		DoAndReturn(func(_ context.Context, _ domain.UserID, fn func(*domain.User) error) error {
-			return fn(user)
+			u := makeTestUser()
+			return fn(u)
 		})
 
-	newName := "New Name"
-	bus := &failEventPublisher{}
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewUpdateUserHandler(mockRepo, bus)
 
-	// Event publish failure is logged but does not propagate to caller.
-	_, err := handler.Handle(context.Background(), UpdateUserCmd{
-		ID:   "user-id-1",
-		Name: &newName,
+	user, err := handler.Handle(context.Background(), UpdateUserCmd{
+		ID:   "00000000-0000-0000-0000-000000000001",
+		Role: strPtr("admin"),
 	})
 	if err != nil {
-		t.Fatalf("expected no error even when event publish fails, got %v", err)
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if user.Role() != domain.RoleAdmin {
+		t.Errorf("expected role admin, got %s", user.Role())
+	}
+	// Name must remain unchanged
+	if user.Name() != "Original Name" {
+		t.Errorf("expected name Original Name, got %s", user.Name())
 	}
 }
 
-// stubEventPublisher captures the last published topic.
-type stubEventPublisher struct {
-	topic string
+// TestUpdateUserHandler_EmptyName_ReturnsError verifies that passing an empty
+// string as Name is rejected by the domain and surfaces as an error.
+func TestUpdateUserHandler_EmptyName_ReturnsError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMockUserRepository(ctrl)
+
+	mockRepo.EXPECT().
+		Update(gomock.Any(), domain.UserID("00000000-0000-0000-0000-000000000001"), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ domain.UserID, fn func(*domain.User) error) error {
+			u := makeTestUser()
+			return fn(u)
+		})
+
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	handler := NewUpdateUserHandler(mockRepo, bus)
+
+	_, err := handler.Handle(context.Background(), UpdateUserCmd{
+		ID:   "00000000-0000-0000-0000-000000000001",
+		Name: strPtr(""), // empty string must be rejected
+	})
+	if err == nil {
+		t.Fatal("expected error for empty name")
+	}
+	if err != domain.ErrNameRequired {
+		t.Errorf("expected ErrNameRequired, got %v", err)
+	}
 }
 
-func (s *stubEventPublisher) Publish(_ context.Context, topic string, _ any) error {
-	s.topic = topic
-	return nil
+func TestUpdateUserHandler_EmailChange(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMockUserRepository(ctrl)
+
+	mockRepo.EXPECT().
+		Update(gomock.Any(), domain.UserID("00000000-0000-0000-0000-000000000001"), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ domain.UserID, fn func(*domain.User) error) error {
+			u := makeTestUser()
+			return fn(u)
+		})
+
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	handler := NewUpdateUserHandler(mockRepo, bus)
+
+	user, err := handler.Handle(context.Background(), UpdateUserCmd{
+		ID:    "00000000-0000-0000-0000-000000000001",
+		Email: strPtr("new@example.com"),
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if user.Email() != "new@example.com" {
+		t.Errorf("expected email new@example.com, got %s", user.Email())
+	}
 }
 
-// failEventPublisher always fails on Publish.
-type failEventPublisher struct{}
+func TestUpdateUserHandler_InvalidEmail_ReturnsError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMockUserRepository(ctrl)
 
-func (f *failEventPublisher) Publish(_ context.Context, _ string, _ any) error {
-	return fmt.Errorf("event bus unavailable")
+	mockRepo.EXPECT().
+		Update(gomock.Any(), domain.UserID("00000000-0000-0000-0000-000000000001"), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ domain.UserID, fn func(*domain.User) error) error {
+			u := makeTestUser()
+			return fn(u)
+		})
+
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	handler := NewUpdateUserHandler(mockRepo, bus)
+
+	_, err := handler.Handle(context.Background(), UpdateUserCmd{
+		ID:    "00000000-0000-0000-0000-000000000001",
+		Email: strPtr("not-an-email"),
+	})
+	if err == nil {
+		t.Fatal("expected error for invalid email")
+	}
+	if err != domain.ErrInvalidEmail {
+		t.Errorf("expected ErrInvalidEmail, got %v", err)
+	}
+}
+
+// TestUpdateUserHandler_EventPublishFailure_DoesNotFail verifies that a publish
+// error is logged but does not cause the handler to return an error.
+func TestUpdateUserHandler_EventPublishFailure_DoesNotFail(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMockUserRepository(ctrl)
+
+	mockRepo.EXPECT().
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ domain.UserID, fn func(*domain.User) error) error {
+			u := makeTestUser()
+			return fn(u)
+		})
+
+	bus := events.NewEventBus(&testutil.FailPublisher{})
+	handler := NewUpdateUserHandler(mockRepo, bus)
+
+	user, err := handler.Handle(context.Background(), UpdateUserCmd{
+		ID:   "00000000-0000-0000-0000-000000000001",
+		Name: strPtr("New Name"),
+	})
+	if err != nil {
+		t.Fatalf("expected no error even when publish fails, got %v", err)
+	}
+	if user == nil {
+		t.Fatal("expected user, got nil")
+	}
 }

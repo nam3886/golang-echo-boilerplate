@@ -8,7 +8,9 @@ import (
 
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
 	domainerr "github.com/gnha/gnha-services/internal/shared/errors"
+	"github.com/gnha/gnha-services/internal/shared/events"
 	"github.com/gnha/gnha-services/internal/shared/mocks"
+	"github.com/gnha/gnha-services/internal/shared/testutil"
 	"go.uber.org/mock/gomock"
 )
 
@@ -20,15 +22,16 @@ func TestDeleteUserHandler_Success(t *testing.T) {
 		SoftDelete(gomock.Any(), domain.UserID("user-id-1")).
 		Return(nil)
 
-	bus := &stubEventPublisher{}
+	recorder := &testutil.CapturingPublisher{}
+	bus := events.NewEventBus(recorder)
 	handler := NewDeleteUserHandler(mockRepo, bus)
 
 	err := handler.Handle(context.Background(), "user-id-1")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if bus.topic != "user.deleted" {
-		t.Errorf("expected event topic user.deleted, got %s", bus.topic)
+	if recorder.Topic != domain.TopicUserDeleted {
+		t.Errorf("expected event topic %s, got %s", domain.TopicUserDeleted, recorder.Topic)
 	}
 }
 
@@ -40,7 +43,7 @@ func TestDeleteUserHandler_NotFound(t *testing.T) {
 		SoftDelete(gomock.Any(), domain.UserID("missing-id")).
 		Return(domainerr.ErrNotFound())
 
-	bus := &stubEventPublisher{}
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewDeleteUserHandler(mockRepo, bus)
 
 	err := handler.Handle(context.Background(), "missing-id")
@@ -61,7 +64,7 @@ func TestDeleteUserHandler_RepoError(t *testing.T) {
 		SoftDelete(gomock.Any(), domain.UserID("user-id-1")).
 		Return(fmt.Errorf("db error"))
 
-	bus := &stubEventPublisher{}
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewDeleteUserHandler(mockRepo, bus)
 
 	err := handler.Handle(context.Background(), "user-id-1")
@@ -78,7 +81,7 @@ func TestDeleteUserHandler_EventPublishFailureDoesNotFail(t *testing.T) {
 		SoftDelete(gomock.Any(), domain.UserID("user-id-1")).
 		Return(nil)
 
-	bus := &failEventPublisher{}
+	bus := events.NewEventBus(&testutil.FailPublisher{})
 	handler := NewDeleteUserHandler(mockRepo, bus)
 
 	// Event publish failure is logged but must not propagate.

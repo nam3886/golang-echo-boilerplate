@@ -4,6 +4,7 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
@@ -56,7 +57,7 @@ func TestPg{{.NameTitle}}Repository_GetByID_NotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for not found")
 	}
-	if err != domainerr.ErrNotFound {
+	if !errors.Is(err, domainerr.ErrNotFound()) {
 		t.Errorf("expected ErrNotFound, got %v", err)
 	}
 }
@@ -75,7 +76,7 @@ func TestPg{{.NameTitle}}Repository_SoftDelete(t *testing.T) {
 	}
 
 	_, err := repo.GetByID(ctx, entity.ID())
-	if err != domainerr.ErrNotFound {
+	if !errors.Is(err, domainerr.ErrNotFound()) {
 		t.Errorf("expected ErrNotFound after soft delete, got %v", err)
 	}
 }

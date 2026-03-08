@@ -103,6 +103,27 @@ func TestUser_ChangeRole_Invalid(t *testing.T) {
 	}
 }
 
+func TestUser_ChangeEmail(t *testing.T) {
+	user, _ := NewUser("old@example.com", "Test User", "hashed_pwd", RoleMember)
+	if err := user.ChangeEmail("new@example.com"); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if user.Email() != "new@example.com" {
+		t.Errorf("expected email new@example.com, got %s", user.Email())
+	}
+}
+
+func TestUser_ChangeEmail_Invalid(t *testing.T) {
+	user, _ := NewUser("old@example.com", "Test User", "hashed_pwd", RoleMember)
+	err := user.ChangeEmail("not-an-email")
+	if err == nil {
+		t.Fatal("expected error for invalid email")
+	}
+	if err != ErrInvalidEmail {
+		t.Errorf("expected ErrInvalidEmail, got %v", err)
+	}
+}
+
 func TestRole_IsValid(t *testing.T) {
 	tests := []struct {
 		role  Role

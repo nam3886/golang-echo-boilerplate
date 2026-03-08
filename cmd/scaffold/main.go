@@ -156,11 +156,12 @@ func main() {
 	fmt.Printf("  1. Customize proto fields:      proto/%s/v1/%s.proto\n", data.Name, data.Name)
 	fmt.Printf("  2. Customize DB columns:        db/migrations/%s_create_%s.sql\n", data.Timestamp, data.NamePlural)
 	fmt.Printf("  3. Customize SQL queries:        db/queries/%s.sql\n", data.Name)
-	fmt.Println("  4. Run code generation:          task generate")
+	fmt.Println("  4. Run code generation (required before tests compile): task generate")
 	fmt.Printf("  5. Update generated code:        toDomain(), Create/UpdateParams, toProto()\n")
-	fmt.Println("  6. Add event topics to:          internal/shared/events/topics.go")
+	fmt.Println("  6. Add event topics/structs to:  internal/modules/<name>/domain/events.go")
 	fmt.Printf("  7. Register module in:           cmd/server/main.go\n")
-	fmt.Println("  8. Run:                          task migrate:up && task check")
+	fmt.Printf("  8. Add RBAC procedure entries:   internal/shared/middleware/rbac_interceptor.go\n")
+	fmt.Println("  9. Run:                          task migrate:up && task check")
 }
 
 // validateIdentifier checks that s is a valid lowercase Go identifier.
@@ -168,9 +169,14 @@ func validateIdentifier(s, label string) {
 	if s == "" {
 		return
 	}
-	for _, r := range s {
-		if !unicode.IsLetter(r) && r != '_' {
-			fmt.Fprintf(os.Stderr, "error: %s must use snake_case (e.g. order_item), got %q\n", label, s)
+	for i, r := range s {
+		if i == 0 {
+			if !unicode.IsLetter(r) && r != '_' {
+				fmt.Fprintf(os.Stderr, "error: %s must start with a letter or underscore, got %q\n", label, s)
+				os.Exit(1)
+			}
+		} else if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '_' {
+			fmt.Fprintf(os.Stderr, "error: %s must use snake_case (letters, digits, underscores), got %q\n", label, s)
 			os.Exit(1)
 		}
 	}

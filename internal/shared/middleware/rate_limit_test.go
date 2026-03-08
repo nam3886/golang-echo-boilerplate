@@ -18,8 +18,8 @@ func newRateLimitEcho(rdb *redis.Client, limit int, window time.Duration) *echo.
 	return e
 }
 
-// Note: slidingWindowCount adds the current request THEN compares count >= limit.
-// So with limit=N, requests 1..(N-1) succeed; the Nth request is the first to be rejected.
+// Note: slidingWindowCount adds the current request THEN compares count > limit.
+// So with limit=N, requests 1..N succeed; the (N+1)th request is the first to be rejected.
 
 func TestRateLimit_UnderLimit_Passes(t *testing.T) {
 	mr, _ := miniredis.Run()
@@ -48,8 +48,8 @@ func TestRateLimit_OverLimit_Returns429(t *testing.T) {
 	const limit = 3
 	e := newRateLimitEcho(rdb, limit, time.Minute)
 
-	// First limit-1 requests pass.
-	for i := 0; i < limit-1; i++ {
+	// First limit requests pass (count 1..limit, none > limit).
+	for i := 0; i < limit; i++ {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		rec := httptest.NewRecorder()
 		e.ServeHTTP(rec, req)
@@ -58,12 +58,12 @@ func TestRateLimit_OverLimit_Returns429(t *testing.T) {
 		}
 	}
 
-	// The Nth request hits count==limit → rejected with 429.
+	// The (limit+1)th request hits count > limit → rejected with 429.
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
 	if rec.Code != http.StatusTooManyRequests {
-		t.Errorf("expected 429 on request %d, got %d", limit, rec.Code)
+		t.Errorf("expected 429 on request %d, got %d", limit+1, rec.Code)
 	}
 }
 
@@ -86,7 +86,7 @@ func TestRateLimit_AuthenticatedUser_KeyedByUserID(t *testing.T) {
 	defer mr.Close()
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 
-	// limit=3 → 2 requests pass, 3rd is rejected.
+	// limit=3 → 3 requests pass, 4th is rejected (count > limit).
 	const limit = 3
 	e := echo.New()
 	e.HTTPErrorHandler = ErrorHandler
@@ -95,7 +95,7 @@ func TestRateLimit_AuthenticatedUser_KeyedByUserID(t *testing.T) {
 		RateLimit(rdb, limit, time.Minute),
 	)
 
-	for i := 0; i < limit-1; i++ {
+	for i := 0; i < limit; i++ {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		rec := httptest.NewRecorder()
 		e.ServeHTTP(rec, req)

@@ -76,14 +76,27 @@ func TestRequirePermission_AdminWildcard_Passes(t *testing.T) {
 	}
 }
 
-func TestRequirePermission_AdminRole_Passes(t *testing.T) {
+func TestRequirePermission_AdminRoleWithoutPermsClaim_Returns403(t *testing.T) {
+	// Admin role alone is not sufficient — admin tokens must carry "admin:*" in perms claim.
 	e := newRBACEcho(
 		injectClaims("u1", "admin", nil),
 		RequirePermission(PermUserDelete),
 	)
 	rec := doGet(e)
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("expected 403 for admin role without admin:* perms, got %d", rec.Code)
+	}
+}
+
+func TestRequirePermission_AdminRoleWithAdminStarClaim_Passes(t *testing.T) {
+	// Admin tokens with "admin:*" in perms claim pass all permission checks.
+	e := newRBACEcho(
+		injectClaims("u1", "admin", []string{string(PermAdminAll)}),
+		RequirePermission(PermUserDelete),
+	)
+	rec := doGet(e)
 	if rec.Code != http.StatusOK {
-		t.Errorf("expected 200 for admin role, got %d", rec.Code)
+		t.Errorf("expected 200 for admin with admin:* perms, got %d", rec.Code)
 	}
 }
 

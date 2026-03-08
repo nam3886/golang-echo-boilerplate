@@ -6,19 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
-	domainerr "github.com/gnha/gnha-services/internal/shared/errors"
+	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
 	"github.com/gnha/gnha-services/internal/shared/events"
 	"github.com/gnha/gnha-services/internal/shared/mocks"
+	"github.com/gnha/gnha-services/internal/shared/testutil"
 	"go.uber.org/mock/gomock"
 )
-
-// stubHasher returns the password as-is (no real hashing in tests).
-type stubHasher struct{}
-
-func (s *stubHasher) Hash(password string) (string, error) { return "hashed_" + password, nil }
-func (s *stubHasher) Verify(_, _ string) (bool, error)     { return true, nil }
 
 func TestCreateUserHandler_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -27,15 +21,15 @@ func TestCreateUserHandler_Success(t *testing.T) {
 	// GetByEmail returns not found (email available)
 	mockRepo.EXPECT().
 		GetByEmail(gomock.Any(), "new@example.com").
-		Return(nil, domainerr.ErrNotFound())
+		Return(nil, sharederr.ErrNotFound())
 
 	// Create succeeds
 	mockRepo.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		Return(nil)
 
-	bus := events.NewEventBus(&noopPublisher{})
-	handler := NewCreateUserHandler(mockRepo, &stubHasher{}, bus)
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	handler := NewCreateUserHandler(mockRepo, &testutil.StubHasher{}, bus)
 
 	user, err := handler.Handle(context.Background(), CreateUserCmd{
 		Email:    "new@example.com",
@@ -64,8 +58,8 @@ func TestCreateUserHandler_EmailTaken(t *testing.T) {
 		GetByEmail(gomock.Any(), "taken@example.com").
 		Return(existing, nil)
 
-	bus := events.NewEventBus(&noopPublisher{})
-	handler := NewCreateUserHandler(mockRepo, &stubHasher{}, bus)
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	handler := NewCreateUserHandler(mockRepo, &testutil.StubHasher{}, bus)
 
 	_, err := handler.Handle(context.Background(), CreateUserCmd{
 		Email:    "taken@example.com",
@@ -88,10 +82,10 @@ func TestCreateUserHandler_InvalidRole(t *testing.T) {
 	// Email check returns not found (role validation happens after)
 	mockRepo.EXPECT().
 		GetByEmail(gomock.Any(), "user@example.com").
-		Return(nil, domainerr.ErrNotFound())
+		Return(nil, sharederr.ErrNotFound())
 
-	bus := events.NewEventBus(&noopPublisher{})
-	handler := NewCreateUserHandler(mockRepo, &stubHasher{}, bus)
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	handler := NewCreateUserHandler(mockRepo, &testutil.StubHasher{}, bus)
 
 	_, err := handler.Handle(context.Background(), CreateUserCmd{
 		Email:    "user@example.com",
@@ -113,10 +107,10 @@ func TestCreateUserHandler_HasherFailure(t *testing.T) {
 
 	mockRepo.EXPECT().
 		GetByEmail(gomock.Any(), "user@example.com").
-		Return(nil, domainerr.ErrNotFound())
+		Return(nil, sharederr.ErrNotFound())
 
-	bus := events.NewEventBus(&noopPublisher{})
-	handler := NewCreateUserHandler(mockRepo, &failHasher{}, bus)
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	handler := NewCreateUserHandler(mockRepo, &testutil.FailHasher{}, bus)
 
 	_, err := handler.Handle(context.Background(), CreateUserCmd{
 		Email:    "user@example.com",
@@ -135,14 +129,14 @@ func TestCreateUserHandler_RepoCreateFailure(t *testing.T) {
 
 	mockRepo.EXPECT().
 		GetByEmail(gomock.Any(), "user@example.com").
-		Return(nil, domainerr.ErrNotFound())
+		Return(nil, sharederr.ErrNotFound())
 
 	mockRepo.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		Return(fmt.Errorf("db connection lost"))
 
-	bus := events.NewEventBus(&noopPublisher{})
-	handler := NewCreateUserHandler(mockRepo, &stubHasher{}, bus)
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	handler := NewCreateUserHandler(mockRepo, &testutil.StubHasher{}, bus)
 
 	_, err := handler.Handle(context.Background(), CreateUserCmd{
 		Email:    "user@example.com",
@@ -161,15 +155,15 @@ func TestCreateUserHandler_PublishesEventOnSuccess(t *testing.T) {
 
 	mockRepo.EXPECT().
 		GetByEmail(gomock.Any(), "user@example.com").
-		Return(nil, domainerr.ErrNotFound())
+		Return(nil, sharederr.ErrNotFound())
 
 	mockRepo.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		Return(nil)
 
-	recorder := &recordingPublisher{}
+	recorder := &testutil.CapturingPublisher{}
 	bus := events.NewEventBus(recorder)
-	handler := NewCreateUserHandler(mockRepo, &stubHasher{}, bus)
+	handler := NewCreateUserHandler(mockRepo, &testutil.StubHasher{}, bus)
 
 	user, err := handler.Handle(context.Background(), CreateUserCmd{
 		Email:    "user@example.com",
@@ -183,30 +177,62 @@ func TestCreateUserHandler_PublishesEventOnSuccess(t *testing.T) {
 	if user == nil {
 		t.Fatal("expected user, got nil")
 	}
-	if recorder.topic != events.TopicUserCreated {
-		t.Errorf("expected topic %s, got %s", events.TopicUserCreated, recorder.topic)
+	if recorder.Topic != domain.TopicUserCreated {
+		t.Errorf("expected topic %s, got %s", domain.TopicUserCreated, recorder.Topic)
 	}
 }
 
-// failHasher always returns an error.
-type failHasher struct{}
+// TestCreateUserHandler_EventPublishFailure_DoesNotFail verifies that a publish
+// error is logged but does not cause the handler to return an error (fire-and-forget).
+func TestCreateUserHandler_EventPublishFailure_DoesNotFail(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMockUserRepository(ctrl)
 
-func (f *failHasher) Hash(_ string) (string, error)    { return "", fmt.Errorf("hasher unavailable") }
-func (f *failHasher) Verify(_, _ string) (bool, error) { return false, nil }
+	mockRepo.EXPECT().
+		GetByEmail(gomock.Any(), "user@example.com").
+		Return(nil, sharederr.ErrNotFound())
 
-// recordingPublisher captures the last published topic.
-type recordingPublisher struct {
-	topic string
+	mockRepo.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		Return(nil)
+
+	bus := events.NewEventBus(&testutil.FailPublisher{})
+	handler := NewCreateUserHandler(mockRepo, &testutil.StubHasher{}, bus)
+
+	user, err := handler.Handle(context.Background(), CreateUserCmd{
+		Email:    "user@example.com",
+		Name:     "User",
+		Password: "secret123",
+		Role:     "member",
+	})
+	if err != nil {
+		t.Fatalf("expected no error even when publish fails, got %v", err)
+	}
+	if user == nil {
+		t.Fatal("expected user, got nil")
+	}
 }
 
-func (r *recordingPublisher) Publish(topic string, _ ...*message.Message) error {
-	r.topic = topic
-	return nil
+// TestCreateUserHandler_GetByEmailDBError verifies that a DB error on the
+// email-uniqueness check propagates as an error (not silenced).
+func TestCreateUserHandler_GetByEmailDBError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMockUserRepository(ctrl)
+
+	mockRepo.EXPECT().
+		GetByEmail(gomock.Any(), "user@example.com").
+		Return(nil, fmt.Errorf("connection refused"))
+
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	handler := NewCreateUserHandler(mockRepo, &testutil.StubHasher{}, bus)
+
+	_, err := handler.Handle(context.Background(), CreateUserCmd{
+		Email:    "user@example.com",
+		Name:     "User",
+		Password: "secret123",
+		Role:     "member",
+	})
+	if err == nil {
+		t.Fatal("expected error from DB failure on GetByEmail")
+	}
 }
-func (r *recordingPublisher) Close() error { return nil }
-
-// noopPublisher is a Watermill publisher that discards all messages.
-type noopPublisher struct{}
-
-func (p *noopPublisher) Publish(topic string, messages ...*message.Message) error { return nil }
-func (p *noopPublisher) Close() error                                             { return nil }

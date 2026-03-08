@@ -2,6 +2,7 @@ package testutil
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -10,12 +11,23 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-// NewTestPostgres starts a temporary Postgres container and returns a pgxpool.Pool.
-// The container and pool are cleaned up automatically via t.Cleanup.
+// NewTestPostgres returns a pgxpool.Pool for integration tests.
+// If DATABASE_URL is set (e.g. GitLab CI service containers), it connects directly.
+// Otherwise, it starts a local testcontainer for development.
 func NewTestPostgres(t *testing.T) *pgxpool.Pool {
 	t.Helper()
 	ctx := context.Background()
 
+	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
+		pool, err := pgxpool.New(ctx, dbURL)
+		if err != nil {
+			t.Fatalf("connecting to DATABASE_URL: %v", err)
+		}
+		t.Cleanup(func() { pool.Close() })
+		return pool
+	}
+
+	// Fallback: start a testcontainer for local dev
 	pg, err := postgres.Run(ctx, "postgres:16-alpine",
 		postgres.WithDatabase("test"),
 		postgres.WithUsername("test"),
