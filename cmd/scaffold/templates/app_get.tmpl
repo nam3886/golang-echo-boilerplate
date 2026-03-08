@@ -18,5 +18,8 @@ func NewGet{{.NameTitle}}Handler(repo domain.{{.NameTitle}}Repository) *Get{{.Na
 
 // Handle returns a {{.Name}} by ID.
 func (h *Get{{.NameTitle}}Handler) Handle(ctx context.Context, id string) (*domain.{{.NameTitle}}, error) {
+	if id == "" {
+		return nil, domain.ErrInvalidArgument()
+	}
 	return h.repo.GetByID(ctx, domain.{{.NameID}}(id))
 }

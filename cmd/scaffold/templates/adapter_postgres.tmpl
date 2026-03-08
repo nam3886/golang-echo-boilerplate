@@ -27,6 +27,7 @@ func NewPg{{.NameTitle}}Repository(pool *pgxpool.Pool) *Pg{{.NameTitle}}Reposito
 	return &Pg{{.NameTitle}}Repository{pool: pool}
 }
 
+// GetByID returns a single {{.Name}} by its ID.
 func (r *Pg{{.NameTitle}}Repository) GetByID(ctx context.Context, id domain.{{.NameID}}) (*domain.{{.NameTitle}}, error) {
 	uid, err := parse{{.NameTitle}}ID(id)
 	if err != nil {
@@ -36,29 +37,31 @@ func (r *Pg{{.NameTitle}}Repository) GetByID(ctx context.Context, id domain.{{.N
 	row, err := q.Get{{.NameTitle}}ByID(ctx, uid)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, sharederr.ErrNotFound
+			return nil, sharederr.ErrNotFound()
 		}
 		return nil, fmt.Errorf("getting {{.Name}} by id: %w", err)
 	}
 	return toDomain(row), nil
 }
 
-func (r *Pg{{.NameTitle}}Repository) List(ctx context.Context, limit int, cursor string) ([]*domain.{{.NameTitle}}, string, bool, error) {
+// List returns a cursor-paginated list of {{.NamePlural}}.
+func (r *Pg{{.NameTitle}}Repository) List(ctx context.Context, limit int, cursor string) (domain.ListResult, error) {
 	q := sqlcgen.New(r.pool)
 
 	// Fetch limit+1 to detect whether more pages exist.
 	params := sqlcgen.List{{.NamePluralTitle}}Params{Limit: int32(limit + 1)}
 	if cursor != "" {
 		decoded, err := decodeCursor(cursor)
-		if err == nil {
-			params.CursorCreatedAt = pgtype.Timestamptz{Time: decoded.T, Valid: true}
-			params.CursorID = pgtype.UUID{Bytes: decoded.U, Valid: true}
+		if err != nil {
+			return domain.ListResult{}, sharederr.New(sharederr.CodeInvalidArgument, "invalid pagination cursor")
 		}
+		params.CursorCreatedAt = pgtype.Timestamptz{Time: decoded.T, Valid: true}
+		params.CursorID = pgtype.UUID{Bytes: decoded.U, Valid: true}
 	}
 
 	rows, err := q.List{{.NamePluralTitle}}(ctx, params)
 	if err != nil {
-		return nil, "", false, fmt.Errorf("listing {{.NamePlural}}: %w", err)
+		return domain.ListResult{}, fmt.Errorf("listing {{.NamePlural}}: %w", err)
 	}
 
 	items := make([]*domain.{{.NameTitle}}, 0, len(rows))
@@ -79,9 +82,10 @@ func (r *Pg{{.NameTitle}}Repository) List(ctx context.Context, limit int, cursor
 		}
 	}
 
-	return items, nextCursor, hasMore, nil
+	return domain.ListResult{Items: items, NextCursor: nextCursor, HasMore: hasMore}, nil
 }
 
+// Create persists a new {{.Name}}.
 func (r *Pg{{.NameTitle}}Repository) Create(ctx context.Context, entity *domain.{{.NameTitle}}) error {
 	uid, err := parse{{.NameTitle}}ID(entity.ID())
 	if err != nil {
@@ -101,6 +105,7 @@ func (r *Pg{{.NameTitle}}Repository) Create(ctx context.Context, entity *domain.
 	return nil
 }
 
+// Update fetches, mutates (via fn), and persists a {{.Name}} inside a transaction.
 func (r *Pg{{.NameTitle}}Repository) Update(ctx context.Context, id domain.{{.NameID}}, fn func(*domain.{{.NameTitle}}) error) error {
 	uid, err := parse{{.NameTitle}}ID(id)
 	if err != nil {
@@ -111,13 +116,13 @@ func (r *Pg{{.NameTitle}}Repository) Update(ctx context.Context, id domain.{{.Na
 	if err != nil {
 		return fmt.Errorf("beginning transaction: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	q := sqlcgen.New(tx)
 	row, err := q.Get{{.NameTitle}}ByIDForUpdate(ctx, uid)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return sharederr.ErrNotFound
+			return sharederr.ErrNotFound()
 		}
 		return fmt.Errorf("fetching {{.Name}} for update: %w", err)
 	}
@@ -128,7 +133,7 @@ func (r *Pg{{.NameTitle}}Repository) Update(ctx context.Context, id domain.{{.Na
 	}
 
 	name := entity.Name()
-	_, err = q.Update{{.NameTitle}}(ctx, sqlcgen.Update{{.NameTitle}}Params{
+	updatedRow, err := q.Update{{.NameTitle}}(ctx, sqlcgen.Update{{.NameTitle}}Params{
 		ID:   uid,
 		Name: pgtype.Text{String: name, Valid: true},
 	})
@@ -136,9 +141,13 @@ func (r *Pg{{.NameTitle}}Repository) Update(ctx context.Context, id domain.{{.Na
 		return fmt.Errorf("updating {{.Name}}: %w", err)
 	}
 
+	// Overwrite entity with DB-generated timestamps (e.g. updated_at = NOW()).
+	*entity = *toDomain(updatedRow)
+
 	return tx.Commit(ctx)
 }
 
+// SoftDelete marks a {{.Name}} as deleted without removing the row.
 func (r *Pg{{.NameTitle}}Repository) SoftDelete(ctx context.Context, id domain.{{.NameID}}) error {
 	uid, err := parse{{.NameTitle}}ID(id)
 	if err != nil {
@@ -150,7 +159,7 @@ func (r *Pg{{.NameTitle}}Repository) SoftDelete(ctx context.Context, id domain.{
 		return fmt.Errorf("soft deleting {{.Name}}: %w", err)
 	}
 	if rows == 0 {
-		return sharederr.ErrNotFound
+		return sharederr.ErrNotFound()
 	}
 	return nil
 }

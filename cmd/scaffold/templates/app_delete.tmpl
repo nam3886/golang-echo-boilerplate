@@ -18,6 +18,9 @@ func NewDelete{{.NameTitle}}Handler(repo domain.{{.NameTitle}}Repository) *Delet
 
 // Handle soft-deletes a {{.Name}} by ID.
 func (h *Delete{{.NameTitle}}Handler) Handle(ctx context.Context, id string) error {
+	if id == "" {
+		return domain.ErrInvalidArgument()
+	}
 	if err := h.repo.SoftDelete(ctx, domain.{{.NameID}}(id)); err != nil {
 		return err
 	}

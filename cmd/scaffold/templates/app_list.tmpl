@@ -6,13 +6,6 @@ import (
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
 )
 
-// List{{.NamePluralTitle}}Result holds the paginated list result.
-type List{{.NamePluralTitle}}Result struct {
-	Items      []*domain.{{.NameTitle}}
-	NextCursor string
-	HasMore    bool
-}
-
 // List{{.NamePluralTitle}}Handler handles listing {{.NamePlural}} with cursor pagination.
 type List{{.NamePluralTitle}}Handler struct {
 	repo domain.{{.NameTitle}}Repository
@@ -24,22 +17,12 @@ func NewList{{.NamePluralTitle}}Handler(repo domain.{{.NameTitle}}Repository) *L
 }
 
 // Handle returns a paginated list of {{.NamePlural}}.
-func (h *List{{.NamePluralTitle}}Handler) Handle(ctx context.Context, limit int, cursor string) (*List{{.NamePluralTitle}}Result, error) {
+func (h *List{{.NamePluralTitle}}Handler) Handle(ctx context.Context, limit int, cursor string) (domain.ListResult, error) {
 	if limit <= 0 {
 		limit = 20
 	}
 	if limit > 100 {
 		limit = 100
 	}
-
-	items, nextCursor, hasMore, err := h.repo.List(ctx, limit, cursor)
-	if err != nil {
-		return nil, err
-	}
-
-	return &List{{.NamePluralTitle}}Result{
-		Items:      items,
-		NextCursor: nextCursor,
-		HasMore:    hasMore,
-	}, nil
+	return h.repo.List(ctx, limit, cursor)
 }

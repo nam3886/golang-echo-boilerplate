@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -25,7 +26,7 @@ func TestNew{{.NameTitle}}_EmptyName(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for empty name")
 	}
-	if err != ErrNameRequired {
+	if !errors.Is(err, ErrNameRequired()) {
 		t.Errorf("expected ErrNameRequired, got %v", err)
 	}
 }
@@ -51,7 +52,7 @@ func Test{{.NameTitle}}_ChangeName_Empty(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for empty name")
 	}
-	if err != ErrNameRequired {
+	if !errors.Is(err, ErrNameRequired()) {
 		t.Errorf("expected ErrNameRequired, got %v", err)
 	}
 }

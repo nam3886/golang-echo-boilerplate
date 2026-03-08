@@ -4,10 +4,17 @@ import "context"
 
 //go:generate mockgen -source=repository.go -destination=../../../shared/mocks/mock_{{.Name}}_repository.go -package=mocks
 
+// ListResult holds paginated results from a List query.
+type ListResult struct {
+	Items      []*{{.NameTitle}}
+	NextCursor string
+	HasMore    bool
+}
+
 // {{.NameTitle}}Repository is the port for {{.Name}} persistence.
 type {{.NameTitle}}Repository interface {
 	GetByID(ctx context.Context, id {{.NameID}}) (*{{.NameTitle}}, error)
-	List(ctx context.Context, limit int, cursor string) ([]*{{.NameTitle}}, string, bool, error)
+	List(ctx context.Context, limit int, cursor string) (ListResult, error)
 	Create(ctx context.Context, entity *{{.NameTitle}}) error
 	Update(ctx context.Context, id {{.NameID}}, fn func(*{{.NameTitle}}) error) error
 	SoftDelete(ctx context.Context, id {{.NameID}}) error

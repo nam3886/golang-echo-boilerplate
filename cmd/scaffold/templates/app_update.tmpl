@@ -24,6 +24,9 @@ func NewUpdate{{.NameTitle}}Handler(repo domain.{{.NameTitle}}Repository) *Updat
 
 // Handle applies partial updates to a {{.Name}} within a transaction.
 func (h *Update{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Update{{.NameTitle}}Cmd) (*domain.{{.NameTitle}}, error) {
+	if cmd.ID == "" {
+		return nil, domain.ErrInvalidArgument()
+	}
 	var updated *domain.{{.NameTitle}}
 	err := h.repo.Update(ctx, domain.{{.NameID}}(cmd.ID), func(entity *domain.{{.NameTitle}}) error {
 		if cmd.Name != nil {

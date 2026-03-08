@@ -4,8 +4,20 @@ import (
 	domainerr "{{.GoModule}}/internal/shared/errors"
 )
 
-// Module-specific domain errors.
-var (
-	Err{{.NameTitle}}NotFound = domainerr.New(domainerr.CodeNotFound, "{{.Name}} not found")
-	ErrNameRequired          = domainerr.New(domainerr.CodeInvalidArgument, "name is required")
-)
+// Module-specific domain errors — constructor functions return fresh instances
+// to prevent data races when errors are wrapped concurrently.
+
+// Err{{.NameTitle}}NotFound indicates the {{.Name}} does not exist.
+func Err{{.NameTitle}}NotFound() *domainerr.DomainError {
+	return domainerr.New(domainerr.CodeNotFound, "{{.Name}} not found")
+}
+
+// ErrNameRequired indicates the name field is missing.
+func ErrNameRequired() *domainerr.DomainError {
+	return domainerr.New(domainerr.CodeInvalidArgument, "name is required")
+}
+
+// ErrInvalidArgument indicates a generic invalid argument (e.g. empty ID).
+func ErrInvalidArgument() *domainerr.DomainError {
+	return domainerr.New(domainerr.CodeInvalidArgument, "invalid argument")
+}
