@@ -9,7 +9,6 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/google/uuid"
 	sqlcgen "github.com/gnha/gnha-services/gen/sqlc"
-	"github.com/gnha/gnha-services/internal/modules/user/domain"
 )
 
 // Handler processes audit-related events.
@@ -28,24 +27,6 @@ type auditEvent interface {
 	actorID() string
 	ipAddress() string
 }
-
-type createdWrapper struct{ e domain.UserCreatedEvent }
-
-func (w createdWrapper) userID() string    { return w.e.UserID }
-func (w createdWrapper) actorID() string   { return w.e.ActorID }
-func (w createdWrapper) ipAddress() string { return w.e.IPAddress }
-
-type updatedWrapper struct{ e domain.UserUpdatedEvent }
-
-func (w updatedWrapper) userID() string    { return w.e.UserID }
-func (w updatedWrapper) actorID() string   { return w.e.ActorID }
-func (w updatedWrapper) ipAddress() string { return w.e.IPAddress }
-
-type deletedWrapper struct{ e domain.UserDeletedEvent }
-
-func (w deletedWrapper) userID() string    { return w.e.UserID }
-func (w deletedWrapper) actorID() string   { return w.e.ActorID }
-func (w deletedWrapper) ipAddress() string { return w.e.IPAddress }
 
 // parseIPAddress parses a string IP into *netip.Addr for the audit log.
 func parseIPAddress(ip string) *netip.Addr {
@@ -106,30 +87,30 @@ func (h *Handler) handleAuditEvent(msg *message.Message, ev auditEvent, raw any,
 
 // HandleUserCreated logs a user creation event to the audit trail.
 func (h *Handler) HandleUserCreated(msg *message.Message) error {
-	var ev domain.UserCreatedEvent
+	var ev auditPayload
 	if err := json.Unmarshal(msg.Payload, &ev); err != nil {
 		slog.Error("audit: failed to unmarshal user.created event", "err", err)
 		return err
 	}
-	return h.handleAuditEvent(msg, createdWrapper{ev}, ev, "created")
+	return h.handleAuditEvent(msg, ev, ev, "created")
 }
 
 // HandleUserUpdated logs a user update event.
 func (h *Handler) HandleUserUpdated(msg *message.Message) error {
-	var ev domain.UserUpdatedEvent
+	var ev auditPayload
 	if err := json.Unmarshal(msg.Payload, &ev); err != nil {
 		slog.Error("audit: failed to unmarshal user.updated event", "err", err)
 		return err
 	}
-	return h.handleAuditEvent(msg, updatedWrapper{ev}, ev, "updated")
+	return h.handleAuditEvent(msg, ev, ev, "updated")
 }
 
 // HandleUserDeleted logs a user deletion event.
 func (h *Handler) HandleUserDeleted(msg *message.Message) error {
-	var ev domain.UserDeletedEvent
+	var ev auditPayload
 	if err := json.Unmarshal(msg.Payload, &ev); err != nil {
 		slog.Error("audit: failed to unmarshal user.deleted event", "err", err)
 		return err
 	}
-	return h.handleAuditEvent(msg, deletedWrapper{ev}, ev, "deleted")
+	return h.handleAuditEvent(msg, ev, ev, "deleted")
 }

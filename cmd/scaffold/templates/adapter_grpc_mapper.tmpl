@@ -1,14 +1,9 @@
 package grpc
 
 import (
-	"errors"
-	"fmt"
-	"log/slog"
-
 	{{.Name}}v1 "{{.GoModule}}/gen/proto/{{.Name}}/v1"
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
-	sharederr "{{.GoModule}}/internal/shared/errors"
-	"connectrpc.com/connect"
+	"{{.GoModule}}/internal/shared/connectutil"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -24,22 +19,5 @@ func toProto(e *domain.{{.NameTitle}}) *{{.Name}}v1.{{.NameTitle}} {
 
 // domainErrorToConnect maps DomainError to Connect RPC error codes.
 func domainErrorToConnect(err error) error {
-	var domErr *sharederr.DomainError
-	if errors.As(err, &domErr) {
-		code := codeToConnect[domErr.Code]
-		return connect.NewError(code, err)
-	}
-	slog.Error("unhandled internal error", "err", err)
-	return connect.NewError(connect.CodeInternal, fmt.Errorf("internal error"))
-}
-
-var codeToConnect = map[sharederr.ErrorCode]connect.Code{
-	sharederr.CodeInvalidArgument:    connect.CodeInvalidArgument,
-	sharederr.CodeNotFound:           connect.CodeNotFound,
-	sharederr.CodeAlreadyExists:      connect.CodeAlreadyExists,
-	sharederr.CodePermissionDenied:   connect.CodePermissionDenied,
-	sharederr.CodeUnauthenticated:    connect.CodeUnauthenticated,
-	sharederr.CodeFailedPrecondition: connect.CodeFailedPrecondition,
-	sharederr.CodeInternal:           connect.CodeInternal,
-	sharederr.CodeUnavailable:        connect.CodeUnavailable,
+	return connectutil.DomainErrorToConnect(err)
 }

@@ -59,6 +59,10 @@ func Load() (*Config, error) {
 	if err := env.Parse(cfg); err != nil {
 		return nil, fmt.Errorf("loading config: %w", err)
 	}
+	validEnvs := map[string]bool{"development": true, "staging": true, "production": true}
+	if !validEnvs[cfg.AppEnv] {
+		return nil, fmt.Errorf("APP_ENV must be one of: development, staging, production (got %q)", cfg.AppEnv)
+	}
 	if len(cfg.JWTSecret) < 32 {
 		return nil, fmt.Errorf("JWT_SECRET must be at least 32 characters")
 	}

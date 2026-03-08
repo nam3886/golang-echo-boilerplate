@@ -42,9 +42,11 @@ type User struct {
 
 // NewUser creates a validated User entity.
 func NewUser(email, name, hashedPassword string, role Role) (*User, error) {
-	if _, err := mail.ParseAddress(email); err != nil {
+	addr, err := mail.ParseAddress(email)
+	if err != nil {
 		return nil, ErrInvalidEmail()
 	}
+	email = addr.Address
 	if name == "" {
 		return nil, ErrNameRequired()
 	}
@@ -111,10 +113,11 @@ func (u *User) ChangeName(name string) error {
 // ChangeEmail updates the user's email address.
 // Format validation is performed here; uniqueness is enforced at the repository level.
 func (u *User) ChangeEmail(email string) error {
-	if _, err := mail.ParseAddress(email); err != nil {
+	addr, err := mail.ParseAddress(email)
+	if err != nil {
 		return ErrInvalidEmail()
 	}
-	u.email = email
+	u.email = addr.Address
 	u.updatedAt = time.Now()
 	return nil
 }

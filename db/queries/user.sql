@@ -2,7 +2,8 @@
 SELECT id, email, name, role, created_at, updated_at, deleted_at FROM users WHERE id = $1 AND deleted_at IS NULL;
 
 -- name: GetUserByEmail :one
-SELECT * FROM users WHERE email = $1 AND deleted_at IS NULL;
+SELECT id, email, name, password, role, created_at, updated_at, deleted_at
+FROM users WHERE email = $1 AND deleted_at IS NULL;
 
 -- name: GetUserByIDForUpdate :one
 SELECT id, email, name, password, role, created_at, updated_at, deleted_at
@@ -19,7 +20,7 @@ LIMIT $1;
 -- name: CreateUser :one
 INSERT INTO users (id, email, name, password, role)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING *;
+RETURNING id, email, name, password, role, created_at, updated_at, deleted_at;
 
 -- name: UpdateUser :one
 UPDATE users
@@ -28,7 +29,7 @@ SET name = COALESCE(sqlc.narg('name'), name),
     email = COALESCE(sqlc.narg('email'), email),
     updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
-RETURNING *;
+RETURNING id, email, name, password, role, created_at, updated_at, deleted_at;
 
 -- name: SoftDeleteUser :execrows
 UPDATE users SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL;
