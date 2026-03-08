@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"time"
 
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
 	"github.com/gnha/gnha-services/internal/shared/auth"
@@ -72,7 +71,7 @@ func (h *CreateUserHandler) Handle(ctx context.Context, cmd CreateUserCmd) (*dom
 		Name:      user.Name(),
 		Role:      string(user.Role()),
 		IPAddress: netutil.GetClientIP(ctx),
-		At:        time.Now(),
+		At:        user.CreatedAt(),
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to publish user.created event",
 			"user_id", string(user.ID()), "err", err)

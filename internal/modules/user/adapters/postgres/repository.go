@@ -1,12 +1,10 @@
+// Package postgres implements the user repository using pgx and sqlc.
 package postgres
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	sqlcgen "github.com/gnha/gnha-services/gen/sqlc"
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
@@ -187,82 +185,4 @@ func (r *PgUserRepository) SoftDelete(ctx context.Context, id domain.UserID) err
 		return sharederr.ErrNotFound()
 	}
 	return nil
-}
-
-// parseUserID safely parses a domain.UserID into a uuid.UUID.
-func parseUserID(id domain.UserID) (uuid.UUID, error) {
-	uid, err := uuid.Parse(string(id))
-	if err != nil {
-		return uuid.UUID{}, sharederr.New(sharederr.CodeInvalidArgument, "invalid user ID format")
-	}
-	return uid, nil
-}
-
-// toDomain converts a sqlc User row (with password) to a domain entity.
-func toDomain(row sqlcgen.User) *domain.User {
-	var deletedAt *time.Time
-	if row.DeletedAt.Valid {
-		deletedAt = &row.DeletedAt.Time
-	}
-	return domain.Reconstitute(
-		domain.UserID(row.ID.String()),
-		row.Email, row.Name, row.Password,
-		domain.Role(row.Role),
-		row.CreatedAt, row.UpdatedAt, deletedAt,
-	)
-}
-
-// toDomainFromGetRow converts a GetUserByIDRow (no password) to a domain entity.
-// Password is set to "" because this query intentionally excludes it.
-// Callers must not use Password() on entities returned by read-only queries.
-func toDomainFromGetRow(row sqlcgen.GetUserByIDRow) *domain.User {
-	var deletedAt *time.Time
-	if row.DeletedAt.Valid {
-		deletedAt = &row.DeletedAt.Time
-	}
-	return domain.Reconstitute(
-		domain.UserID(row.ID.String()),
-		row.Email, row.Name, "",
-		domain.Role(row.Role),
-		row.CreatedAt, row.UpdatedAt, deletedAt,
-	)
-}
-
-// toDomainFromListRow converts a ListUsersRow (no password) to a domain entity.
-// Password is set to "" because list queries intentionally exclude it for performance.
-// Callers must not use Password() on entities returned by list queries.
-func toDomainFromListRow(row sqlcgen.ListUsersRow) *domain.User {
-	var deletedAt *time.Time
-	if row.DeletedAt.Valid {
-		deletedAt = &row.DeletedAt.Time
-	}
-	return domain.Reconstitute(
-		domain.UserID(row.ID.String()),
-		row.Email, row.Name, "",
-		domain.Role(row.Role),
-		row.CreatedAt, row.UpdatedAt, deletedAt,
-	)
-}
-
-// Cursor helpers for keyset pagination.
-type cursorPayload struct {
-	T time.Time `json:"t"`
-	U uuid.UUID `json:"u"`
-}
-
-func encodeCursor(t time.Time, id uuid.UUID) string {
-	data, _ := json.Marshal(cursorPayload{T: t, U: id})
-	return base64.URLEncoding.EncodeToString(data)
-}
-
-func decodeCursor(cursor string) (*cursorPayload, error) {
-	data, err := base64.URLEncoding.DecodeString(cursor)
-	if err != nil {
-		return nil, err
-	}
-	var c cursorPayload
-	if err := json.Unmarshal(data, &c); err != nil {
-		return nil, err
-	}
-	return &c, nil
 }

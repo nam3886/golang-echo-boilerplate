@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"log/slog"
-	"time"
 
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
 	"github.com/gnha/gnha-services/internal/shared/auth"
@@ -70,7 +69,7 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*dom
 		Email:     updated.Email(),
 		Role:      string(updated.Role()),
 		IPAddress: netutil.GetClientIP(ctx),
-		At:        time.Now(),
+		At:        updated.UpdatedAt(),
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to publish user.updated event",
 			"user_id", cmd.ID, "err", err)

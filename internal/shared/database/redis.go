@@ -17,7 +17,11 @@ func NewRedisClient(cfg *config.Config) (*redis.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parsing redis URL: %w", err)
 	}
-	opt.PoolSize = 10 * runtime.NumCPU()
+	poolSize := 10 * runtime.NumCPU()
+	if poolSize > 100 {
+		poolSize = 100
+	}
+	opt.PoolSize = poolSize
 	opt.MinIdleConns = 5
 
 	rdb := redis.NewClient(opt)

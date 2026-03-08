@@ -117,6 +117,9 @@ func (u *User) ChangeEmail(email string) error {
 	if err != nil {
 		return ErrInvalidEmail()
 	}
+	if addr.Address == u.email {
+		return nil // no-op
+	}
 	u.email = addr.Address
 	u.updatedAt = time.Now()
 	return nil
