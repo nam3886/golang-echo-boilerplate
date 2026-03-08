@@ -22,9 +22,56 @@ This creates 19 files + runs code generation. Then:
 3. Customize SQL queries in `db/queries/{name}.sql`
 4. Run `task generate` after customizing proto/SQL
 5. Update domain entity, handlers, and adapters to match new fields
-6. Add event topics to `internal/shared/events/topics.go`
+6. Define event topics in `internal/modules/{name}/domain/events.go`
 7. Register module in `cmd/server/main.go`
 8. Run `task migrate:up && task check`
+
+## Module Structure Tiers
+
+Modules follow one of two architectural patterns based on their purpose:
+
+### Tier 1: Full Hexagonal (CRUD Modules)
+
+Use for domain entities with their own business logic and client-facing APIs.
+
+**Examples:** `user`, `product`, `category` — anything with Create/Read/Update/Delete operations exposed via gRPC/HTTP.
+
+**Structure:**
+```
+internal/modules/product/
+├── domain/              # Entity, repository interface, events
+├── app/                 # CRUD handlers (Create, Get, List, Update, Delete)
+├── adapters/
+│   ├── postgres/        # Real database implementation
+│   └── grpc/            # Connect RPC handler + routes
+└── module.go            # fx Module with providers + invokers
+```
+
+**Key files:**
+- `domain/{entity}.go` — Entity with validation logic
+- `domain/repository.go` — Repository interface
+- `domain/events.go` — Event topics + event types
+- `app/{action}_{entity}.go` — Command/Query handlers
+- `adapters/postgres/repository.go` — Database implementation
+- `adapters/grpc/handler.go` — RPC handler
+
+### Tier 2: Flat Event Subscribers
+
+Use for infrastructure-adjacent modules that react to domain events (no direct user API).
+
+**Examples:** `audit` (logs all mutations), `notification` (sends emails/notifications), `search` (Elasticsearch indexing).
+
+**Structure:**
+```
+internal/modules/audit/
+├── domain/              # Just event types (no entity, no repository)
+│   └── subscriber.go    # Event handler logic
+├── adapters/            # Infrastructure-specific subscribers
+│   └── rabbitmq/        # Watermill subscriber setup
+└── module.go            # fx Module with subscriber registration
+```
+
+**No:** Proto definitions, migrations, SQL queries, gRPC handlers, or repository interfaces.
 
 ## Manual Steps (Reference)
 
@@ -219,9 +266,15 @@ import "context"
 
 //go:generate mockgen -source=repository.go -destination=../../../shared/mocks/mock_product_repository.go -package=mocks
 
+type ProductListResult struct {
+    Products   []*Product
+    NextCursor string
+    HasMore    bool
+}
+
 type ProductRepository interface {
     GetByID(ctx context.Context, id ProductID) (*Product, error)
-    List(ctx context.Context, limit int, cursor string) ([]*Product, string, bool, error)
+    List(ctx context.Context, limit int, cursor string) (ProductListResult, error)
     Create(ctx context.Context, p *Product) error
     Update(ctx context.Context, id ProductID, fn func(*Product) error) error
     SoftDelete(ctx context.Context, id ProductID) error
@@ -375,25 +428,42 @@ var Module = fx.Module("product",
 
 ## 5. Event Publishing (optional)
 
-Define topics in `internal/shared/events/topics.go`:
+### domain/events.go — Define Topics & Event Types
+
+Create `internal/modules/{name}/domain/events.go`:
 
 ```go
-const TopicProductCreated = "product.created"
+package domain
 
+import "time"
+
+// Event topics for the product module.
+const (
+    TopicProductCreated = "product.created"
+    TopicProductUpdated = "product.updated"
+    TopicProductDeleted = "product.deleted"
+)
+
+// ProductCreatedEvent is published when a product is created.
 type ProductCreatedEvent struct {
     ProductID string    `json:"product_id"`
     ActorID   string    `json:"actor_id"`
     Name      string    `json:"name"`
+    IPAddress string    `json:"ip_address,omitempty"`
     At        time.Time `json:"at"`
 }
 ```
 
-Publish in your app handler after DB write:
+### Publishing Events in App Handlers
+
+In your app handler (e.g., `CreateProductHandler`), inject `events.EventPublisher` and publish after DB write:
 
 ```go
-if err := h.bus.Publish(ctx, events.TopicProductCreated, events.ProductCreatedEvent{
+if err := h.bus.Publish(ctx, domain.TopicProductCreated, domain.ProductCreatedEvent{
     ProductID: string(p.ID()),
+    ActorID:   actorID,
     Name:      p.Name(),
+    IPAddress: netutil.GetClientIP(ctx),
     At:        time.Now(),
 }); err != nil {
     slog.ErrorContext(ctx, "failed to publish event", "err", err)
@@ -411,6 +481,70 @@ fx.New(
     product.Module,
     fx.Invoke(startServer),
 ).Run()
+```
+
+## Adding a Field Checklist
+
+When adding a new field to an existing entity (e.g., adding `description` to `Product`), update these 11 files in order:
+
+1. **Proto Definition** (`proto/{name}/v1/{name}.proto`)
+   - Add field to message type with field number and validation
+   - Example: `string description = 3 [(buf.validate.field).string.min_len = 1];`
+
+2. **Database Migration** (`db/migrations/{timestamp}_create_{plural}.sql`)
+   - Add column with type, constraints, default value
+   - Example: `description TEXT NOT NULL DEFAULT ''`
+   - Run: `task generate:sqlc`
+
+3. **SQL Queries** (`db/queries/{name}.sql`)
+   - Add field to SELECT clauses in GetByID, List, Create, Update queries
+   - Ensure INSERT/UPDATE includes the new field
+
+4. **Code Generation**
+   - Run: `task generate` (buf + sqlc)
+   - Generates proto Go types in `gen/proto/{name}/v1/`
+   - Generates sqlc types in `gen/sqlc/`
+
+5. **Domain Entity** (`internal/modules/{name}/domain/{entity}.go`)
+   - Add unexported field to struct: `description string`
+   - Add getter: `func (p *Product) Description() string { return p.description }`
+   - Update `NewProduct()` constructor with validation
+   - Update `Reconstitute()` signature and implementation
+
+6. **Domain Errors** (`internal/modules/{name}/domain/errors.go`)
+   - Add validation error if needed: `func ErrDescriptionRequired() *sharederr.DomainError { ... }`
+
+7. **Domain Events** (`internal/modules/{name}/domain/events.go`)
+   - Add field to event types where relevant (UserCreatedEvent, UserUpdatedEvent, etc.)
+   - Example: Add `Description string` to ProductCreatedEvent
+
+8. **App Handlers** (`internal/modules/{name}/app/{action}_{entity}.go`)
+   - Update CreateHandler to accept and validate new field
+   - Update UpdateHandler to support field mutations
+   - Publish updated events with new field values
+
+9. **Postgres Adapter** (`internal/modules/{name}/adapters/postgres/repository.go`)
+   - Update `Create()` to pass new field to sqlc
+   - Update `Update()` mutation closure to handle field changes
+   - Update `toDomain()` mapper to reconstruct field from DB row
+
+10. **gRPC Mapper** (`internal/modules/{name}/adapters/grpc/mapper.go`)
+    - Update `toProto()` to map domain field → proto message field
+    - Update `toDomain()` to map proto message field → domain entity
+
+11. **Tests** (`**/*_test.go`)
+    - Add field to test fixtures: `testutil.DefaultProductFixture()`
+    - Add unit tests for validation logic in `domain/{entity}_test.go`
+    - Add integration tests for persistence in `adapters/postgres/repository_test.go`
+    - Update existing test assertions if they check all fields
+
+**Run after all changes:**
+```bash
+task generate         # Regenerate code from proto/SQL
+task lint             # Check formatting
+task test             # Run unit tests
+task test:integration # Run integration tests with real DB
+go build ./...        # Final compilation check
 ```
 
 ## 7. Verify

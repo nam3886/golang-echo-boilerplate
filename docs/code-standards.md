@@ -155,7 +155,7 @@ return nil, fmt.Errorf("checking email: %w", err)
 return nil, domain.ErrEmailTaken
 
 // Check wrapped errors
-if errors.Is(err, sharederr.ErrNotFound) { }
+if errors.Is(err, sharederr.ErrNotFound()) { }
 ```
 
 ## Domain Layer (domain/)
@@ -199,10 +199,16 @@ func Reconstitute(id UserID, email, name, password string, role Role,
 Repositories abstract persistence:
 
 ```go
+type ListResult struct {
+    Users      []*User
+    NextCursor string
+    HasMore    bool
+}
+
 type UserRepository interface {
     GetByID(ctx context.Context, id UserID) (*User, error)
     GetByEmail(ctx context.Context, email string) (*User, error)
-    List(ctx context.Context, limit int, cursor string) ([]*User, string, bool, error)
+    List(ctx context.Context, limit int, cursor string) (ListResult, error)
     Create(ctx context.Context, user *User) error
     Update(ctx context.Context, id UserID, fn func(*User) error) error
     SoftDelete(ctx context.Context, id UserID) error
@@ -227,13 +233,13 @@ Handle side-effects with validation, business logic, and events:
 type CreateUserHandler struct {
     repo   domain.UserRepository
     hasher auth.PasswordHasher
-    bus    *events.EventBus
+    bus    events.EventPublisher
 }
 
 func NewCreateUserHandler(
     repo domain.UserRepository,
     hasher auth.PasswordHasher,
-    bus *events.EventBus,
+    bus events.EventPublisher,
 ) *CreateUserHandler {
     return &CreateUserHandler{repo: repo, hasher: hasher, bus: bus}
 }
@@ -241,7 +247,7 @@ func NewCreateUserHandler(
 func (h *CreateUserHandler) Handle(ctx context.Context, cmd CreateUserCmd) (*domain.User, error) {
     // Validation
     existing, err := h.repo.GetByEmail(ctx, cmd.Email)
-    if err != nil && !errors.Is(err, sharederr.ErrNotFound) {
+    if err != nil && !errors.Is(err, sharederr.ErrNotFound()) {
         return nil, fmt.Errorf("checking email: %w", err)
     }
     if existing != nil {
@@ -270,13 +276,14 @@ func (h *CreateUserHandler) Handle(ctx context.Context, cmd CreateUserCmd) (*dom
     if actor := auth.UserFromContext(ctx); actor != nil {
         actorID = actor.UserID
     }
-    if err := h.bus.Publish(ctx, events.TopicUserCreated, events.UserCreatedEvent{
-        UserID:  string(user.ID()),
-        ActorID: actorID,
-        Email:   user.Email(),
-        Name:    user.Name(),
-        Role:    string(user.Role()),
-        At:      time.Now(),
+    if err := h.bus.Publish(ctx, domain.TopicUserCreated, domain.UserCreatedEvent{
+        UserID:    string(user.ID()),
+        ActorID:   actorID,
+        Email:     user.Email(),
+        Name:      user.Name(),
+        Role:      string(user.Role()),
+        IPAddress: netutil.GetClientIP(ctx),
+        At:        time.Now(),
     }); err != nil {
         // Log event publishing failures but don't fail the handler
         slog.ErrorContext(ctx, "failed to publish user.created event",
@@ -313,7 +320,7 @@ Update and Delete handlers follow the same event publishing pattern as Create:
 // UpdateUserHandler applies partial mutations within a transaction
 type UpdateUserHandler struct {
     repo domain.UserRepository
-    bus  *events.EventBus
+    bus  events.EventPublisher
 }
 
 func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*domain.User, error) {
@@ -336,10 +343,14 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*dom
     if actor := auth.UserFromContext(ctx); actor != nil {
         actorID = actor.UserID
     }
-    if err := h.bus.Publish(ctx, events.TopicUserUpdated, events.UserUpdatedEvent{
-        UserID:  cmd.ID,
-        ActorID: actorID,
-        At:      time.Now(),
+    if err := h.bus.Publish(ctx, domain.TopicUserUpdated, domain.UserUpdatedEvent{
+        UserID:    cmd.ID,
+        ActorID:   actorID,
+        Name:      updated.Name(),
+        Email:     updated.Email(),
+        Role:      string(updated.Role()),
+        IPAddress: netutil.GetClientIP(ctx),
+        At:        time.Now(),
     }); err != nil {
         slog.ErrorContext(ctx, "failed to publish user.updated event",
             "user_id", cmd.ID, "err", err)
@@ -351,7 +362,7 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*dom
 // DeleteUserHandler soft-deletes a user
 type DeleteUserHandler struct {
     repo domain.UserRepository
-    bus  *events.EventBus
+    bus  events.EventPublisher
 }
 
 func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
@@ -364,10 +375,11 @@ func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
     if actor := auth.UserFromContext(ctx); actor != nil {
         actorID = actor.UserID
     }
-    if err := h.bus.Publish(ctx, events.TopicUserDeleted, events.UserDeletedEvent{
-        UserID:  id,
-        ActorID: actorID,
-        At:      time.Now(),
+    if err := h.bus.Publish(ctx, domain.TopicUserDeleted, domain.UserDeletedEvent{
+        UserID:    id,
+        ActorID:   actorID,
+        IPAddress: netutil.GetClientIP(ctx),
+        At:        time.Now(),
     }); err != nil {
         slog.ErrorContext(ctx, "failed to publish user.deleted event",
             "user_id", id, "err", err)
@@ -489,32 +501,41 @@ All domain events follow a consistent structure with ActorID for audit trails:
 ```go
 // UserCreatedEvent is published when a user is created
 type UserCreatedEvent struct {
-    UserID  string    `json:"user_id"`   // Resource ID
-    ActorID string    `json:"actor_id"`  // User who initiated action
-    Email   string    `json:"email"`
-    Name    string    `json:"name"`
-    Role    string    `json:"role"`
-    At      time.Time `json:"at"`        // Event timestamp
+    UserID    string    `json:"user_id"`   // Resource ID
+    ActorID   string    `json:"actor_id"`  // User who initiated action
+    Email     string    `json:"email"`
+    Name      string    `json:"name"`
+    Role      string    `json:"role"`
+    IPAddress string    `json:"ip_address,omitempty"` // Client IP for audit trail
+    At        time.Time `json:"at"`        // Event timestamp
 }
 
 // UserUpdatedEvent is published when a user is updated
 type UserUpdatedEvent struct {
-    UserID  string    `json:"user_id"`
-    ActorID string    `json:"actor_id"`
-    At      time.Time `json:"at"`
+    UserID    string    `json:"user_id"`
+    ActorID   string    `json:"actor_id"`
+    Name      string    `json:"name"`
+    Email     string    `json:"email"`
+    Role      string    `json:"role"`
+    IPAddress string    `json:"ip_address,omitempty"`
+    At        time.Time `json:"at"`
 }
 
 // UserDeletedEvent is published when a user is soft-deleted
 type UserDeletedEvent struct {
-    UserID  string    `json:"user_id"`
-    ActorID string    `json:"actor_id"`
-    At      time.Time `json:"at"`
+    UserID    string    `json:"user_id"`
+    ActorID   string    `json:"actor_id"`
+    IPAddress string    `json:"ip_address,omitempty"`
+    At        time.Time `json:"at"`
 }
 ```
 
 ### Topic Constants
 
+Define topics per module in `internal/modules/{name}/domain/events.go`:
+
 ```go
+// internal/modules/user/domain/events.go
 const (
     TopicUserCreated = "user.created"
     TopicUserUpdated = "user.updated"
@@ -530,8 +551,8 @@ List endpoints use cursor-based pagination for efficient large-dataset traversal
 
 ```go
 // Repository signature
-List(ctx context.Context, limit int, cursor string) ([]*User, string, bool, error)
-// Returns: (users, nextCursor, hasMore, error)
+List(ctx context.Context, limit int, cursor string) (ListResult, error)
+// Returns: (ListResult{Users, NextCursor, HasMore}, error)
 ```
 
 **Implementation Details:**
@@ -586,15 +607,14 @@ func TestCreateUserHandler_Handle_Success(t *testing.T) {
     repo := mocks.NewMockUserRepository(ctrl)
     repo.EXPECT().
         GetByEmail(gomock.Any(), "user@example.com").
-        Return(nil, sharederr.ErrNotFound).
+        Return(nil, sharederr.ErrNotFound()).
         Times(1)
     repo.EXPECT().
         Create(gomock.Any(), gomock.Any()).
         Return(nil).
         Times(1)
 
-    hasher := &mockHasher{}
-    handler := app.NewCreateUserHandler(repo, hasher, &noopPublisher{})
+    handler := app.NewCreateUserHandler(repo, &testutil.StubHasher{}, &testutil.NoopPublisher{})
 
     // Act
     user, err := handler.Handle(context.Background(), app.CreateUserCmd{
@@ -609,11 +629,6 @@ func TestCreateUserHandler_Handle_Success(t *testing.T) {
     require.NotNil(t, user)
     assert.Equal(t, "user@example.com", user.Email())
 }
-
-// noopPublisher stubs the Watermill publisher for unit tests.
-type noopPublisher struct{}
-func (n *noopPublisher) Publish(topic string, messages ...*message.Message) error { return nil }
-func (n *noopPublisher) Close() error { return nil }
 ```
 
 **Mock Generation Flags:**
