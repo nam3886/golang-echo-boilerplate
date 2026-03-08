@@ -85,6 +85,9 @@ func (h *UserServiceHandler) UpdateUser(ctx context.Context, req *connect.Reques
 	if req.Msg.Role != nil {
 		cmd.Role = req.Msg.Role
 	}
+	if req.Msg.Email != nil {
+		cmd.Email = req.Msg.Email
+	}
 
 	user, err := h.updateUser.Handle(ctx, cmd)
 	if err != nil {

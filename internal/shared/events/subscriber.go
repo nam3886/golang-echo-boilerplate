@@ -53,13 +53,15 @@ func NewRouter(params RouterParams) (*message.Router, error) {
 }
 
 // StartRouter starts the Watermill router as part of Fx lifecycle.
-func StartRouter(lc fx.Lifecycle, router *message.Router) {
+// On fatal router error, triggers Fx shutdown with exit code 1.
+func StartRouter(lc fx.Lifecycle, router *message.Router, shutdowner fx.Shutdowner) {
 	ctx, cancel := context.WithCancel(context.Background())
 	lc.Append(fx.Hook{
 		OnStart: func(_ context.Context) error {
 			go func() {
 				if err := router.Run(ctx); err != nil {
-					slog.Error("watermill router error", "err", err)
+					slog.Error("watermill router fatal error, initiating shutdown", "err", err)
+					_ = shutdowner.Shutdown(fx.ExitCode(1))
 				}
 			}()
 			return nil

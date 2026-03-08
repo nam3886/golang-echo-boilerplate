@@ -19,8 +19,8 @@ var Module = fx.Module("events",
 		),
 	),
 	fx.Provide(NewRouter),
-	fx.Invoke(StartRouter),
 	fx.Invoke(registerAMQPShutdown),
+	fx.Invoke(StartRouter),
 )
 
 // registerAMQPShutdown closes publisher and subscriber on Fx shutdown.

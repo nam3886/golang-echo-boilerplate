@@ -13,9 +13,10 @@ import (
 
 // UpdateUserCmd holds input for updating a user.
 type UpdateUserCmd struct {
-	ID   string
-	Name *string
-	Role *string
+	ID    string
+	Name  *string
+	Role  *string
+	Email *string
 }
 
 // UpdateUserHandler handles user updates via closure-based UoW.
@@ -31,8 +32,16 @@ func NewUpdateUserHandler(repo domain.UserRepository, bus events.EventPublisher)
 
 // Handle applies partial updates to a user within a transaction.
 func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*domain.User, error) {
+	if cmd.ID == "" {
+		return nil, domain.ErrInvalidArgument
+	}
 	var updated *domain.User
 	err := h.repo.Update(ctx, domain.UserID(cmd.ID), func(user *domain.User) error {
+		if cmd.Email != nil {
+			if err := user.ChangeEmail(*cmd.Email); err != nil {
+				return err
+			}
+		}
 		if cmd.Name != nil {
 			if err := user.ChangeName(*cmd.Name); err != nil {
 				return err
@@ -54,7 +63,7 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*dom
 	if actor := auth.UserFromContext(ctx); actor != nil {
 		actorID = actor.UserID
 	}
-	if err := h.bus.Publish(ctx, events.TopicUserUpdated, events.UserUpdatedEvent{
+	if err := h.bus.Publish(ctx, domain.TopicUserUpdated, domain.UserUpdatedEvent{
 		UserID:    cmd.ID,
 		ActorID:   actorID,
 		IPAddress: netutil.GetClientIP(ctx),
