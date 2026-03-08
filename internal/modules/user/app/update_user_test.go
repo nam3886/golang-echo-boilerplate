@@ -14,8 +14,6 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func strPtr(s string) *string { return &s }
-
 func makeTestUser() *domain.User {
 	return domain.Reconstitute(
 		"00000000-0000-0000-0000-000000000001",
@@ -45,7 +43,7 @@ func TestUpdateUserHandler_Success(t *testing.T) {
 
 	user, err := handler.Handle(context.Background(), UpdateUserCmd{
 		ID:   "00000000-0000-0000-0000-000000000001",
-		Name: strPtr("Updated Name"),
+		Name: testutil.Ptr("Updated Name"),
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -68,7 +66,7 @@ func TestUpdateUserHandler_RepoFailure(t *testing.T) {
 
 	_, err := handler.Handle(context.Background(), UpdateUserCmd{
 		ID:   "00000000-0000-0000-0000-000000000001",
-		Name: strPtr("New Name"),
+		Name: testutil.Ptr("New Name"),
 	})
 	if err == nil {
 		t.Fatal("expected error from repo failure")
@@ -93,7 +91,7 @@ func TestUpdateUserHandler_RoleOnlyUpdate(t *testing.T) {
 
 	user, err := handler.Handle(context.Background(), UpdateUserCmd{
 		ID:   "00000000-0000-0000-0000-000000000001",
-		Role: strPtr("admin"),
+		Role: testutil.Ptr("admin"),
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -125,7 +123,7 @@ func TestUpdateUserHandler_EmptyName_ReturnsError(t *testing.T) {
 
 	_, err := handler.Handle(context.Background(), UpdateUserCmd{
 		ID:   "00000000-0000-0000-0000-000000000001",
-		Name: strPtr(""), // empty string must be rejected
+		Name: testutil.Ptr(""), // empty string must be rejected
 	})
 	if err == nil {
 		t.Fatal("expected error for empty name")
@@ -151,7 +149,7 @@ func TestUpdateUserHandler_EmailChange(t *testing.T) {
 
 	user, err := handler.Handle(context.Background(), UpdateUserCmd{
 		ID:    "00000000-0000-0000-0000-000000000001",
-		Email: strPtr("new@example.com"),
+		Email: testutil.Ptr("new@example.com"),
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -177,7 +175,7 @@ func TestUpdateUserHandler_InvalidEmail_ReturnsError(t *testing.T) {
 
 	_, err := handler.Handle(context.Background(), UpdateUserCmd{
 		ID:    "00000000-0000-0000-0000-000000000001",
-		Email: strPtr("not-an-email"),
+		Email: testutil.Ptr("not-an-email"),
 	})
 	if err == nil {
 		t.Fatal("expected error for invalid email")
@@ -205,7 +203,7 @@ func TestUpdateUserHandler_EventPublishFailure_DoesNotFail(t *testing.T) {
 
 	user, err := handler.Handle(context.Background(), UpdateUserCmd{
 		ID:   "00000000-0000-0000-0000-000000000001",
-		Name: strPtr("New Name"),
+		Name: testutil.Ptr("New Name"),
 	})
 	if err != nil {
 		t.Fatalf("expected no error even when publish fails, got %v", err)
