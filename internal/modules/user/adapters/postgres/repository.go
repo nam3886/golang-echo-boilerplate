@@ -10,7 +10,7 @@ import (
 
 	sqlcgen "github.com/gnha/gnha-services/gen/sqlc"
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
-	domainerr "github.com/gnha/gnha-services/internal/shared/errors"
+	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -37,7 +37,7 @@ func (r *PgUserRepository) GetByID(ctx context.Context, id domain.UserID) (*doma
 	row, err := q.GetUserByID(ctx, uid)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, domainerr.ErrNotFound()
+			return nil, sharederr.ErrNotFound()
 		}
 		return nil, fmt.Errorf("getting user by id: %w", err)
 	}
@@ -49,7 +49,7 @@ func (r *PgUserRepository) GetByEmail(ctx context.Context, email string) (*domai
 	row, err := q.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, domainerr.ErrNotFound()
+			return nil, sharederr.ErrNotFound()
 		}
 		return nil, fmt.Errorf("getting user by email: %w", err)
 	}
@@ -64,10 +64,11 @@ func (r *PgUserRepository) List(ctx context.Context, limit int, cursor string) (
 	params := sqlcgen.ListUsersParams{Limit: int32(limit + 1)}
 	if cursor != "" {
 		decoded, err := decodeCursor(cursor)
-		if err == nil {
-			params.CursorCreatedAt = pgtype.Timestamptz{Time: decoded.T, Valid: true}
-			params.CursorID = pgtype.UUID{Bytes: decoded.U, Valid: true}
+		if err != nil {
+			return domain.ListResult{}, sharederr.New(sharederr.CodeInvalidArgument, "invalid pagination cursor")
 		}
+		params.CursorCreatedAt = pgtype.Timestamptz{Time: decoded.T, Valid: true}
+		params.CursorID = pgtype.UUID{Bytes: decoded.U, Valid: true}
 	}
 
 	rows, err := q.ListUsers(ctx, params)
@@ -139,7 +140,7 @@ func (r *PgUserRepository) Update(ctx context.Context, id domain.UserID, fn func
 	row, err := q.GetUserByIDForUpdate(ctx, uid)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return domainerr.ErrNotFound()
+			return sharederr.ErrNotFound()
 		}
 		return fmt.Errorf("fetching user for update: %w", err)
 	}
@@ -151,14 +152,23 @@ func (r *PgUserRepository) Update(ctx context.Context, id domain.UserID, fn func
 
 	name := user.Name()
 	role := string(user.Role())
-	_, err = q.UpdateUser(ctx, sqlcgen.UpdateUserParams{
-		ID:   uid,
-		Name: pgtype.Text{String: name, Valid: true},
-		Role: pgtype.Text{String: role, Valid: true},
+	email := user.Email()
+	updatedRow, err := q.UpdateUser(ctx, sqlcgen.UpdateUserParams{
+		ID:    uid,
+		Name:  pgtype.Text{String: name, Valid: true},
+		Role:  pgtype.Text{String: role, Valid: true},
+		Email: pgtype.Text{String: email, Valid: true},
 	})
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return domain.ErrEmailTaken
+		}
 		return fmt.Errorf("updating user: %w", err)
 	}
+
+	// Overwrite the entity with DB-generated timestamps (e.g. updated_at = NOW()).
+	*user = *toDomain(updatedRow)
 
 	return tx.Commit(ctx)
 }
@@ -174,7 +184,7 @@ func (r *PgUserRepository) SoftDelete(ctx context.Context, id domain.UserID) err
 		return fmt.Errorf("soft deleting user: %w", err)
 	}
 	if rows == 0 {
-		return domainerr.ErrNotFound()
+		return sharederr.ErrNotFound()
 	}
 	return nil
 }
@@ -183,7 +193,7 @@ func (r *PgUserRepository) SoftDelete(ctx context.Context, id domain.UserID) err
 func parseUserID(id domain.UserID) (uuid.UUID, error) {
 	uid, err := uuid.Parse(string(id))
 	if err != nil {
-		return uuid.UUID{}, domainerr.New(domainerr.CodeInvalidArgument, "invalid user ID format")
+		return uuid.UUID{}, sharederr.New(sharederr.CodeInvalidArgument, "invalid user ID format")
 	}
 	return uid, nil
 }
@@ -203,6 +213,8 @@ func toDomain(row sqlcgen.User) *domain.User {
 }
 
 // toDomainFromGetRow converts a GetUserByIDRow (no password) to a domain entity.
+// Password is set to "" because this query intentionally excludes it.
+// Callers must not use Password() on entities returned by read-only queries.
 func toDomainFromGetRow(row sqlcgen.GetUserByIDRow) *domain.User {
 	var deletedAt *time.Time
 	if row.DeletedAt.Valid {
@@ -217,6 +229,8 @@ func toDomainFromGetRow(row sqlcgen.GetUserByIDRow) *domain.User {
 }
 
 // toDomainFromListRow converts a ListUsersRow (no password) to a domain entity.
+// Password is set to "" because list queries intentionally exclude it for performance.
+// Callers must not use Password() on entities returned by list queries.
 func toDomainFromListRow(row sqlcgen.ListUsersRow) *domain.User {
 	var deletedAt *time.Time
 	if row.DeletedAt.Valid {

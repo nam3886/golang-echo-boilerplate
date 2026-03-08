@@ -7,9 +7,9 @@ import (
 	"net/netip"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	sqlcgen "github.com/gnha/gnha-services/gen/sqlc"
-	"github.com/gnha/gnha-services/internal/shared/events"
 	"github.com/google/uuid"
+	sqlcgen "github.com/gnha/gnha-services/gen/sqlc"
+	"github.com/gnha/gnha-services/internal/modules/user/domain"
 )
 
 // Handler processes audit-related events.
@@ -29,19 +29,19 @@ type auditEvent interface {
 	ipAddress() string
 }
 
-type createdWrapper struct{ e events.UserCreatedEvent }
+type createdWrapper struct{ e domain.UserCreatedEvent }
 
 func (w createdWrapper) userID() string    { return w.e.UserID }
 func (w createdWrapper) actorID() string   { return w.e.ActorID }
 func (w createdWrapper) ipAddress() string { return w.e.IPAddress }
 
-type updatedWrapper struct{ e events.UserUpdatedEvent }
+type updatedWrapper struct{ e domain.UserUpdatedEvent }
 
 func (w updatedWrapper) userID() string    { return w.e.UserID }
 func (w updatedWrapper) actorID() string   { return w.e.ActorID }
 func (w updatedWrapper) ipAddress() string { return w.e.IPAddress }
 
-type deletedWrapper struct{ e events.UserDeletedEvent }
+type deletedWrapper struct{ e domain.UserDeletedEvent }
 
 func (w deletedWrapper) userID() string    { return w.e.UserID }
 func (w deletedWrapper) actorID() string   { return w.e.ActorID }
@@ -81,12 +81,20 @@ func (h *Handler) handleAuditEvent(msg *message.Message, ev auditEvent, raw any,
 		return nil // ack — retrying won't fix bad data
 	}
 
+	// Use the Watermill message UUID as the audit log primary key for idempotency.
+	// ON CONFLICT (id) DO NOTHING in the query silently deduplicates retries.
+	msgID, err := uuid.Parse(msg.UUID)
+	if err != nil {
+		msgID = uuid.New()
+	}
+
 	changes, err := json.Marshal(raw)
 	if err != nil {
 		return fmt.Errorf("audit: marshaling %s event changes: %w", action, err)
 	}
 
 	return h.queries.CreateAuditLog(msg.Context(), sqlcgen.CreateAuditLogParams{
+		ID:         msgID,
 		EntityType: "user",
 		EntityID:   entityID,
 		Action:     action,
@@ -98,7 +106,7 @@ func (h *Handler) handleAuditEvent(msg *message.Message, ev auditEvent, raw any,
 
 // HandleUserCreated logs a user creation event to the audit trail.
 func (h *Handler) HandleUserCreated(msg *message.Message) error {
-	var ev events.UserCreatedEvent
+	var ev domain.UserCreatedEvent
 	if err := json.Unmarshal(msg.Payload, &ev); err != nil {
 		slog.Error("audit: failed to unmarshal user.created event", "err", err)
 		return err
@@ -108,7 +116,7 @@ func (h *Handler) HandleUserCreated(msg *message.Message) error {
 
 // HandleUserUpdated logs a user update event.
 func (h *Handler) HandleUserUpdated(msg *message.Message) error {
-	var ev events.UserUpdatedEvent
+	var ev domain.UserUpdatedEvent
 	if err := json.Unmarshal(msg.Payload, &ev); err != nil {
 		slog.Error("audit: failed to unmarshal user.updated event", "err", err)
 		return err
@@ -118,7 +126,7 @@ func (h *Handler) HandleUserUpdated(msg *message.Message) error {
 
 // HandleUserDeleted logs a user deletion event.
 func (h *Handler) HandleUserDeleted(msg *message.Message) error {
-	var ev events.UserDeletedEvent
+	var ev domain.UserDeletedEvent
 	if err := json.Unmarshal(msg.Payload, &ev); err != nil {
 		slog.Error("audit: failed to unmarshal user.deleted event", "err", err)
 		return err

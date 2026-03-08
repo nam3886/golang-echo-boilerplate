@@ -2,6 +2,7 @@ package audit
 
 import (
 	sqlcgen "github.com/gnha/gnha-services/gen/sqlc"
+	userdomain "github.com/gnha/gnha-services/internal/modules/user/domain"
 	"github.com/gnha/gnha-services/internal/shared/events"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/fx"
@@ -21,8 +22,8 @@ var Module = fx.Module("audit",
 
 func provideHandlers(h *Handler) []events.HandlerRegistration {
 	return []events.HandlerRegistration{
-		{Name: "audit.user_created", Topic: events.TopicUserCreated, HandlerFunc: h.HandleUserCreated},
-		{Name: "audit.user_updated", Topic: events.TopicUserUpdated, HandlerFunc: h.HandleUserUpdated},
-		{Name: "audit.user_deleted", Topic: events.TopicUserDeleted, HandlerFunc: h.HandleUserDeleted},
+		{Name: "audit.user_created", Topic: userdomain.TopicUserCreated, HandlerFunc: h.HandleUserCreated},
+		{Name: "audit.user_updated", Topic: userdomain.TopicUserUpdated, HandlerFunc: h.HandleUserUpdated},
+		{Name: "audit.user_deleted", Topic: userdomain.TopicUserDeleted, HandlerFunc: h.HandleUserDeleted},
 	}
 }
