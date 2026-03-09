@@ -14,6 +14,7 @@ const (
 	PermUserWrite  Permission = "user:write"
 	PermUserDelete Permission = "user:delete"
 	PermAdminAll   Permission = "admin:*"
+	// ADD_PERMISSION_HERE
 )
 
 // RequirePermission checks that the authenticated user has all required permissions.

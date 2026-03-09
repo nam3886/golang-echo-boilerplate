@@ -1,0 +1,74 @@
+package app
+
+import (
+	"context"
+	"fmt"
+	"testing"
+	"time"
+
+	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
+	domainerr "{{.GoModule}}/internal/shared/errors"
+	"{{.GoModule}}/internal/shared/mocks"
+	"go.uber.org/mock/gomock"
+)
+
+func TestGet{{.NameTitle}}Handler_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMock{{.NameTitle}}Repository(ctrl)
+
+	now := time.Now()
+	entity := domain.Reconstitute("entity-id-1", "Test Name", now, now, nil)
+	mockRepo.EXPECT().
+		GetByID(gomock.Any(), domain.{{.NameID}}("entity-id-1")).
+		Return(entity, nil)
+
+	handler := NewGet{{.NameTitle}}Handler(mockRepo)
+	got, err := handler.Handle(context.Background(), "entity-id-1")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if got == nil {
+		t.Fatal("expected entity, got nil")
+	}
+}
+
+func TestGet{{.NameTitle}}Handler_NotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMock{{.NameTitle}}Repository(ctrl)
+
+	mockRepo.EXPECT().
+		GetByID(gomock.Any(), domain.{{.NameID}}("missing-id")).
+		Return(nil, domainerr.ErrNotFound())
+
+	handler := NewGet{{.NameTitle}}Handler(mockRepo)
+	_, err := handler.Handle(context.Background(), "missing-id")
+	if err == nil {
+		t.Fatal("expected not found error, got nil")
+	}
+}
+
+func TestGet{{.NameTitle}}Handler_RepoError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMock{{.NameTitle}}Repository(ctrl)
+
+	mockRepo.EXPECT().
+		GetByID(gomock.Any(), domain.{{.NameID}}("entity-id-1")).
+		Return(nil, fmt.Errorf("db connection error"))
+
+	handler := NewGet{{.NameTitle}}Handler(mockRepo)
+	_, err := handler.Handle(context.Background(), "entity-id-1")
+	if err == nil {
+		t.Fatal("expected repo error, got nil")
+	}
+}
+
+func TestGet{{.NameTitle}}Handler_EmptyID(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMock{{.NameTitle}}Repository(ctrl)
+
+	handler := NewGet{{.NameTitle}}Handler(mockRepo)
+	_, err := handler.Handle(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for empty id")
+	}
+}

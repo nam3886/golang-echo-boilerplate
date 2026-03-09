@@ -17,7 +17,7 @@ func NewMeterProvider(cfg *config.Config, version config.AppVersion) (*sdkmetric
 	ctx := context.Background()
 
 	opts := []otlpmetricgrpc.Option{
-		otlpmetricgrpc.WithEndpoint(cfg.OTLPEndpoint),
+		otlpmetricgrpc.WithEndpointURL(cfg.OTLPEndpoint),
 	}
 	if cfg.IsDevelopment() {
 		opts = append(opts, otlpmetricgrpc.WithInsecure())
@@ -33,6 +33,7 @@ func NewMeterProvider(cfg *config.Config, version config.AppVersion) (*sdkmetric
 			semconv.SchemaURL,
 			semconv.ServiceName(cfg.AppName),
 			semconv.ServiceVersion(string(version)),
+			semconv.DeploymentEnvironmentName(cfg.AppEnv),
 		)),
 	)
 

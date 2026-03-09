@@ -40,7 +40,7 @@ Simplified Hexagonal (modular monolith) — see [docs/architecture.md](docs/arch
 ```
 cmd/server/          # Entrypoint
 internal/
-  shared/            # Cross-cutting: config, DB, auth, middleware, events, cron
+  shared/            # Cross-cutting: config, DB, auth, middleware, events
   modules/
     user/            # Example module
       domain/        # Entity, repository interface, errors

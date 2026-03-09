@@ -46,13 +46,11 @@ type CapturingPublisher struct {
 	Messages []CapturedMessage
 }
 
-// Publish appends the topic and first message payload.
+// Publish appends all message payloads (not just the first).
 func (r *CapturingPublisher) Publish(topic string, msgs ...*message.Message) error {
-	var payload []byte
-	if len(msgs) > 0 {
-		payload = msgs[0].Payload
+	for _, msg := range msgs {
+		r.Messages = append(r.Messages, CapturedMessage{Topic: topic, Payload: msg.Payload})
 	}
-	r.Messages = append(r.Messages, CapturedMessage{Topic: topic, Payload: payload})
 	return nil
 }
 

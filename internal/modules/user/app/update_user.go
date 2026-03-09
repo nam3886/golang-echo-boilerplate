@@ -34,6 +34,17 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*dom
 	if cmd.ID == "" {
 		return nil, domain.ErrInvalidArgument()
 	}
+	// Skip DB lock entirely when no fields are provided.
+	if cmd.Name == nil && cmd.Role == nil && cmd.Email == nil {
+		user, err := h.repo.GetByID(ctx, domain.UserID(cmd.ID))
+		if err != nil {
+			return nil, err
+		}
+		return user, nil
+	}
+	// Email uniqueness is enforced by the DB unique index (idx_users_email_active).
+	// Unlike CreateUser, no pre-check is done here because the FOR UPDATE lock
+	// serializes concurrent updates to the same user row.
 	var updated *domain.User
 	var mutated bool
 	err := h.repo.Update(ctx, domain.UserID(cmd.ID), func(user *domain.User) error {

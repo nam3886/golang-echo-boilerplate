@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/gnha/gnha-services/internal/shared/auth"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
@@ -36,9 +35,8 @@ func RateLimit(rdb *redis.Client, limit int, window time.Duration) echo.Middlewa
 }
 
 func rateLimitKey(c echo.Context) string {
-	if user := auth.UserFromContext(c.Request().Context()); user != nil {
-		return "ratelimit:user:" + user.UserID
-	}
+	// Rate limiting is IP-based. User-keying is not possible because
+	// this middleware runs before Auth in the global chain.
 	return "ratelimit:ip:" + c.RealIP()
 }
 

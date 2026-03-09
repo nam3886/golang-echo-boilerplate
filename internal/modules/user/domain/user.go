@@ -53,6 +53,9 @@ func NewUser(email, name, hashedPassword string, role Role) (*User, error) {
 	if !role.IsValid() {
 		return nil, ErrInvalidRole()
 	}
+	// hashedPassword is expected to be pre-hashed by the app layer via PasswordHasher.
+	// Raw password validation (length 8-72, complexity) is enforced in the hasher,
+	// not here. The domain only checks for empty to catch wiring errors.
 	if hashedPassword == "" {
 		return nil, ErrPasswordRequired()
 	}

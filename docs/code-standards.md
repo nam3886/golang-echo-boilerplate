@@ -398,7 +398,7 @@ func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
         UserID:    id,
         ActorID:   actorID,
         IPAddress: netutil.GetClientIP(ctx),
-        At:        user.UpdatedAt(),
+        At:        *user.DeletedAt(), // DB-authoritative deletion timestamp
     }); err != nil {
         slog.ErrorContext(ctx, "failed to publish user.deleted event",
             "user_id", id, "err", err)
@@ -572,10 +572,10 @@ not from other modules' `domain/` packages. This preserves the no-cross-module-i
 If the subscriber only needs a few fields, prefer a local struct (as `audit` does with `auditPayload`).
 
 ```go
-// notification/subscriber.go — importing user event type (acceptable)
-import "github.com/gnha/gnha-services/internal/modules/user/domain"
+// notification/subscriber.go — importing from shared contracts (correct)
+import "github.com/gnha/gnha-services/internal/shared/events/contracts"
 
-var event domain.UserCreatedEvent
+var event contracts.UserCreatedEvent
 json.Unmarshal(msg.Payload, &event)
 
 // audit/subscriber.go — local struct (also acceptable, lower coupling)

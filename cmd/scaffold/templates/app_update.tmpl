@@ -33,11 +33,13 @@ func (h *Update{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Update{{.N
 		return nil, domain.ErrInvalidArgument()
 	}
 	var updated *domain.{{.NameTitle}}
+	var mutated bool
 	err := h.repo.Update(ctx, domain.{{.NameID}}(cmd.ID), func(entity *domain.{{.NameTitle}}) error {
-		if cmd.Name != nil {
+		if cmd.Name != nil && *cmd.Name != entity.Name() {
 			if err := entity.ChangeName(*cmd.Name); err != nil {
 				return err
 			}
+			mutated = true
 		}
 		updated = entity
 		return nil
@@ -47,7 +49,7 @@ func (h *Update{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Update{{.N
 	}
 
 	// Skip event if nothing was actually changed.
-	if cmd.Name == nil {
+	if !mutated {
 		return updated, nil
 	}
 

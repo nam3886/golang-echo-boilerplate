@@ -187,8 +187,10 @@ SET name = COALESCE(sqlc.narg('name'), name), updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;
 
--- name: SoftDeleteProduct :execrows
-UPDATE products SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL;
+-- name: SoftDeleteProduct :one
+UPDATE products SET deleted_at = NOW(), updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING *;
 ```
 
 ## 3. Generate Code
@@ -303,7 +305,7 @@ type ProductRepository interface {
     List(ctx context.Context, limit int, cursor string) (ProductListResult, error)
     Create(ctx context.Context, p *Product) error
     Update(ctx context.Context, id ProductID, fn func(*Product) error) error
-    SoftDelete(ctx context.Context, id ProductID) error
+    SoftDelete(ctx context.Context, id ProductID) (*Product, error)
 }
 ```
 

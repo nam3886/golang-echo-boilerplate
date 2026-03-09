@@ -16,9 +16,14 @@ func Recovery() echo.MiddlewareFunc {
 			defer func() {
 				if r := recover(); r != nil {
 					buf := make([]byte, 4096)
+					const maxStackBuf = 64 * 1024
 					for {
 						n := runtime.Stack(buf, false)
 						if n < len(buf) {
+							buf = buf[:n]
+							break
+						}
+						if len(buf) >= maxStackBuf {
 							buf = buf[:n]
 							break
 						}

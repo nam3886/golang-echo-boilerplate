@@ -39,7 +39,7 @@ func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
 		UserID:    id,
 		ActorID:   actorID,
 		IPAddress: netutil.GetClientIP(ctx),
-		At:        user.UpdatedAt(), // DB-authoritative timestamp
+		At:        *user.DeletedAt(), // DB-authoritative deletion timestamp
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to publish user.deleted event",
 			"user_id", id, "err", err)

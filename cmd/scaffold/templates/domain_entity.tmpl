@@ -49,11 +49,11 @@ func (e *{{.NameTitle}}) DeletedAt() *time.Time { return e.deletedAt }
 
 // ChangeName updates the name. No-op if unchanged.
 func (e *{{.NameTitle}}) ChangeName(name string) error {
-	if name == e.name {
-		return nil
-	}
 	if name == "" {
 		return ErrNameRequired()
+	}
+	if name == e.name {
+		return nil
 	}
 	e.name = name
 	e.updatedAt = time.Now()

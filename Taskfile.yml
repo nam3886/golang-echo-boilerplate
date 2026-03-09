@@ -20,7 +20,7 @@ tasks:
     desc: Install development tools
     cmds:
       - go install github.com/air-verse/air@v1.61.7
-      - go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.28.0
+      - go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0
       - go install github.com/bufbuild/buf/cmd/buf@v1.51.0
       - go install github.com/pressly/goose/v3/cmd/goose@v3.24.3
       - go install github.com/evilmartians/lefthook@v1.11.7

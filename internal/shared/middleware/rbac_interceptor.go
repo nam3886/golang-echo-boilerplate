@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"strings"
 
 	"connectrpc.com/connect"
 	userv1connect "github.com/gnha/gnha-services/gen/proto/user/v1/userv1connect"
@@ -15,6 +16,28 @@ var procedurePermissions = map[string]Permission{
 	userv1connect.UserServiceCreateUserProcedure: PermUserWrite,
 	userv1connect.UserServiceUpdateUserProcedure: PermUserWrite,
 	userv1connect.UserServiceDeleteUserProcedure: PermUserDelete,
+	// ADD_PROCEDURE_PERMISSION_HERE
+}
+
+// registeredServicePrefixes lists Connect service path prefixes with RBAC.
+// Any procedure under these prefixes MUST be in procedurePermissions,
+// otherwise the request is denied (fail-closed). This ensures new RPC methods
+// are protected by default until explicitly mapped.
+var registeredServicePrefixes = buildServicePrefixes(procedurePermissions)
+
+func buildServicePrefixes(perms map[string]Permission) []string {
+	seen := map[string]bool{}
+	for proc := range perms {
+		if idx := strings.LastIndex(proc, "/"); idx > 0 {
+			prefix := proc[:idx+1]
+			seen[prefix] = true
+		}
+	}
+	prefixes := make([]string, 0, len(seen))
+	for p := range seen {
+		prefixes = append(prefixes, p)
+	}
+	return prefixes
 }
 
 // RBACInterceptor checks permissions based on the exact Connect RPC procedure path.
@@ -26,6 +49,14 @@ func RBACInterceptor() connect.UnaryInterceptorFunc {
 			procedure := req.Spec().Procedure // e.g. "/user.v1.UserService/CreateUser"
 			requiredPerm, ok := procedurePermissions[procedure]
 			if !ok {
+				// Deny if procedure belongs to a registered service
+				// but has no explicit permission mapping (fail-closed).
+				for _, prefix := range registeredServicePrefixes {
+					if strings.HasPrefix(procedure, prefix) {
+						return nil, connect.NewError(connect.CodePermissionDenied, nil)
+					}
+				}
+				// Unknown service (health, reflection, etc.) — pass through.
 				return next(ctx, req)
 			}
 

@@ -1,0 +1,83 @@
+package app
+
+import (
+	"context"
+	"fmt"
+	"testing"
+
+	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
+	"{{.GoModule}}/internal/shared/mocks"
+	"go.uber.org/mock/gomock"
+)
+
+func TestList{{.NamePluralTitle}}Handler_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMock{{.NameTitle}}Repository(ctrl)
+
+	mockRepo.EXPECT().
+		List(gomock.Any(), 20, "").
+		Return(domain.ListResult{
+			{{.NamePluralTitle}}: []*domain.{{.NameTitle}}{},
+			NextCursor:          "cursor-1",
+			HasMore:             true,
+		}, nil)
+
+	handler := NewList{{.NamePluralTitle}}Handler(mockRepo)
+	result, err := handler.Handle(context.Background(), 20, "")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if !result.HasMore {
+		t.Error("expected HasMore to be true")
+	}
+	if result.NextCursor != "cursor-1" {
+		t.Errorf("expected cursor-1, got %s", result.NextCursor)
+	}
+}
+
+func TestList{{.NamePluralTitle}}Handler_DefaultLimit(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMock{{.NameTitle}}Repository(ctrl)
+
+	// Limit 0 should default to 20.
+	mockRepo.EXPECT().
+		List(gomock.Any(), 20, "").
+		Return(domain.ListResult{}, nil)
+
+	handler := NewList{{.NamePluralTitle}}Handler(mockRepo)
+	_, err := handler.Handle(context.Background(), 0, "")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+func TestList{{.NamePluralTitle}}Handler_LimitCappedAt100(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMock{{.NameTitle}}Repository(ctrl)
+
+	// Limit > 100 should be capped at 100.
+	mockRepo.EXPECT().
+		List(gomock.Any(), 100, "").
+		Return(domain.ListResult{}, nil)
+
+	handler := NewList{{.NamePluralTitle}}Handler(mockRepo)
+	_, err := handler.Handle(context.Background(), 200, "")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+func TestList{{.NamePluralTitle}}Handler_RepoError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMock{{.NameTitle}}Repository(ctrl)
+
+	mockRepo.EXPECT().
+		List(gomock.Any(), 20, "").
+		Return(domain.ListResult{}, fmt.Errorf("db error"))
+
+	handler := NewList{{.NamePluralTitle}}Handler(mockRepo)
+	_, err := handler.Handle(context.Background(), 20, "")
+	if err == nil {
+		t.Fatal("expected repo error, got nil")
+	}
+}

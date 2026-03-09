@@ -74,11 +74,27 @@ func TestPermissionForProcedure_Mapping(t *testing.T) {
 	}
 }
 
-func TestRBACInterceptor_UnmappedProcedure_PassesThrough(t *testing.T) {
-	// GetUser has no required permission — should pass even without user context.
+func TestRBACInterceptor_UnmappedProcedure_RegisteredService_Denied(t *testing.T) {
+	// GetUser is under a registered service prefix but not in procedurePermissions.
+	// Fail-closed: must be denied until explicitly mapped.
 	err := callInterceptor(context.Background(), "/user.v1.UserService/GetUser")
+	if err == nil {
+		t.Fatal("expected permission denied for unmapped procedure in registered service")
+	}
+	var connectErr *connect.Error
+	if !errors.As(err, &connectErr) {
+		t.Fatalf("expected *connect.Error, got %T: %v", err, err)
+	}
+	if connectErr.Code() != connect.CodePermissionDenied {
+		t.Errorf("expected CodePermissionDenied, got %v", connectErr.Code())
+	}
+}
+
+func TestRBACInterceptor_UnknownService_PassesThrough(t *testing.T) {
+	// A procedure from an unknown service (e.g. health check) should pass through.
+	err := callInterceptor(context.Background(), "/grpc.health.v1.Health/Check")
 	if err != nil {
-		t.Errorf("expected no error for unmapped procedure, got %v", err)
+		t.Errorf("expected no error for unknown service, got %v", err)
 	}
 }
 

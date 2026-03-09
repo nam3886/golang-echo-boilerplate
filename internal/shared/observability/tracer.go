@@ -18,7 +18,7 @@ func NewTracerProvider(cfg *config.Config, version config.AppVersion) (*sdktrace
 	ctx := context.Background()
 
 	opts := []otlptracegrpc.Option{
-		otlptracegrpc.WithEndpoint(cfg.OTLPEndpoint),
+		otlptracegrpc.WithEndpointURL(cfg.OTLPEndpoint),
 	}
 	if cfg.IsDevelopment() {
 		opts = append(opts, otlptracegrpc.WithInsecure())

@@ -1,0 +1,36 @@
+package contracts
+
+import "time"
+
+// {{.NameTitle}} event topics.
+const (
+	Topic{{.NameTitle}}Created = "{{.Name}}.created"
+	Topic{{.NameTitle}}Updated = "{{.Name}}.updated"
+	Topic{{.NameTitle}}Deleted = "{{.Name}}.deleted"
+)
+
+// {{.NameTitle}}CreatedEvent is published when a {{.Name}} is created.
+type {{.NameTitle}}CreatedEvent struct {
+	{{.NameTitle}}ID string    `json:"{{.Name}}_id"`
+	Name            string    `json:"name"`
+	ActorID         string    `json:"actor_id"`
+	IPAddress       string    `json:"ip_address,omitempty"`
+	At              time.Time `json:"at"`
+}
+
+// {{.NameTitle}}UpdatedEvent is published when a {{.Name}} is updated.
+type {{.NameTitle}}UpdatedEvent struct {
+	{{.NameTitle}}ID string    `json:"{{.Name}}_id"`
+	Name            string    `json:"name"`
+	ActorID         string    `json:"actor_id"`
+	IPAddress       string    `json:"ip_address,omitempty"`
+	At              time.Time `json:"at"`
+}
+
+// {{.NameTitle}}DeletedEvent is published when a {{.Name}} is soft-deleted.
+type {{.NameTitle}}DeletedEvent struct {
+	{{.NameTitle}}ID string    `json:"{{.Name}}_id"`
+	ActorID         string    `json:"actor_id"`
+	IPAddress       string    `json:"ip_address,omitempty"`
+	At              time.Time `json:"at"`
+}
