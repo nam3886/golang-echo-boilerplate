@@ -14,8 +14,7 @@ The codebase follows a **Hexagonal Architecture** pattern organized as a modular
 │   └── modules/           # Domain modules (user, audit, notification)
 ├── proto/                 # Protocol Buffer definitions
 ├── db/                    # Database migrations & queries
-├── gen/                   # Generated code (from buf & sqlc)
-└── tests/                 # Integration tests
+└── gen/                   # Generated code (from buf & sqlc)
 ```
 
 ## File Naming Conventions
@@ -230,7 +229,7 @@ type UserRepository interface {
     List(ctx context.Context, limit int, cursor string) (ListResult, error)
     Create(ctx context.Context, user *User) error
     Update(ctx context.Context, id UserID, fn func(*User) error) error
-    SoftDelete(ctx context.Context, id UserID) error
+    SoftDelete(ctx context.Context, id UserID) (*User, error)
 }
 ```
 
@@ -240,7 +239,7 @@ type UserRepository interface {
 - **List** returns `(users, nextCursor, hasMore, error)` with cursor-based pagination; implementation probes with `limit+1` internally to detect page boundaries
 - **Create** may catch database constraint errors (e.g., Postgres 23505 for uniqueness) and map to domain errors
 - **Update** accepts a closure to apply mutations within a transaction; publishes events after successful persistence
-- **SoftDelete** marks record as deleted and returns `ErrNotFound` if the user doesn't exist
+- **SoftDelete** marks record as deleted, returns the deleted entity for event publishing; returns `ErrNotFound` if the user doesn't exist
 
 ## Application Layer (app/)
 
@@ -385,7 +384,8 @@ type DeleteUserHandler struct {
 }
 
 func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
-    if err := h.repo.SoftDelete(ctx, domain.UserID(id)); err != nil {
+    user, err := h.repo.SoftDelete(ctx, domain.UserID(id))
+    if err != nil {
         return err
     }
 
@@ -398,7 +398,7 @@ func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
         UserID:    id,
         ActorID:   actorID,
         IPAddress: netutil.GetClientIP(ctx),
-        At:        time.Now(),
+        At:        user.UpdatedAt(),
     }); err != nil {
         slog.ErrorContext(ctx, "failed to publish user.deleted event",
             "user_id", id, "err", err)
@@ -551,10 +551,10 @@ type UserDeletedEvent struct {
 
 ### Topic Constants
 
-Define topics per module in `internal/modules/{name}/domain/events.go`.
-Event topics and types are defined in each module's `domain/events.go` file,
-NOT in `internal/shared/events/`. The shared events package provides only
-infrastructure (bus, router, subscriber config).
+Event contract types (structs + topic constants) are defined centrally in
+`internal/shared/events/contracts/`. Each module re-exports them via type
+aliases in `domain/events.go` for internal convenience. External subscribers
+(audit, notification) import from `contracts/` directly.
 
 ```go
 // internal/modules/user/domain/events.go
@@ -565,19 +565,11 @@ const (
 )
 ```
 
-### Cross-Module Event Imports
+### Cross-Module Event Consumption
 
-The "no cross-module imports" rule has one pragmatic exception: **event type imports**.
-Subscriber modules (e.g., `notification`) may import event structs from a publisher
-module's `domain/` package (e.g., `user/domain.UserCreatedEvent`). This is acceptable because:
-
-1. Event types are stable data contracts, not business logic.
-2. Moving them to `shared/events/types/` would couple all modules to a shared package unnecessarily.
-3. The subscriber only reads struct fields — no dependency on domain behavior or repository interfaces.
-
-**Convention:** subscriber modules import only `domain/events.go` types, never entities or
-repository interfaces. If the subscriber's coupling is minimal (only a few JSON fields),
-prefer a local struct instead (as the `audit` module does with `auditPayload`).
+Subscriber modules import event types from `internal/shared/events/contracts/`,
+not from other modules' `domain/` packages. This preserves the no-cross-module-imports rule.
+If the subscriber only needs a few fields, prefer a local struct (as `audit` does with `auditPayload`).
 
 ```go
 // notification/subscriber.go — importing user event type (acceptable)

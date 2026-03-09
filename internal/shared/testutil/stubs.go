@@ -12,8 +12,10 @@ type StubHasher struct{}
 // Hash returns a deterministic hashed value for testing.
 func (s *StubHasher) Hash(password string) (string, error) { return "hashed_" + password, nil }
 
-// Verify always returns true for testing.
-func (s *StubHasher) Verify(_, _ string) (bool, error) { return true, nil }
+// Verify returns true only when encoded matches the Hash output pattern.
+func (s *StubHasher) Verify(password, encoded string) (bool, error) {
+	return encoded == "hashed_"+password, nil
+}
 
 // FailHasher always returns an error from Hash.
 type FailHasher struct{}
@@ -33,18 +35,24 @@ func (p *NoopPublisher) Publish(_ string, _ ...*message.Message) error { return 
 // Close is a no-op.
 func (p *NoopPublisher) Close() error { return nil }
 
-// CapturingPublisher records the last published topic and payload.
-type CapturingPublisher struct {
+// CapturedMessage records a single published message.
+type CapturedMessage struct {
 	Topic   string
 	Payload []byte
 }
 
-// Publish records the topic and first message payload.
+// CapturingPublisher records all published messages.
+type CapturingPublisher struct {
+	Messages []CapturedMessage
+}
+
+// Publish appends the topic and first message payload.
 func (r *CapturingPublisher) Publish(topic string, msgs ...*message.Message) error {
-	r.Topic = topic
+	var payload []byte
 	if len(msgs) > 0 {
-		r.Payload = msgs[0].Payload
+		payload = msgs[0].Payload
 	}
+	r.Messages = append(r.Messages, CapturedMessage{Topic: topic, Payload: payload})
 	return nil
 }
 

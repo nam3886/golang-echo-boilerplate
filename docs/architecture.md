@@ -14,7 +14,6 @@ internal/
     auth/               # JWT, API keys, password hashing
     middleware/         # Echo middleware chain
     events/             # Watermill event bus (RabbitMQ)
-    cron/               # Scheduled jobs
     errors/             # Domain error types
     observability/      # OpenTelemetry tracing + metrics
     testutil/           # Test helpers (testcontainers)

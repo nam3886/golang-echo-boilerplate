@@ -4,14 +4,11 @@ import (
 	"context"
 	"testing"
 
+	"{{.GoModule}}/internal/shared/events"
 	"{{.GoModule}}/internal/shared/mocks"
+	"{{.GoModule}}/internal/shared/testutil"
 	"go.uber.org/mock/gomock"
 )
-
-// stubPublisher is a no-op event publisher for unit tests.
-type stubPublisher struct{}
-
-func (s stubPublisher) Publish(_ context.Context, _ string, _ any) error { return nil }
 
 func TestCreate{{.NameTitle}}Handler_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -21,7 +18,8 @@ func TestCreate{{.NameTitle}}Handler_Success(t *testing.T) {
 		Create(gomock.Any(), gomock.Any()).
 		Return(nil)
 
-	handler := NewCreate{{.NameTitle}}Handler(mockRepo, stubPublisher{})
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	handler := NewCreate{{.NameTitle}}Handler(mockRepo, bus)
 
 	entity, err := handler.Handle(context.Background(), Create{{.NameTitle}}Cmd{
 		Name: "Test Name",
@@ -38,7 +36,8 @@ func TestCreate{{.NameTitle}}Handler_EmptyName(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockRepo := mocks.NewMock{{.NameTitle}}Repository(ctrl)
 
-	handler := NewCreate{{.NameTitle}}Handler(mockRepo, stubPublisher{})
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	handler := NewCreate{{.NameTitle}}Handler(mockRepo, bus)
 
 	_, err := handler.Handle(context.Background(), Create{{.NameTitle}}Cmd{
 		Name: "",

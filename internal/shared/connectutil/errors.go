@@ -19,6 +19,7 @@ var codeToConnect = map[domainerr.ErrorCode]connect.Code{
 	domainerr.CodeFailedPrecondition: connect.CodeFailedPrecondition,
 	domainerr.CodeInternal:           connect.CodeInternal,
 	domainerr.CodeUnavailable:        connect.CodeUnavailable,
+	domainerr.CodeResourceExhausted:  connect.CodeResourceExhausted,
 }
 
 // DomainErrorToConnect maps a DomainError to a Connect RPC error.

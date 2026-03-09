@@ -157,6 +157,16 @@ func main() {
 		fmt.Printf("  created: %s\n", f.out)
 	}
 
+	// Auto-register module in main.go
+	autoRegistered := false
+	if err := injectModuleRegistration(data); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: could not auto-register module: %v\n", err)
+		fmt.Println("  Manual step: add module import and registration to cmd/server/main.go")
+	} else {
+		fmt.Printf("  registered: cmd/server/main.go\n")
+		autoRegistered = true
+	}
+
 	// Print next steps.
 	fmt.Printf("\n\033[32m✓ Module '%s' scaffolded successfully! (%d files)\033[0m\n\n", data.Name, len(files))
 	fmt.Println("Next steps:")
@@ -166,9 +176,48 @@ func main() {
 	fmt.Println("  4. Run code generation (required before tests compile): task generate")
 	fmt.Printf("  5. Update generated code:        toDomain(), Create/UpdateParams, toProto()\n")
 	fmt.Printf("  6. Extend event structs if needed: internal/modules/%s/domain/events.go\n", data.Name)
-	fmt.Printf("  7. Register module in:           cmd/server/main.go\n")
-	fmt.Printf("  8. Add RBAC procedure entries:   internal/shared/middleware/rbac_interceptor.go\n")
-	fmt.Println("  9. Run:                          task migrate:up && task check")
+	if !autoRegistered {
+		fmt.Printf("  7. Register module in:           cmd/server/main.go\n")
+		fmt.Printf("  8. Add RBAC procedure entries:   internal/shared/middleware/rbac_interceptor.go\n")
+		fmt.Println("  9. Run:                          task migrate:up && task check")
+	} else {
+		fmt.Printf("  7. Add RBAC procedure entries:   internal/shared/middleware/rbac_interceptor.go\n")
+		fmt.Println("  8. Run:                          task migrate:up && task check")
+	}
+}
+
+// injectModuleRegistration adds the module import and fx registration to cmd/server/main.go.
+func injectModuleRegistration(data ModuleData) error {
+	mainPath := filepath.Join("cmd", "server", "main.go")
+	content, err := os.ReadFile(mainPath)
+	if err != nil {
+		return fmt.Errorf("reading %s: %w", mainPath, err)
+	}
+
+	src := string(content)
+	marker := "// ADD_MODULE_HERE"
+	if !strings.Contains(src, marker) {
+		return fmt.Errorf("marker %q not found in %s", marker, mainPath)
+	}
+
+	// Replace marker with module registration + marker (keep marker for future scaffolds).
+	registration := fmt.Sprintf("\t\t%s.Module,\n\t\t%s", data.NamePackage, marker)
+	src = strings.Replace(src, marker, registration, 1)
+
+	// Inject import line after the last "internal/modules/" import in the import block.
+	importLine := fmt.Sprintf("\t\"%s/internal/modules/%s\"", data.GoModule, data.Name)
+	moduleImportPattern := "\"" + data.GoModule + "/internal/modules/"
+	lastIdx := strings.LastIndex(src, moduleImportPattern)
+	if lastIdx >= 0 {
+		eol := strings.Index(src[lastIdx:], "\n")
+		insertAt := lastIdx + eol + 1
+		src = src[:insertAt] + importLine + "\n" + src[insertAt:]
+	}
+
+	if err := os.WriteFile(mainPath, []byte(src), 0600); err != nil {
+		return fmt.Errorf("writing %s: %w", mainPath, err)
+	}
+	return nil
 }
 
 // validateIdentifier checks that s is a valid lowercase Go identifier.

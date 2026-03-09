@@ -102,7 +102,7 @@ func TestPgUserRepository_SoftDelete(t *testing.T) {
 	}
 
 	// GetByID should return not found after soft delete
-	_, err := repo.GetByID(ctx, user.ID())
+	_, err = repo.GetByID(ctx, user.ID())
 	if !errors.Is(err, domainerr.ErrNotFound()) {
 		t.Errorf("expected ErrNotFound after soft delete, got %v", err)
 	}

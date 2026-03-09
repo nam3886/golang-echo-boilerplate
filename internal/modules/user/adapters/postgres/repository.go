@@ -87,13 +87,15 @@ func (r *PgUserRepository) List(ctx context.Context, limit int, cursor string) (
 	var nextCursor string
 	if hasMore && len(users) > 0 {
 		last := users[len(users)-1]
-		if uid, err := uuid.Parse(string(last.ID())); err == nil {
-			cursor, err := encodeCursor(last.CreatedAt(), uid)
-			if err != nil {
-				return domain.ListResult{}, fmt.Errorf("encoding pagination cursor: %w", err)
-			}
-			nextCursor = cursor
+		uid, err := uuid.Parse(string(last.ID()))
+		if err != nil {
+			return domain.ListResult{}, fmt.Errorf("parsing user ID for cursor: %w", err)
 		}
+		cursor, err := encodeCursor(last.CreatedAt(), uid)
+		if err != nil {
+			return domain.ListResult{}, fmt.Errorf("encoding pagination cursor: %w", err)
+		}
+		nextCursor = cursor
 	}
 
 	return domain.ListResult{

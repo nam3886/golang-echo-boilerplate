@@ -17,16 +17,13 @@ func NewList{{.NamePluralTitle}}Handler(repo domain.{{.NameTitle}}Repository) *L
 }
 
 // Handle returns a paginated list of {{.NamePlural}}.
-func (h *List{{.NamePluralTitle}}Handler) Handle(ctx context.Context, limit int, cursor string) (*domain.ListResult, error) {
+func (h *List{{.NamePluralTitle}}Handler) Handle(ctx context.Context, limit int, cursor string) (domain.ListResult, error) {
 	if limit <= 0 {
 		limit = 20
 	}
 	if limit > 100 {
 		limit = 100
 	}
-	result, err := h.repo.List(ctx, limit, cursor)
-	if err != nil {
-		return nil, err
-	}
-	return &result, nil
+
+	return h.repo.List(ctx, limit, cursor)
 }

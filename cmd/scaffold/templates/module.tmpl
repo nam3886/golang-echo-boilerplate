@@ -24,4 +24,9 @@ var Module = fx.Module("{{.Name}}",
 	fx.Provide(app.NewDelete{{.NameTitle}}Handler),
 	fx.Provide(grpc.New{{.NameTitle}}ServiceHandler),
 	fx.Invoke(grpc.RegisterRoutes),
+	// Event subscribers (uncomment and adapt when adding subscribers):
+	// fx.Provide(fx.Annotate(
+	//     provideEventHandlers,
+	//     fx.ResultTags(`group:"event_handlers"`),
+	// )),
 )

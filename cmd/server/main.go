@@ -49,17 +49,11 @@ func newEcho(cfg *config.Config, pool *pgxpool.Pool, rdb *redis.Client, esClient
 	e.HideBanner = true
 	e.HidePort = true
 
-	// Full middleware chain
-	appmw.SetupMiddleware(e, cfg, rdb)
-
-	// Swagger UI (dev/staging only)
-	appmw.MountSwagger(e, cfg)
-
+	// Health endpoints registered BEFORE middleware to avoid rate limiting.
 	// Liveness — always OK (process is running)
 	e.GET("/healthz", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
 	})
-
 	// Readiness — checks DB + Redis + optional ES connectivity
 	e.GET("/readyz", func(c echo.Context) error {
 		ctx := c.Request().Context()
@@ -76,6 +70,12 @@ func newEcho(cfg *config.Config, pool *pgxpool.Pool, rdb *redis.Client, esClient
 		}
 		return c.JSON(http.StatusOK, map[string]string{"status": "ready"})
 	})
+
+	// Full middleware chain
+	appmw.SetupMiddleware(e, cfg, rdb)
+
+	// Swagger UI (dev/staging only)
+	appmw.MountSwagger(e, cfg)
 
 	return e
 }

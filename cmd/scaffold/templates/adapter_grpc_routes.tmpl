@@ -29,6 +29,8 @@ func RegisterRoutes(e *echo.Echo, handler *{{.NameTitle}}ServiceHandler, cfg *co
 
 	// Mount Connect handler under auth + base read permission.
 	// Write/delete permissions enforced by RBACInterceptor per procedure.
+	// TODO: Register a typed Permission constant (e.g. Perm{{.NameTitle}}Read) in
+	// internal/shared/middleware/rbac.go and replace the string literal below.
 	g := e.Group(path, appmw.Auth(cfg, rdb), appmw.RequirePermission("{{.Name}}:read"))
 	g.Any("*", echo.WrapHandler(http.StripPrefix(path, h)))
 }

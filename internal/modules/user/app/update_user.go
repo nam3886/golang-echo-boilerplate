@@ -35,21 +35,25 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*dom
 		return nil, domain.ErrInvalidArgument()
 	}
 	var updated *domain.User
+	var mutated bool
 	err := h.repo.Update(ctx, domain.UserID(cmd.ID), func(user *domain.User) error {
-		if cmd.Email != nil {
+		if cmd.Email != nil && *cmd.Email != user.Email() {
 			if err := user.ChangeEmail(*cmd.Email); err != nil {
 				return err
 			}
+			mutated = true
 		}
-		if cmd.Name != nil {
+		if cmd.Name != nil && *cmd.Name != user.Name() {
 			if err := user.ChangeName(*cmd.Name); err != nil {
 				return err
 			}
+			mutated = true
 		}
-		if cmd.Role != nil {
+		if cmd.Role != nil && *cmd.Role != string(user.Role()) {
 			if err := user.ChangeRole(domain.Role(*cmd.Role)); err != nil {
 				return err
 			}
+			mutated = true
 		}
 		updated = user
 		return nil
@@ -59,7 +63,7 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*dom
 	}
 
 	// Skip event if nothing was actually changed.
-	if cmd.Name == nil && cmd.Email == nil && cmd.Role == nil {
+	if !mutated {
 		return updated, nil
 	}
 

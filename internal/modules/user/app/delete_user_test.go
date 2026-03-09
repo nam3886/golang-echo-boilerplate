@@ -40,8 +40,12 @@ func TestDeleteUserHandler_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if recorder.Topic != domain.TopicUserDeleted {
-		t.Errorf("expected event topic %s, got %s", domain.TopicUserDeleted, recorder.Topic)
+	if len(recorder.Messages) == 0 || recorder.Messages[0].Topic != domain.TopicUserDeleted {
+		got := ""
+		if len(recorder.Messages) > 0 {
+			got = recorder.Messages[0].Topic
+		}
+		t.Errorf("expected event topic %s, got %s", domain.TopicUserDeleted, got)
 	}
 }
 

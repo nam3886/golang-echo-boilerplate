@@ -178,8 +178,12 @@ func TestCreateUserHandler_PublishesEventOnSuccess(t *testing.T) {
 	if user == nil {
 		t.Fatal("expected user, got nil")
 	}
-	if recorder.Topic != domain.TopicUserCreated {
-		t.Errorf("expected topic %s, got %s", domain.TopicUserCreated, recorder.Topic)
+	if len(recorder.Messages) == 0 || recorder.Messages[0].Topic != domain.TopicUserCreated {
+		got := ""
+		if len(recorder.Messages) > 0 {
+			got = recorder.Messages[0].Topic
+		}
+		t.Errorf("expected topic %s, got %s", domain.TopicUserCreated, got)
 	}
 }
 

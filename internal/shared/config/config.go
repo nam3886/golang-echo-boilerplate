@@ -80,6 +80,9 @@ func Load() (*Config, error) {
 			return nil, err
 		}
 	}
+	if cfg.DBMinConns > cfg.DBMaxConns {
+		return nil, fmt.Errorf("DB_MIN_CONNS (%d) must not exceed DB_MAX_CONNS (%d)", cfg.DBMinConns, cfg.DBMaxConns)
+	}
 	return cfg, nil
 }
 

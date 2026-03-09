@@ -1,5 +1,9 @@
 package domain
 
+// NOTE: For cross-module consumption, consider moving stable event types to
+// internal/shared/events/contracts/ and re-exporting here via type aliases.
+// See internal/modules/user/domain/events.go for the reference pattern.
+
 import "time"
 
 // Event topics for the {{.Name}} module.
