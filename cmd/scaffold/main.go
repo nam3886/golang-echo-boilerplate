@@ -281,7 +281,9 @@ func injectRBACPermissions(data ModuleData) error {
 	}
 
 	procBlock := fmt.Sprintf(
-		"%s.%sServiceCreate%sProcedure: Perm%sWrite,\n\t%s.%sServiceUpdate%sProcedure: Perm%sWrite,\n\t%s.%sServiceDelete%sProcedure: Perm%sDelete,\n\t%s",
+		"%s.%sServiceGet%sProcedure:    Perm%sRead,\n\t%s.%sServiceList%sProcedure:  Perm%sRead,\n\t%s.%sServiceCreate%sProcedure: Perm%sWrite,\n\t%s.%sServiceUpdate%sProcedure: Perm%sWrite,\n\t%s.%sServiceDelete%sProcedure: Perm%sDelete,\n\t%s",
+		connectPkg, data.NameTitle, data.NameTitle, data.NameTitle,
+		connectPkg, data.NameTitle, data.NamePluralTitle, data.NameTitle,
 		connectPkg, data.NameTitle, data.NameTitle, data.NameTitle,
 		connectPkg, data.NameTitle, data.NameTitle, data.NameTitle,
 		connectPkg, data.NameTitle, data.NameTitle, data.NameTitle,

@@ -61,13 +61,9 @@ func (h *CreateUserHandler) Handle(ctx context.Context, cmd CreateUserCmd) (*dom
 	}
 
 	// Publish event after successful DB write
-	var actorID string
-	if actor := auth.UserFromContext(ctx); actor != nil {
-		actorID = actor.UserID
-	}
 	if err := h.bus.Publish(ctx, domain.TopicUserCreated, domain.UserCreatedEvent{
 		UserID:    string(user.ID()),
-		ActorID:   actorID,
+		ActorID:   auth.ActorIDFromContext(ctx),
 		Email:     user.Email(),
 		Name:      user.Name(),
 		Role:      string(user.Role()),

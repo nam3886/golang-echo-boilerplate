@@ -11,8 +11,11 @@ import (
 
 // procedurePermissions maps exact Connect RPC procedure paths to required permissions.
 // Key format: "/package.Service/MethodName" (full procedure path from req.Spec().Procedure).
-// Read-only methods are omitted — they are gated at the Echo route group level via RequirePermission.
+// ALL procedures for registered services MUST be listed here (fail-closed).
+// Read procedures duplicate the Echo group-level check but ensure fail-closed safety.
 var procedurePermissions = map[string]Permission{
+	userv1connect.UserServiceGetUserProcedure:    PermUserRead,
+	userv1connect.UserServiceListUsersProcedure:  PermUserRead,
 	userv1connect.UserServiceCreateUserProcedure: PermUserWrite,
 	userv1connect.UserServiceUpdateUserProcedure: PermUserWrite,
 	userv1connect.UserServiceDeleteUserProcedure: PermUserDelete,
@@ -41,8 +44,8 @@ func buildServicePrefixes(perms map[string]Permission) []string {
 }
 
 // RBACInterceptor checks permissions based on the exact Connect RPC procedure path.
-// Read operations require user:read (enforced at Echo group level).
-// Write/delete operations require additional permissions checked here.
+// All procedures for registered services must be mapped in procedurePermissions.
+// Unmapped procedures under a registered service prefix are denied (fail-closed).
 func RBACInterceptor() connect.UnaryInterceptorFunc {
 	return func(next connect.UnaryFunc) connect.UnaryFunc {
 		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {

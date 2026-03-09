@@ -11,7 +11,16 @@ import (
 )
 
 // SetupMiddleware configures the full middleware chain in correct order.
+//
+// Middleware layers (three tiers):
+//  1. Echo global (this function) — runs on every request
+//  2. Echo group (in routes.go) — Auth + RequirePermission per service
+//  3. Connect interceptor (in routes.go) — RBACInterceptor + protovalidate per procedure
 func SetupMiddleware(e *echo.Echo, cfg *config.Config, rdb *redis.Client) {
+	// IMPORTANT: Configure trusted proxy for accurate client IP (rate limiting, audit).
+	// Behind a reverse proxy, set: e.IPExtractor = echo.ExtractIPFromXFFHeader()
+	// Without this, X-Forwarded-For can be spoofed to bypass rate limiting.
+
 	// 1. OTel HTTP tracing (wraps handler to create spans per request)
 	e.Use(echo.WrapMiddleware(otelhttp.NewMiddleware(cfg.AppName)))
 	// 2. Recovery

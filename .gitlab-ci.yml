@@ -124,6 +124,7 @@ deploy-staging:
     - |
       ssh $STAGING_USER@$STAGING_HOST "
         cd $STAGING_DIR &&
+        docker compose -f deploy/docker-compose.yml run --rm app ./bin/server migrate up &&
         IMAGE_TAG=${CI_COMMIT_SHORT_SHA} docker compose -f deploy/docker-compose.yml pull app &&
         IMAGE_TAG=${CI_COMMIT_SHORT_SHA} docker compose -f deploy/docker-compose.yml up -d --no-deps app
       "
@@ -146,6 +147,7 @@ deploy-production:
     - |
       ssh $PROD_USER@$PROD_HOST "
         cd $PROD_DIR &&
+        docker compose -f deploy/docker-compose.yml run --rm app ./bin/server migrate up &&
         IMAGE_TAG=${CI_COMMIT_TAG} docker compose -f deploy/docker-compose.yml pull app &&
         IMAGE_TAG=${CI_COMMIT_TAG} docker compose -f deploy/docker-compose.yml up -d --no-deps app
       "

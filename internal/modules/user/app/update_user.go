@@ -78,13 +78,9 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*dom
 		return updated, nil
 	}
 
-	var actorID string
-	if actor := auth.UserFromContext(ctx); actor != nil {
-		actorID = actor.UserID
-	}
 	if err := h.bus.Publish(ctx, domain.TopicUserUpdated, domain.UserUpdatedEvent{
 		UserID:    cmd.ID,
-		ActorID:   actorID,
+		ActorID:   auth.ActorIDFromContext(ctx),
 		Name:      updated.Name(),
 		Email:     updated.Email(),
 		Role:      string(updated.Role()),

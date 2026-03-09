@@ -20,8 +20,10 @@ func isValidRequestID(id string) bool {
 		return false
 	}
 	for _, r := range id {
-		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') ||
-			(r >= '0' && r <= '9') || r == '-' || r == '_' || r == '.') {
+		isAlpha := (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
+		isDigit := r >= '0' && r <= '9'
+		isSafe := r == '-' || r == '_' || r == '.'
+		if !isAlpha && !isDigit && !isSafe {
 			return false
 		}
 	}

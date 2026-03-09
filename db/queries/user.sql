@@ -20,7 +20,7 @@ LIMIT $1;
 -- name: CreateUser :one
 INSERT INTO users (id, email, name, password, role)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, email, name, password, role, created_at, updated_at, deleted_at;
+RETURNING id, email, name, role, created_at, updated_at, deleted_at;
 
 -- name: UpdateUser :one
 UPDATE users
@@ -29,8 +29,7 @@ SET name = COALESCE(sqlc.narg('name'), name),
     email = COALESCE(sqlc.narg('email'), email),
     updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, email, name, password, role, created_at, updated_at, deleted_at;
+RETURNING id, email, name, role, created_at, updated_at, deleted_at;
 
--- name: SoftDeleteUser :one
-UPDATE users SET deleted_at = NOW(), updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, email, name, password, role, created_at, updated_at, deleted_at;
+-- name: SoftDeleteUser :exec
+UPDATE users SET deleted_at = NOW(), updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL;

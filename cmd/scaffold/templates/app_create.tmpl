@@ -39,14 +39,10 @@ func (h *Create{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Create{{.N
 	}
 
 	// Publish domain event after successful DB write (fire-and-forget: log but don't fail).
-	var actorID string
-	if actor := auth.UserFromContext(ctx); actor != nil {
-		actorID = actor.UserID
-	}
 	if err := h.bus.Publish(ctx, domain.Topic{{.NameTitle}}Created, domain.{{.NameTitle}}CreatedEvent{
 		{{.NameTitle}}ID: string(entity.ID()),
 		Name:            entity.Name(),
-		ActorID:         actorID,
+		ActorID:         auth.ActorIDFromContext(ctx),
 		IPAddress:       netutil.GetClientIP(ctx),
 		At:              entity.CreatedAt(),
 	}); err != nil {

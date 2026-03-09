@@ -49,9 +49,21 @@ func toDomainFromGetRow(row sqlcgen.GetUserByIDRow) *domain.User {
 }
 
 // toDomainFromListRow converts a ListUsersRow (no password) to a domain entity.
-// Password is set to "" because list queries intentionally exclude it for performance.
-// Callers must not use Password() on entities returned by list queries.
 func toDomainFromListRow(row sqlcgen.ListUsersRow) *domain.User {
+	var deletedAt *time.Time
+	if row.DeletedAt.Valid {
+		deletedAt = &row.DeletedAt.Time
+	}
+	return domain.Reconstitute(
+		domain.UserID(row.ID.String()),
+		row.Email, row.Name, "",
+		domain.Role(row.Role),
+		row.CreatedAt, row.UpdatedAt, deletedAt,
+	)
+}
+
+// toDomainFromUpdateRow converts an UpdateUserRow (no password) to a domain entity.
+func toDomainFromUpdateRow(row sqlcgen.UpdateUserRow) *domain.User {
 	var deletedAt *time.Time
 	if row.DeletedAt.Valid {
 		deletedAt = &row.DeletedAt.Time

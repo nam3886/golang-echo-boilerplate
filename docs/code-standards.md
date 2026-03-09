@@ -19,9 +19,12 @@ The codebase follows a **Hexagonal Architecture** pattern organized as a modular
 
 ## File Naming Conventions
 
-- **Files**: Use `snake_case` for all file names
+- **Files**: Use `snake_case` for all file names (per Go convention)
 - **Packages**: Use lowercase package names matching directory names
 - **Source files**: Group by responsibility (e.g., `create_user.go`, `user.go`, `errors.go`)
+
+Note: Go convention requires lowercase filenames with underscores. While the general project style guide
+may reference kebab-case for other file types, Go source files must use snake_case per the Go standard library conventions.
 
 ### Module File Organization
 
@@ -290,10 +293,7 @@ func (h *CreateUserHandler) Handle(ctx context.Context, cmd CreateUserCmd) (*dom
 
     // Events (after successful persistence)
     // Extract ActorID from auth context for audit trail
-    var actorID string
-    if actor := auth.UserFromContext(ctx); actor != nil {
-        actorID = actor.UserID
-    }
+    actorID := auth.ActorIDFromContext(ctx)
     if err := h.bus.Publish(ctx, domain.TopicUserCreated, domain.UserCreatedEvent{
         UserID:    string(user.ID()),
         ActorID:   actorID,
@@ -668,9 +668,15 @@ func TestCreateUserHandler_Handle_Success(t *testing.T) {
     })
 
     // Assert
-    require.NoError(t, err)
-    require.NotNil(t, user)
-    assert.Equal(t, "user@example.com", user.Email())
+    if err != nil {
+        t.Fatalf("unexpected error: %v", err)
+    }
+    if user == nil {
+        t.Fatal("expected user, got nil")
+    }
+    if got := user.Email(); got != "user@example.com" {
+        t.Errorf("email = %q, want %q", got, "user@example.com")
+    }
 }
 ```
 

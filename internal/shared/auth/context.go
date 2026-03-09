@@ -32,6 +32,14 @@ func UserFromContext(ctx context.Context) *AuthUser {
 	return nil
 }
 
+// ActorIDFromContext returns the authenticated user's ID, or empty string if unauthenticated.
+func ActorIDFromContext(ctx context.Context) string {
+	if u := UserFromContext(ctx); u != nil {
+		return u.UserID
+	}
+	return ""
+}
+
 // HasPermission checks if the user has a specific permission.
 // Admin users must have "admin:*" in their permissions claim — role alone is not sufficient.
 func (u *AuthUser) HasPermission(perm string) bool {

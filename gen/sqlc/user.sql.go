@@ -16,7 +16,7 @@ import (
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (id, email, name, password, role)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, email, name, password, role, created_at, updated_at, deleted_at
+RETURNING id, email, name, role, created_at, updated_at, deleted_at
 `
 
 type CreateUserParams struct {
@@ -27,7 +27,17 @@ type CreateUserParams struct {
 	Role     string    `json:"role"`
 }
 
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+type CreateUserRow struct {
+	ID        uuid.UUID          `json:"id"`
+	Email     string             `json:"email"`
+	Name      string             `json:"name"`
+	Role      string             `json:"role"`
+	CreatedAt time.Time          `json:"created_at"`
+	UpdatedAt time.Time          `json:"updated_at"`
+	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
 	row := q.db.QueryRow(ctx, createUser,
 		arg.ID,
 		arg.Email,
@@ -35,12 +45,11 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.Password,
 		arg.Role,
 	)
-	var i User
+	var i CreateUserRow
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
 		&i.Name,
-		&i.Password,
 		&i.Role,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -173,25 +182,13 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]ListUse
 	return items, nil
 }
 
-const softDeleteUser = `-- name: SoftDeleteUser :one
+const softDeleteUser = `-- name: SoftDeleteUser :exec
 UPDATE users SET deleted_at = NOW(), updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, email, name, password, role, created_at, updated_at, deleted_at
 `
 
-func (q *Queries) SoftDeleteUser(ctx context.Context, id uuid.UUID) (User, error) {
-	row := q.db.QueryRow(ctx, softDeleteUser, id)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Email,
-		&i.Name,
-		&i.Password,
-		&i.Role,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.DeletedAt,
-	)
-	return i, err
+func (q *Queries) SoftDeleteUser(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, softDeleteUser, id)
+	return err
 }
 
 const updateUser = `-- name: UpdateUser :one
@@ -201,7 +198,7 @@ SET name = COALESCE($2, name),
     email = COALESCE($4, email),
     updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, email, name, password, role, created_at, updated_at, deleted_at
+RETURNING id, email, name, role, created_at, updated_at, deleted_at
 `
 
 type UpdateUserParams struct {
@@ -211,19 +208,28 @@ type UpdateUserParams struct {
 	Email pgtype.Text `json:"email"`
 }
 
-func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
+type UpdateUserRow struct {
+	ID        uuid.UUID          `json:"id"`
+	Email     string             `json:"email"`
+	Name      string             `json:"name"`
+	Role      string             `json:"role"`
+	CreatedAt time.Time          `json:"created_at"`
+	UpdatedAt time.Time          `json:"updated_at"`
+	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
+}
+
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (UpdateUserRow, error) {
 	row := q.db.QueryRow(ctx, updateUser,
 		arg.ID,
 		arg.Name,
 		arg.Role,
 		arg.Email,
 	)
-	var i User
+	var i UpdateUserRow
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
 		&i.Name,
-		&i.Password,
 		&i.Role,
 		&i.CreatedAt,
 		&i.UpdatedAt,

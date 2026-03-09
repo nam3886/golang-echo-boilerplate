@@ -31,13 +31,9 @@ func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
 		return err
 	}
 
-	var actorID string
-	if actor := auth.UserFromContext(ctx); actor != nil {
-		actorID = actor.UserID
-	}
 	if err := h.bus.Publish(ctx, domain.TopicUserDeleted, domain.UserDeletedEvent{
 		UserID:    id,
-		ActorID:   actorID,
+		ActorID:   auth.ActorIDFromContext(ctx),
 		IPAddress: netutil.GetClientIP(ctx),
 		At:        *user.DeletedAt(), // DB-authoritative deletion timestamp
 	}); err != nil {

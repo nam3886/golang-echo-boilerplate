@@ -59,11 +59,11 @@ func TestPermissionForProcedure_Mapping(t *testing.T) {
 		procedure string
 		want      Permission
 	}{
+		{"/user.v1.UserService/GetUser", PermUserRead},
+		{"/user.v1.UserService/ListUsers", PermUserRead},
 		{"/user.v1.UserService/CreateUser", PermUserWrite},
 		{"/user.v1.UserService/UpdateUser", PermUserWrite},
 		{"/user.v1.UserService/DeleteUser", PermUserDelete},
-		{"/user.v1.UserService/GetUser", ""},   // read — no write check
-		{"/user.v1.UserService/ListUsers", ""}, // read — no write check
 		{"malformed", ""},
 	}
 	for _, tc := range cases {
@@ -75,9 +75,9 @@ func TestPermissionForProcedure_Mapping(t *testing.T) {
 }
 
 func TestRBACInterceptor_UnmappedProcedure_RegisteredService_Denied(t *testing.T) {
-	// GetUser is under a registered service prefix but not in procedurePermissions.
-	// Fail-closed: must be denied until explicitly mapped.
-	err := callInterceptor(context.Background(), "/user.v1.UserService/GetUser")
+	// A hypothetical new RPC method that hasn't been mapped yet.
+	// Fail-closed: must be denied until explicitly added to procedurePermissions.
+	err := callInterceptor(context.Background(), "/user.v1.UserService/SomeNewMethod")
 	if err == nil {
 		t.Fatal("expected permission denied for unmapped procedure in registered service")
 	}
@@ -95,6 +95,22 @@ func TestRBACInterceptor_UnknownService_PassesThrough(t *testing.T) {
 	err := callInterceptor(context.Background(), "/grpc.health.v1.Health/Check")
 	if err != nil {
 		t.Errorf("expected no error for unknown service, got %v", err)
+	}
+}
+
+func TestRBACInterceptor_GetUser_WithReadPermission_Passes(t *testing.T) {
+	ctx := ctxWithPermissions("user:read")
+	err := callInterceptor(ctx, "/user.v1.UserService/GetUser")
+	if err != nil {
+		t.Errorf("expected no error with user:read permission, got %v", err)
+	}
+}
+
+func TestRBACInterceptor_ListUsers_WithReadPermission_Passes(t *testing.T) {
+	ctx := ctxWithPermissions("user:read")
+	err := callInterceptor(ctx, "/user.v1.UserService/ListUsers")
+	if err != nil {
+		t.Errorf("expected no error with user:read permission, got %v", err)
 	}
 }
 

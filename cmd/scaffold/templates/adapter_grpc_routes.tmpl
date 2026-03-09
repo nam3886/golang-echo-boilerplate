@@ -31,6 +31,6 @@ func RegisterRoutes(e *echo.Echo, handler *{{.NameTitle}}ServiceHandler, cfg *co
 	// Write/delete permissions enforced by RBACInterceptor per procedure.
 	// NOTE: The scaffold auto-injects Perm{{.NameTitle}}* constants into rbac.go
 	// and procedure mappings into rbac_interceptor.go. Verify after scaffolding.
-	g := e.Group(path, appmw.Auth(cfg, rdb), appmw.RequirePermission("{{.Name}}:read"))
+	g := e.Group(path, appmw.Auth(cfg, rdb), appmw.RequirePermission(appmw.Perm{{.NameTitle}}Read))
 	g.Any("*", echo.WrapHandler(http.StripPrefix(path, h)))
 }

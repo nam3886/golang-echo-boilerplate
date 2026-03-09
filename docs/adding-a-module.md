@@ -22,9 +22,11 @@ This creates 26 files + runs code generation. Then:
 3. Customize SQL queries in `db/queries/{name}.sql`
 4. Run `task generate` after customizing proto/SQL
 5. Update domain entity, handlers, and adapters to match new fields
-6. Define event topics in `internal/modules/{name}/domain/events.go`
-7. Register module in `cmd/server/main.go`
-8. Run `task migrate:up && task check`
+6. Define event contracts in `internal/shared/events/contracts/{name}_events.go`
+7. Re-export events in `internal/modules/{name}/domain/events.go`
+8. Configure RBAC permissions (see **RBAC Setup** below)
+9. Register module in `cmd/server/main.go`
+10. Run `task migrate:up && task check`
 
 ## Module Structure Tiers
 
@@ -421,12 +423,47 @@ import (
 
 func RegisterRoutes(e *echo.Echo, handler *ProductServiceHandler, cfg *config.Config, rdb *redis.Client) {
     path, h := productv1connect.NewProductServiceHandler(handler,
-        connect.WithInterceptors(validate.NewInterceptor()),
+        connect.WithInterceptors(
+            appmw.RBACInterceptor(),
+            validate.NewInterceptor(),
+        ),
     )
-    g := e.Group(path, appmw.Auth(cfg, rdb))
+    // Mount Connect handler under auth + base RBAC (product:read).
+    // Write/delete permissions enforced by RBACInterceptor per procedure.
+    g := e.Group(path, appmw.Auth(cfg, rdb), appmw.RequirePermission(appmw.PermProductRead))
     g.Any("*", echo.WrapHandler(http.StripPrefix(path, h)))
 }
 ```
+
+### RBAC Setup
+
+To enable role-based access control for your new module:
+
+1. **Define permission constants** in `internal/shared/middleware/rbac.go`:
+   ```go
+   PermProductRead   Permission = "product:read"
+   PermProductWrite  Permission = "product:write"
+   PermProductDelete Permission = "product:delete"
+   ```
+
+2. **Register all procedures** in `internal/shared/middleware/rbac_interceptor.go`:
+   ```go
+   // In procedurePermissions map:
+   productv1connect.ProductServiceGetProductProcedure:    PermProductRead,
+   productv1connect.ProductServiceListProductsProcedure:  PermProductRead,
+   productv1connect.ProductServiceCreateProductProcedure: PermProductWrite,
+   productv1connect.ProductServiceUpdateProductProcedure: PermProductWrite,
+   productv1connect.ProductServiceDeleteProductProcedure: PermProductDelete,
+   ```
+
+   **Important:** ALL procedures must be listed (fail-closed). Read procedures are mapped
+   even though the Echo group guard already checks them — the interceptor ensures
+   unmapped procedures are denied by default.
+
+3. The scaffold automatically:
+   - Adds `RBACInterceptor()` to Connect handler setup (already in routes.go)
+   - Adds `RequirePermission(PermProductRead)` to the Echo route group (already in routes.go)
+   - Injects procedure permission mappings in the scaffold comment `// ADD_PROCEDURE_PERMISSION_HERE`
 
 ### module.go — fx Module
 
@@ -456,16 +493,17 @@ var Module = fx.Module("product",
 
 ## 5. Event Publishing (optional)
 
-> **Note:** Event topics and types are defined in each module's `domain/events.go` file,
-> NOT in `internal/shared/events/`. The shared events package provides only infrastructure
-> (bus, router, subscriber config).
+> **Note:** Canonical event types and topic constants are defined in
+> `internal/shared/events/contracts/{name}_events.go`. Domain modules re-export them
+> via type aliases in `domain/events.go` for internal convenience.
+> External subscribers (audit, notification) import from `contracts/` directly.
 
-### domain/events.go — Define Topics & Event Types
+### Create Contracts (internal/shared/events/contracts/)
 
-Create `internal/modules/{name}/domain/events.go`:
+Create `internal/shared/events/contracts/product_events.go`:
 
 ```go
-package domain
+package contracts
 
 import "time"
 
@@ -484,6 +522,45 @@ type ProductCreatedEvent struct {
     IPAddress string    `json:"ip_address,omitempty"`
     At        time.Time `json:"at"`
 }
+
+// ProductUpdatedEvent is published when a product is updated.
+type ProductUpdatedEvent struct {
+    ProductID string    `json:"product_id"`
+    ActorID   string    `json:"actor_id"`
+    Name      string    `json:"name"`
+    IPAddress string    `json:"ip_address,omitempty"`
+    At        time.Time `json:"at"`
+}
+
+// ProductDeletedEvent is published when a product is soft-deleted.
+type ProductDeletedEvent struct {
+    ProductID string    `json:"product_id"`
+    ActorID   string    `json:"actor_id"`
+    IPAddress string    `json:"ip_address,omitempty"`
+    At        time.Time `json:"at"`
+}
+```
+
+### Re-export in Domain (domain/events.go)
+
+Create `internal/modules/{name}/domain/events.go`:
+
+```go
+package domain
+
+import "github.com/gnha/gnha-services/internal/shared/events/contracts"
+
+// Re-export event topics from shared contracts for internal convenience.
+const (
+    TopicProductCreated = contracts.TopicProductCreated
+    TopicProductUpdated = contracts.TopicProductUpdated
+    TopicProductDeleted = contracts.TopicProductDeleted
+)
+
+// Re-export event types from shared contracts.
+type ProductCreatedEvent = contracts.ProductCreatedEvent
+type ProductUpdatedEvent = contracts.ProductUpdatedEvent
+type ProductDeletedEvent = contracts.ProductDeletedEvent
 ```
 
 ### Publishing Events in App Handlers

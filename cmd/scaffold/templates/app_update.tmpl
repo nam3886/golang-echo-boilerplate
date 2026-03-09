@@ -53,14 +53,10 @@ func (h *Update{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Update{{.N
 		return updated, nil
 	}
 
-	var actorID string
-	if actor := auth.UserFromContext(ctx); actor != nil {
-		actorID = actor.UserID
-	}
 	if err := h.bus.Publish(ctx, domain.Topic{{.NameTitle}}Updated, domain.{{.NameTitle}}UpdatedEvent{
 		{{.NameTitle}}ID: cmd.ID,
 		Name:            updated.Name(),
-		ActorID:         actorID,
+		ActorID:         auth.ActorIDFromContext(ctx),
 		IPAddress:       netutil.GetClientIP(ctx),
 		At:              updated.UpdatedAt(),
 	}); err != nil {

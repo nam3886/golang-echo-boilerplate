@@ -30,7 +30,9 @@ Source: `internal/shared/middleware/rbac.go`
 `RBACInterceptor()` — a `connect.UnaryInterceptorFunc` that maps exact procedure paths
 to required permissions via `procedurePermissions`.
 
-Write/delete operations are checked here. Read operations rely solely on the Echo group guard.
+**ALL procedures** (read, write, delete) must be mapped here for registered services.
+Read procedures are mapped to `read` permissions even though the Echo group provides
+the same check — the interceptor enforces fail-closed safety by denying any unmapped procedure.
 
 Source: `internal/shared/middleware/rbac_interceptor.go`
 
@@ -56,17 +58,22 @@ Role alone is insufficient — the wildcard must appear in the permissions slice
    ```go
    PermOrderRead   Permission = "order:read"
    PermOrderWrite  Permission = "order:write"
+   PermOrderDelete Permission = "order:delete"
    ```
 
-2. Protect the Echo route group:
+2. Protect the Echo route group with the read permission:
    ```go
-   g.Use(middleware.RequirePermission(middleware.PermOrderRead))
+   g := e.Group(path, appmw.Auth(cfg, rdb), appmw.RequirePermission(middleware.PermOrderRead))
    ```
 
-3. Register write/delete procedures in `procedurePermissions`
+3. Register ALL procedures in `procedurePermissions` (fail-closed pattern)
    (`internal/shared/middleware/rbac_interceptor.go`):
    ```go
+   orderv1connect.OrderServiceGetOrderProcedure:    PermOrderRead,
+   orderv1connect.OrderServiceListOrdersProcedure:  PermOrderRead,
    orderv1connect.OrderServiceCreateOrderProcedure: PermOrderWrite,
+   orderv1connect.OrderServiceUpdateOrderProcedure: PermOrderWrite,
+   orderv1connect.OrderServiceDeleteOrderProcedure: PermOrderDelete,
    ```
 
 4. Include the permission strings when issuing tokens

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	sqlcgen "github.com/gnha/gnha-services/gen/sqlc"
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
@@ -172,7 +173,7 @@ func (r *PgUserRepository) Update(ctx context.Context, id domain.UserID, fn func
 	}
 
 	// Overwrite the entity with DB-generated timestamps (e.g. updated_at = NOW()).
-	*user = *toDomain(updatedRow)
+	*user = *toDomainFromUpdateRow(updatedRow)
 
 	return tx.Commit(ctx)
 }
@@ -183,12 +184,21 @@ func (r *PgUserRepository) SoftDelete(ctx context.Context, id domain.UserID) (*d
 		return nil, err
 	}
 	q := sqlcgen.New(r.pool)
-	row, err := q.SoftDeleteUser(ctx, uid)
+	// SoftDeleteUser is :exec (no password returned). Use GetByID first
+	// to verify existence, then delete.
+	row, err := q.GetUserByID(ctx, uid)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, domainerr.ErrNotFound()
 		}
+		return nil, fmt.Errorf("getting user for delete: %w", err)
+	}
+	if err := q.SoftDeleteUser(ctx, uid); err != nil {
 		return nil, fmt.Errorf("soft deleting user: %w", err)
 	}
-	return toDomain(row), nil
+	// Return entity with deletedAt set to now (the DB sets it).
+	now := time.Now()
+	user := toDomainFromGetRow(row)
+	return domain.Reconstitute(user.ID(), user.Email(), user.Name(), "",
+		user.Role(), user.CreatedAt(), now, &now), nil
 }
