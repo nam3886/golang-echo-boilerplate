@@ -9,12 +9,14 @@ ARG VERSION=dev
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -ldflags="-s -w -X main.Version=${VERSION}" \
     -o /server ./cmd/server
+RUN go install github.com/pressly/goose/v3/cmd/goose@v3.24.3
 
 # Stage 2: Runtime
 FROM alpine:3.21
 RUN apk add --no-cache ca-certificates tzdata curl && \
     addgroup -S app && adduser -S app -G app
 COPY --from=builder /server /server
+COPY --from=builder /go/bin/goose /usr/local/bin/goose
 COPY --from=builder /app/db/migrations /db/migrations
 USER app
 EXPOSE 8080

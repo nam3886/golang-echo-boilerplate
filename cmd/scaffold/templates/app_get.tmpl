@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
 )
@@ -21,5 +22,9 @@ func (h *Get{{.NameTitle}}Handler) Handle(ctx context.Context, id string) (*doma
 	if id == "" {
 		return nil, domain.ErrInvalidArgument()
 	}
-	return h.repo.GetByID(ctx, domain.{{.NameID}}(id))
+	result, err := h.repo.GetByID(ctx, domain.{{.NameID}}(id))
+	if err != nil {
+		return nil, fmt.Errorf("getting {{.Name}} %s: %w", id, err)
+	}
+	return result, nil
 }

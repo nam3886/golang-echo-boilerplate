@@ -7,8 +7,8 @@ pre-commit:
       run: golangci-lint run --fix --new-from-rev=HEAD ./...
     generated:
       run: |
-        buf generate 2>/dev/null
-        sqlc generate 2>/dev/null
+        buf generate
+        sqlc generate
         go generate ./...
         git diff --exit-code gen/ internal/shared/mocks/
       fail_text: "Generated code is stale. Run 'task generate' and commit."

@@ -10,6 +10,7 @@ const (
 )
 
 // {{.NameTitle}}CreatedEvent is published when a {{.Name}} is created.
+// TODO: Add module-specific fields (e.g. Email, Role) as needed.
 type {{.NameTitle}}CreatedEvent struct {
 	{{.NameTitle}}ID string    `json:"{{.Name}}_id"`
 	ActorID         string    `json:"actor_id"`

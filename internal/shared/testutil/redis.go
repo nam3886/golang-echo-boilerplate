@@ -21,7 +21,9 @@ func NewTestRedis(t *testing.T) *redis.Client {
 		if err != nil {
 			t.Fatalf("parsing REDIS_URL: %v", err)
 		}
-		return redis.NewClient(opt)
+		client := redis.NewClient(opt)
+		t.Cleanup(func() { _ = client.Close() })
+		return client
 	}
 
 	ctx := context.Background()

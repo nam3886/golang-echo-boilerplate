@@ -100,13 +100,15 @@ func (r *Pg{{.NameTitle}}Repository) Create(ctx context.Context, entity *domain.
 	// TODO: Extend Create{{.NameTitle}}Params with all required columns for this module.
 	// Always use explicit column lists in INSERT statements (never INSERT INTO t VALUES (...))
 	// so that schema additions are backward-compatible and sqlc generates type-safe structs.
-	_, err = q.Create{{.NameTitle}}(ctx, sqlcgen.Create{{.NameTitle}}Params{
+	row, err := q.Create{{.NameTitle}}(ctx, sqlcgen.Create{{.NameTitle}}Params{
 		ID:   uid,
 		Name: entity.Name(),
 	})
 	if err != nil {
 		return fmt.Errorf("inserting {{.Name}}: %w", err)
 	}
+	// Overwrite entity with DB-authoritative timestamps (created_at, updated_at).
+	*entity = *toDomain(row)
 	return nil
 }
 

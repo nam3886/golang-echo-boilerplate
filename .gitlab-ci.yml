@@ -39,7 +39,7 @@ generated-check:
     - apk add --no-cache git curl
     - go install github.com/bufbuild/buf/cmd/buf@v1.51.0
     - go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0
-    - go install go.uber.org/mock/mockgen@latest
+    - go install go.uber.org/mock/mockgen@v0.6.0
   script:
     - buf generate
     - git diff --exit-code gen/proto || (echo "Proto files out of date. Run 'task generate:proto'" && exit 1)
@@ -131,7 +131,7 @@ deploy-staging:
     - |
       ssh $STAGING_USER@$STAGING_HOST "
         cd $STAGING_DIR &&
-        docker compose -f deploy/docker-compose.yml run --rm app ./bin/server migrate up &&
+        docker compose -f deploy/docker-compose.yml run --rm app goose -dir /db/migrations postgres \\\$DATABASE_URL up &&
         IMAGE_TAG=${CI_COMMIT_SHORT_SHA} docker compose -f deploy/docker-compose.yml pull app &&
         IMAGE_TAG=${CI_COMMIT_SHORT_SHA} docker compose -f deploy/docker-compose.yml up -d --no-deps app
       "
@@ -154,7 +154,7 @@ deploy-production:
     - |
       ssh $PROD_USER@$PROD_HOST "
         cd $PROD_DIR &&
-        docker compose -f deploy/docker-compose.yml run --rm app ./bin/server migrate up &&
+        docker compose -f deploy/docker-compose.yml run --rm app goose -dir /db/migrations postgres \\\$DATABASE_URL up &&
         IMAGE_TAG=${CI_COMMIT_TAG} docker compose -f deploy/docker-compose.yml pull app &&
         IMAGE_TAG=${CI_COMMIT_TAG} docker compose -f deploy/docker-compose.yml up -d --no-deps app
       "

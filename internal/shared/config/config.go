@@ -41,7 +41,7 @@ type Config struct {
 	LogLevel string `env:"LOG_LEVEL" envDefault:"info"`
 
 	// Observability
-	OTLPEndpoint string `env:"OTEL_EXPORTER_OTLP_ENDPOINT" envDefault:"http://localhost:4317"`
+	OTLPEndpoint string `env:"OTEL_EXPORTER_OTLP_ENDPOINT"`
 
 	// SMTP
 	SMTPHost      string `env:"SMTP_HOST" envDefault:"localhost"`

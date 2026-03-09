@@ -37,7 +37,7 @@ All notable changes to GNHA Services are documented here.
 
 ### Module Scaffold Generator (2026-03-05)
 
-**Summary:** Implemented CLI tool for scaffolding complete CRUD modules. Automates creation of 19 files (proto, migrations, SQL queries, domain, app, adapters, tests) following hexagonal architecture patterns.
+**Summary:** Implemented CLI tool for scaffolding complete CRUD modules. Automates creation of 27 files (proto, migrations, SQL queries, domain, app, adapters, tests) following hexagonal architecture patterns.
 
 #### Added
 - **cmd/scaffold/main.go** — CLI tool for module scaffolding with `-name` and optional `-plural` flags
@@ -53,7 +53,7 @@ All notable changes to GNHA Services are documented here.
 - **docs/adding-a-module.md** — Quick Start section showing generator usage (previously manual steps only)
 
 #### Features
-- Generates 19 files matching user module patterns
+- Generates 27 files matching user module patterns
 - Custom plural naming support: `task module:create name=category plural=categories`
 - Auto-runs code generation after scaffold (buf + sqlc)
 - Proper mockgen directives in repository interfaces
@@ -103,7 +103,7 @@ All notable changes to GNHA Services are documented here.
 | # | Tiêu chí | Status | Ghi chú |
 |---|----------|--------|---------|
 | 1 | Convention over Configuration | STRONG | Fx DI, buf.validate, sqlc codegen, module structure chuẩn |
-| 2 | Module Template (CLI/script) | **COMPLETE** | `task module:create name=X` scaffolds 19 files in <10 sec |
+| 2 | Module Template (CLI/script) | **COMPLETE** | `task module:create name=X` scaffolds 27 files in <10 sec |
 | 3 | Structure rõ ràng | STRONG | cmd/, internal/shared/, internal/modules/, db/, proto/, gen/, deploy/ |
 | 4 | Enforced Architecture | STRONG | domain→app→adapters enforce qua Go packages + interfaces |
 | 5 | Standard Error System | STRONG | DomainError + ErrorCode enum + HTTP mapping + module errors |
@@ -113,7 +113,7 @@ All notable changes to GNHA Services are documented here.
 | 9 | Validation | STRONG | buf/validate declarative, Connect interceptor — thiếu custom business validator |
 | 10 | Testing pattern | STRONG | testcontainers real infra, mock repos, fixtures — thiếu test template |
 | 11 | Dev commands | STRONG | Taskfile: dev, test, lint, migrate, build, seed, check |
-| 12 | Local development | EXCELLENT | docker-compose: PG16, Redis7, RabbitMQ, ES8, MailHog + air hot reload |
+| 12 | Local development | EXCELLENT | docker-compose: PG16, Redis7, RabbitMQ, ES8, Mailpit + air hot reload |
 | 13 | Code generation | STRONG | buf + sqlc + CI verify + module scaffold CLI |
 | 14 | Documentation | STRONG | architecture.md, code-standards.md (633L), adding-a-module.md, error-codes.md |
 | 15 | Example module | EXCELLENT | user (full CRUD) + audit (subscriber) + notification (subscriber) |

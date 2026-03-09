@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
 )
@@ -25,5 +26,9 @@ func (h *List{{.NamePluralTitle}}Handler) Handle(ctx context.Context, limit int,
 		limit = 100
 	}
 
-	return h.repo.List(ctx, limit, cursor)
+	result, err := h.repo.List(ctx, limit, cursor)
+	if err != nil {
+		return domain.ListResult{}, fmt.Errorf("listing {{.NamePlural}}: %w", err)
+	}
+	return result, nil
 }
