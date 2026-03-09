@@ -74,13 +74,15 @@ func (r *Pg{{.NameTitle}}Repository) List(ctx context.Context, limit int, cursor
 	var nextCursor string
 	if hasMore && len(items) > 0 {
 		last := items[len(items)-1]
-		if uid, err := parse{{.NameTitle}}ID(last.ID()); err == nil {
-			cursor, err := encodeCursor(last.CreatedAt(), uid)
-			if err != nil {
-				return domain.ListResult{}, fmt.Errorf("encoding pagination cursor: %w", err)
-			}
-			nextCursor = cursor
+		uid, err := parse{{.NameTitle}}ID(last.ID())
+		if err != nil {
+			return domain.ListResult{}, fmt.Errorf("parsing {{.Name}} ID for cursor: %w", err)
 		}
+		cursor, err := encodeCursor(last.CreatedAt(), uid)
+		if err != nil {
+			return domain.ListResult{}, fmt.Errorf("encoding pagination cursor: %w", err)
+		}
+		nextCursor = cursor
 	}
 
 	return domain.ListResult{

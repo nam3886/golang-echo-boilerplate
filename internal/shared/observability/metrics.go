@@ -8,8 +8,6 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
-	"go.opentelemetry.io/otel/sdk/resource"
-	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
 )
 
 // NewMeterProvider creates an OTel meter provider exporting to OTLP.
@@ -36,12 +34,7 @@ func NewMeterProvider(cfg *config.Config, version config.AppVersion) (*sdkmetric
 
 	mp := sdkmetric.NewMeterProvider(
 		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(exporter)),
-		sdkmetric.WithResource(resource.NewWithAttributes(
-			semconv.SchemaURL,
-			semconv.ServiceName(cfg.AppName),
-			semconv.ServiceVersion(string(version)),
-			semconv.DeploymentEnvironmentName(cfg.AppEnv),
-		)),
+		sdkmetric.WithResource(newOTelResource(cfg, version)),
 	)
 
 	otel.SetMeterProvider(mp)

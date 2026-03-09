@@ -113,7 +113,7 @@ task check             # Lint + unit tests (pre-merge gate)
 | `unit-test` | test | MR + main | `-race -count=1 -coverprofile` |
 | `integration-test` | test | main + tags | Real Postgres/Redis/RabbitMQ services |
 
-Coverage extracted via regex, reported as Cobertura artifact in GitLab.
+Coverage extracted via regex in GitLab CI.
 
 ## Git Hooks
 

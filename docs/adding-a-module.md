@@ -25,7 +25,7 @@ This creates 27 files + runs code generation. Then:
 6. (Auto-generated) Verify event contracts in `internal/shared/events/contracts/{name}_events.go`
 7. (Auto-generated) Verify event re-exports in `internal/modules/{name}/domain/events.go`
 8. (Auto-injected) Verify RBAC permissions in `rbac.go` and `rbac_interceptor.go`
-9. Register module in `cmd/server/main.go` (manual step)
+9. Register module in `cmd/server/main.go` (auto-injected by scaffold)
 10. Run `task migrate:up && task check`
 
 ## Module Structure Tiers
@@ -431,9 +431,8 @@ func RegisterRoutes(e *echo.Echo, handler *ProductServiceHandler, cfg *config.Co
             validate.NewInterceptor(),
         ),
     )
-    // Mount Connect handler under auth + base RBAC (product:read).
-    // Write/delete permissions enforced by RBACInterceptor per procedure.
-    g := e.Group(path, appmw.Auth(cfg, rdb), appmw.RequirePermission(appmw.PermProductRead))
+    // Mount Connect handler under auth. RBAC is enforced via RBACInterceptor per procedure.
+    g := e.Group(path, appmw.Auth(cfg, rdb))
     g.Any("*", echo.WrapHandler(http.StripPrefix(path, h)))
 }
 ```
