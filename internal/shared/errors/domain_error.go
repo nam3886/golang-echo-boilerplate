@@ -59,6 +59,7 @@ var (
 	errForbidden     = DomainError{Code: CodePermissionDenied, Message: "forbidden"}
 	errUnauthorized  = DomainError{Code: CodeUnauthenticated, Message: "unauthorized"}
 	errInternal      = DomainError{Code: CodeInternal, Message: "internal error"}
+	errNoChange      = DomainError{Code: CodeFailedPrecondition, Message: "no change"}
 )
 
 // ErrNotFound returns a fresh not-found sentinel error.
@@ -75,6 +76,10 @@ func ErrUnauthorized() *DomainError { e := errUnauthorized; return &e }
 
 // ErrInternal returns a fresh internal sentinel error.
 func ErrInternal() *DomainError { e := errInternal; return &e }
+
+// ErrNoChange signals that an update closure made no mutations.
+// The repository should skip the SQL UPDATE when it receives this.
+func ErrNoChange() *DomainError { e := errNoChange; return &e }
 
 // New creates a new DomainError with given code and message.
 func New(code ErrorCode, message string) *DomainError {

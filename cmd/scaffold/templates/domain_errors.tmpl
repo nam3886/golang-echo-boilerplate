@@ -1,23 +1,23 @@
 package domain
 
 import (
-	domainerr "{{.GoModule}}/internal/shared/errors"
+	sharederr "{{.GoModule}}/internal/shared/errors"
 )
 
 // Module-specific domain errors — constructor functions return fresh instances
 // to prevent data races when errors are wrapped concurrently.
 
 // Err{{.NameTitle}}NotFound indicates the {{.Name}} does not exist.
-func Err{{.NameTitle}}NotFound() *domainerr.DomainError {
-	return domainerr.New(domainerr.CodeNotFound, "{{.Name}} not found")
+func Err{{.NameTitle}}NotFound() *sharederr.DomainError {
+	return sharederr.New(sharederr.CodeNotFound, "{{.Name}} not found")
 }
 
 // ErrNameRequired indicates the name field is missing.
-func ErrNameRequired() *domainerr.DomainError {
-	return domainerr.New(domainerr.CodeInvalidArgument, "name is required")
+func ErrNameRequired() *sharederr.DomainError {
+	return sharederr.New(sharederr.CodeInvalidArgument, "name is required")
 }
 
 // ErrInvalidArgument indicates a generic invalid argument (e.g. empty ID).
-func ErrInvalidArgument() *domainerr.DomainError {
-	return domainerr.New(domainerr.CodeInvalidArgument, "invalid argument")
+func ErrInvalidArgument() *sharederr.DomainError {
+	return sharederr.New(sharederr.CodeInvalidArgument, "invalid argument")
 }

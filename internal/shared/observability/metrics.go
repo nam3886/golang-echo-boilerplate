@@ -13,7 +13,14 @@ import (
 )
 
 // NewMeterProvider creates an OTel meter provider exporting to OTLP.
+// When OTLPEndpoint is empty, returns a no-op provider to avoid silent connection failures.
 func NewMeterProvider(cfg *config.Config, version config.AppVersion) (*sdkmetric.MeterProvider, error) {
+	if cfg.OTLPEndpoint == "" {
+		mp := sdkmetric.NewMeterProvider()
+		otel.SetMeterProvider(mp)
+		return mp, nil
+	}
+
 	ctx := context.Background()
 
 	opts := []otlpmetricgrpc.Option{

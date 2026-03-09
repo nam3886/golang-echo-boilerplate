@@ -5,7 +5,7 @@ import (
 
 	sqlcgen "github.com/gnha/gnha-services/gen/sqlc"
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
-	domainerr "github.com/gnha/gnha-services/internal/shared/errors"
+	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
 	"github.com/google/uuid"
 )
 
@@ -13,7 +13,7 @@ import (
 func parseUserID(id domain.UserID) (uuid.UUID, error) {
 	uid, err := uuid.Parse(string(id))
 	if err != nil {
-		return uuid.UUID{}, domainerr.New(domainerr.CodeInvalidArgument, "invalid user ID format")
+		return uuid.UUID{}, sharederr.New(sharederr.CodeInvalidArgument, "invalid user ID format")
 	}
 	return uid, nil
 }
@@ -64,6 +64,37 @@ func toDomainFromListRow(row sqlcgen.ListUsersRow) *domain.User {
 
 // toDomainFromUpdateRow converts an UpdateUserRow (no password) to a domain entity.
 func toDomainFromUpdateRow(row sqlcgen.UpdateUserRow) *domain.User {
+	var deletedAt *time.Time
+	if row.DeletedAt.Valid {
+		deletedAt = &row.DeletedAt.Time
+	}
+	return domain.Reconstitute(
+		domain.UserID(row.ID.String()),
+		row.Email, row.Name, "",
+		domain.Role(row.Role),
+		row.CreatedAt, row.UpdatedAt, deletedAt,
+	)
+}
+
+// toDomainFromCreateRow converts a CreateUserRow (no password) to a domain entity.
+// Password is "" since the RETURNING clause intentionally excludes it;
+// the caller already has the plaintext/hashed value in the original entity.
+func toDomainFromCreateRow(row sqlcgen.CreateUserRow) *domain.User {
+	var deletedAt *time.Time
+	if row.DeletedAt.Valid {
+		deletedAt = &row.DeletedAt.Time
+	}
+	return domain.Reconstitute(
+		domain.UserID(row.ID.String()),
+		row.Email, row.Name, "",
+		domain.Role(row.Role),
+		row.CreatedAt, row.UpdatedAt, deletedAt,
+	)
+}
+
+// toDomainFromSoftDeleteRow converts a SoftDeleteUserRow (no password) to a domain entity.
+// Password is "" since the RETURNING clause intentionally excludes it.
+func toDomainFromSoftDeleteRow(row sqlcgen.SoftDeleteUserRow) *domain.User {
 	var deletedAt *time.Time
 	if row.DeletedAt.Valid {
 		deletedAt = &row.DeletedAt.Time

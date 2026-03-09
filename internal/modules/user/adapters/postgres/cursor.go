@@ -32,5 +32,8 @@ func decodeCursor(cursor string) (*cursorPayload, error) {
 	if err := json.Unmarshal(data, &c); err != nil {
 		return nil, err
 	}
+	if c.T.IsZero() || c.U == uuid.Nil {
+		return nil, fmt.Errorf("invalid cursor: missing time or id")
+	}
 	return &c, nil
 }

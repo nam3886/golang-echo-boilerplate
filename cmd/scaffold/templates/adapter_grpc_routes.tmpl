@@ -14,11 +14,8 @@ import (
 
 // RegisterRoutes mounts the Connect RPC {{.NameTitle}}Service handler on Echo with auth + RBAC.
 //
-// IMPORTANT: After scaffolding, add {{.Name}} module permissions to procedurePermissions
-// in rbac_interceptor.go to enable per-procedure RBAC enforcement:
-//   - Create{{.NameTitle}} → "{{.Name}}:write"
-//   - Update{{.NameTitle}} → "{{.Name}}:write"
-//   - Delete{{.NameTitle}} → "{{.Name}}:delete"
+// IMPORTANT: The scaffold auto-injects Perm{{.NameTitle}}* constants into rbac.go
+// and procedure mappings into rbac_interceptor.go. Verify after generation.
 func RegisterRoutes(e *echo.Echo, handler *{{.NameTitle}}ServiceHandler, cfg *config.Config, rdb *redis.Client) {
 	path, h := {{.Name}}v1connect.New{{.NameTitle}}ServiceHandler(handler,
 		connect.WithInterceptors(
@@ -27,10 +24,6 @@ func RegisterRoutes(e *echo.Echo, handler *{{.NameTitle}}ServiceHandler, cfg *co
 		),
 	)
 
-	// Mount Connect handler under auth + base read permission.
-	// Write/delete permissions enforced by RBACInterceptor per procedure.
-	// NOTE: The scaffold auto-injects Perm{{.NameTitle}}* constants into rbac.go
-	// and procedure mappings into rbac_interceptor.go. Verify after scaffolding.
-	g := e.Group(path, appmw.Auth(cfg, rdb), appmw.RequirePermission(appmw.Perm{{.NameTitle}}Read))
+	g := e.Group(path, appmw.Auth(cfg, rdb))
 	g.Any("*", echo.WrapHandler(http.StripPrefix(path, h)))
 }

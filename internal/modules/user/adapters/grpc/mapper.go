@@ -3,7 +3,6 @@ package grpc
 import (
 	userv1 "github.com/gnha/gnha-services/gen/proto/user/v1"
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
-	"github.com/gnha/gnha-services/internal/shared/connectutil"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -19,7 +18,3 @@ func toProto(u *domain.User) *userv1.User {
 	}
 }
 
-// domainErrorToConnect maps DomainError to Connect RPC error codes.
-func domainErrorToConnect(err error) error {
-	return connectutil.DomainErrorToConnect(err)
-}

@@ -182,13 +182,35 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]ListUse
 	return items, nil
 }
 
-const softDeleteUser = `-- name: SoftDeleteUser :exec
-UPDATE users SET deleted_at = NOW(), updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL
+const softDeleteUser = `-- name: SoftDeleteUser :one
+UPDATE users SET deleted_at = NOW(), updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING id, email, name, role, created_at, updated_at, deleted_at
 `
 
-func (q *Queries) SoftDeleteUser(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.Exec(ctx, softDeleteUser, id)
-	return err
+type SoftDeleteUserRow struct {
+	ID        uuid.UUID          `json:"id"`
+	Email     string             `json:"email"`
+	Name      string             `json:"name"`
+	Role      string             `json:"role"`
+	CreatedAt time.Time          `json:"created_at"`
+	UpdatedAt time.Time          `json:"updated_at"`
+	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
+}
+
+func (q *Queries) SoftDeleteUser(ctx context.Context, id uuid.UUID) (SoftDeleteUserRow, error) {
+	row := q.db.QueryRow(ctx, softDeleteUser, id)
+	var i SoftDeleteUserRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Name,
+		&i.Role,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
 }
 
 const updateUser = `-- name: UpdateUser :one

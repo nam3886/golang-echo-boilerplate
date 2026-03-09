@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// Connect retries a connection function with linear backoff.
+// Connect retries a connection function with exponential backoff.
 // Returns the first successful result or an error after maxRetries.
 // The context is checked between retries to support cancellation.
 func Connect[T any](ctx context.Context, name string, maxRetries int, fn func() (T, error)) (T, error) {
@@ -26,7 +26,7 @@ func Connect[T any](ctx context.Context, name string, maxRetries int, fn func() 
 		case <-ctx.Done():
 			var zero T
 			return zero, fmt.Errorf("%s connection cancelled: %w", name, ctx.Err())
-		case <-time.After(time.Duration(i+1) * time.Second):
+		case <-time.After(min(time.Duration(1<<uint(i))*time.Second, 30*time.Second)):
 		}
 	}
 	var zero T

@@ -39,14 +39,14 @@ Source: `internal/shared/events/subscriber.go`
 
 ## Reference Implementation
 
-The search indexer is the canonical example.
+The audit subscriber is the canonical example.
 
-- Handler methods: `internal/modules/user/adapters/search/indexer.go`
-- Registration: `provideSearchHandlers` in `internal/modules/user/module.go`
+- Handler methods: `internal/modules/audit/subscriber.go`
+- Registration: `provideAuditHandlers` in `internal/modules/audit/module.go`
 
-The indexer returns `nil` (ack) on schema errors and a real error (nack) on ES failures,
+The subscriber returns `nil` (ack) on schema errors and a real error (nack) on DB failures,
 triggering the router's retry middleware (3 retries, 1s initial, 0.5 jitter).
-Full module wiring reference: `internal/modules/user/module.go`.
+Full module wiring reference: `internal/modules/audit/module.go`.
 
 ## Dead Letter Queue
 

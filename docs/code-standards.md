@@ -121,7 +121,7 @@ type GetUserHandler struct { }
 
 ### Domain Errors
 
-All errors use the `DomainError` pattern from `internal/shared/errors` (actually `internal/shared/errors/domainerr`).
+All errors use the `DomainError` pattern from `internal/shared/errors` (package `domainerr`, imported as `sharederr`).
 Module-specific errors are **constructor functions**, not package-level vars:
 
 ```go
@@ -292,16 +292,14 @@ func (h *CreateUserHandler) Handle(ctx context.Context, cmd CreateUserCmd) (*dom
     }
 
     // Events (after successful persistence)
-    // Extract ActorID from auth context for audit trail
-    actorID := auth.ActorIDFromContext(ctx)
     if err := h.bus.Publish(ctx, domain.TopicUserCreated, domain.UserCreatedEvent{
         UserID:    string(user.ID()),
-        ActorID:   actorID,
+        ActorID:   auth.ActorIDFromContext(ctx),
         Email:     user.Email(),
         Name:      user.Name(),
         Role:      string(user.Role()),
         IPAddress: netutil.GetClientIP(ctx),
-        At:        time.Now(),
+        At:        user.CreatedAt(),
     }); err != nil {
         // Log event publishing failures but don't fail the handler
         slog.ErrorContext(ctx, "failed to publish user.created event",
@@ -357,18 +355,14 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*dom
     }
 
     // Publish event with ActorID from context
-    var actorID string
-    if actor := auth.UserFromContext(ctx); actor != nil {
-        actorID = actor.UserID
-    }
     if err := h.bus.Publish(ctx, domain.TopicUserUpdated, domain.UserUpdatedEvent{
         UserID:    cmd.ID,
-        ActorID:   actorID,
+        ActorID:   auth.ActorIDFromContext(ctx),
         Name:      updated.Name(),
         Email:     updated.Email(),
         Role:      string(updated.Role()),
         IPAddress: netutil.GetClientIP(ctx),
-        At:        time.Now(),
+        At:        updated.UpdatedAt(),
     }); err != nil {
         slog.ErrorContext(ctx, "failed to publish user.updated event",
             "user_id", cmd.ID, "err", err)
@@ -390,15 +384,14 @@ func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
     }
 
     // Publish event with ActorID from context
-    var actorID string
-    if actor := auth.UserFromContext(ctx); actor != nil {
-        actorID = actor.UserID
-    }
     if err := h.bus.Publish(ctx, domain.TopicUserDeleted, domain.UserDeletedEvent{
         UserID:    id,
-        ActorID:   actorID,
+        ActorID:   auth.ActorIDFromContext(ctx),
         IPAddress: netutil.GetClientIP(ctx),
-        At:        *user.DeletedAt(), // DB-authoritative deletion timestamp
+        // Safe dereference -- DeletedAt is guaranteed non-nil after SoftDelete
+        // returns successfully (the SQL sets deleted_at = NOW()).
+        // For other contexts, guard with: if user.DeletedAt() != nil { ... }
+        At:        *user.DeletedAt(),
     }); err != nil {
         slog.ErrorContext(ctx, "failed to publish user.deleted event",
             "user_id", id, "err", err)
@@ -409,7 +402,7 @@ func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
 ```
 
 **Event Publishing Pattern:**
-- Extract ActorID from `auth.UserFromContext(ctx)` to track who initiated the mutation
+- Extract ActorID via `auth.ActorIDFromContext(ctx)` to track who initiated the mutation
 - Publish events *after* successful persistence
 - Log but don't fail the handler if event publishing fails (graceful degradation)
 - Each mutation publishes a distinct event type (UserCreatedEvent, UserUpdatedEvent, UserDeletedEvent)

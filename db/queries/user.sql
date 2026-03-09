@@ -31,5 +31,7 @@ SET name = COALESCE(sqlc.narg('name'), name),
 WHERE id = $1 AND deleted_at IS NULL
 RETURNING id, email, name, role, created_at, updated_at, deleted_at;
 
--- name: SoftDeleteUser :exec
-UPDATE users SET deleted_at = NOW(), updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL;
+-- name: SoftDeleteUser :one
+UPDATE users SET deleted_at = NOW(), updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING id, email, name, role, created_at, updated_at, deleted_at;

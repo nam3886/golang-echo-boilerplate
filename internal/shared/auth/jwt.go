@@ -27,6 +27,7 @@ func GenerateAccessToken(cfg *config.Config, userID, role string, permissions []
 	claims := TokenClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    cfg.AppName,
+			Subject:   userID,
 			Audience:  jwt.ClaimStrings{jwtAudience},
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(cfg.JWTAccessTTL)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

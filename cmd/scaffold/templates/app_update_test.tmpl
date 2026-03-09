@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
 	"{{.GoModule}}/internal/shared/events"
@@ -19,16 +20,18 @@ func TestUpdate{{.NameTitle}}Handler_Success(t *testing.T) {
 	mockRepo.EXPECT().
 		Update(gomock.Any(), domain.{{.NameID}}("entity-id-1"), gomock.Any()).
 		DoAndReturn(func(_ context.Context, _ domain.{{.NameID}}, fn func(*domain.{{.NameTitle}}) error) error {
-			entity := &domain.{{.NameTitle}}{}
+			entity := domain.Reconstitute(
+				domain.{{.NameID}}("00000000-0000-0000-0000-000000000001"), "Original Name",
+				time.Now(), time.Now(), nil,
+			)
 			return fn(entity)
 		})
 
-	name := "Updated Name"
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewUpdate{{.NameTitle}}Handler(mockRepo, bus)
 	_, err := handler.Handle(context.Background(), Update{{.NameTitle}}Cmd{
 		ID:   "entity-id-1",
-		Name: &name,
+		Name: testutil.Ptr("Updated Name"),
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -55,14 +58,63 @@ func TestUpdate{{.NameTitle}}Handler_RepoFailure(t *testing.T) {
 		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(fmt.Errorf("db error"))
 
-	name := "New Name"
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewUpdate{{.NameTitle}}Handler(mockRepo, bus)
 	_, err := handler.Handle(context.Background(), Update{{.NameTitle}}Cmd{
 		ID:   "entity-id-1",
-		Name: &name,
+		Name: testutil.Ptr("New Name"),
 	})
 	if err == nil {
 		t.Fatal("expected error from repo failure")
+	}
+}
+
+func TestUpdate{{.NameTitle}}Handler_EventPublishFailure(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMock{{.NameTitle}}Repository(ctrl)
+
+	mockRepo.EXPECT().
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ domain.{{.NameID}}, fn func(*domain.{{.NameTitle}}) error) error {
+			entity := domain.Reconstitute(
+				domain.{{.NameID}}("00000000-0000-0000-0000-000000000001"), "Original Name",
+				time.Now(), time.Now(), nil,
+			)
+			return fn(entity)
+		})
+
+	bus := events.NewEventBus(&testutil.FailPublisher{})
+	handler := NewUpdate{{.NameTitle}}Handler(mockRepo, bus)
+	_, err := handler.Handle(context.Background(), Update{{.NameTitle}}Cmd{
+		ID:   "entity-id-1",
+		Name: testutil.Ptr("New Name"),
+	})
+	if err != nil {
+		t.Fatalf("expected no error when publish fails, got %v", err)
+	}
+}
+
+func TestUpdate{{.NameTitle}}Handler_EmptyName(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMock{{.NameTitle}}Repository(ctrl)
+
+	mockRepo.EXPECT().
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ domain.{{.NameID}}, fn func(*domain.{{.NameTitle}}) error) error {
+			entity := domain.Reconstitute(
+				domain.{{.NameID}}("00000000-0000-0000-0000-000000000001"), "Original Name",
+				time.Now(), time.Now(), nil,
+			)
+			return fn(entity)
+		})
+
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	handler := NewUpdate{{.NameTitle}}Handler(mockRepo, bus)
+	_, err := handler.Handle(context.Background(), Update{{.NameTitle}}Cmd{
+		ID:   "entity-id-1",
+		Name: testutil.Ptr(""),
+	})
+	if err == nil {
+		t.Fatal("expected error for empty name")
 	}
 }

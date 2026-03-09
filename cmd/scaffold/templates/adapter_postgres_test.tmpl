@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
-	domainerr "{{.GoModule}}/internal/shared/errors"
+	sharederr "{{.GoModule}}/internal/shared/errors"
 	"{{.GoModule}}/internal/shared/testutil"
 )
 
@@ -57,7 +57,7 @@ func TestPg{{.NameTitle}}Repository_GetByID_NotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for not found")
 	}
-	if !errors.Is(err, domainerr.ErrNotFound()) {
+	if !errors.Is(err, sharederr.ErrNotFound()) {
 		t.Errorf("expected ErrNotFound, got %v", err)
 	}
 }
@@ -76,7 +76,7 @@ func TestPg{{.NameTitle}}Repository_SoftDelete(t *testing.T) {
 	}
 
 	_, err := repo.GetByID(ctx, entity.ID())
-	if !errors.Is(err, domainerr.ErrNotFound()) {
+	if !errors.Is(err, sharederr.ErrNotFound()) {
 		t.Errorf("expected ErrNotFound after soft delete, got %v", err)
 	}
 }

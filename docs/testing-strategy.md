@@ -86,16 +86,6 @@ Run: `task generate:mocks` (or `go generate ./...`).
 
 Output: `internal/shared/mocks/mock_*.go` — committed to repo.
 
-## Test Fixtures
-
-`internal/shared/testutil/fixtures.go` provides predefined test data:
-
-```go
-testutil.DefaultUserFixture()  // member role
-testutil.AdminUserFixture()    // admin role
-testutil.ViewerUserFixture()   // viewer role
-```
-
 ## Testcontainers Helpers
 
 | Helper | Package | Container |

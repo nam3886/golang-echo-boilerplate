@@ -78,3 +78,7 @@ Role alone is insufficient — the wildcard must appear in the permissions slice
 
 4. Include the permission strings when issuing tokens
    (`auth.GenerateAccessToken`).
+
+> **Note:** The `task module:create` scaffold automatically injects permission
+> constants into `rbac.go` and procedure mappings into `rbac_interceptor.go`.
+> After scaffolding, verify the generated entries are correct.

@@ -21,8 +21,8 @@ func RegisterRoutes(e *echo.Echo, handler *UserServiceHandler, cfg *config.Confi
 		),
 	)
 
-	// Mount Connect handler under auth + base RBAC (user:read).
-	// Write/delete permissions enforced by RBACInterceptor per procedure.
-	g := e.Group(path, appmw.Auth(cfg, rdb), appmw.RequirePermission(appmw.PermUserRead))
+	// Mount Connect handler under auth. All permission checks are handled
+	// by RBACInterceptor per procedure (fail-closed).
+	g := e.Group(path, appmw.Auth(cfg, rdb))
 	g.Any("*", echo.WrapHandler(http.StripPrefix(path, h)))
 }

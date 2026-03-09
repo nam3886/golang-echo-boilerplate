@@ -5,11 +5,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	sqlcgen "github.com/gnha/gnha-services/gen/sqlc"
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
-	domainerr "github.com/gnha/gnha-services/internal/shared/errors"
+	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -36,7 +35,7 @@ func (r *PgUserRepository) GetByID(ctx context.Context, id domain.UserID) (*doma
 	row, err := q.GetUserByID(ctx, uid)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, domainerr.ErrNotFound()
+			return nil, sharederr.ErrNotFound()
 		}
 		return nil, fmt.Errorf("getting user by id: %w", err)
 	}
@@ -48,7 +47,7 @@ func (r *PgUserRepository) GetByEmail(ctx context.Context, email string) (*domai
 	row, err := q.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, domainerr.ErrNotFound()
+			return nil, sharederr.ErrNotFound()
 		}
 		return nil, fmt.Errorf("getting user by email: %w", err)
 	}
@@ -64,7 +63,7 @@ func (r *PgUserRepository) List(ctx context.Context, limit int, cursor string) (
 	if cursor != "" {
 		decoded, err := decodeCursor(cursor)
 		if err != nil {
-			return domain.ListResult{}, domainerr.New(domainerr.CodeInvalidArgument, "invalid pagination cursor")
+			return domain.ListResult{}, sharederr.New(sharederr.CodeInvalidArgument, "invalid pagination cursor")
 		}
 		params.CursorCreatedAt = pgtype.Timestamptz{Time: decoded.T, Valid: true}
 		params.CursorID = pgtype.UUID{Bytes: decoded.U, Valid: true}
@@ -112,7 +111,7 @@ func (r *PgUserRepository) Create(ctx context.Context, user *domain.User) error 
 		return err
 	}
 	q := sqlcgen.New(r.pool)
-	_, err = q.CreateUser(ctx, sqlcgen.CreateUserParams{
+	row, err := q.CreateUser(ctx, sqlcgen.CreateUserParams{
 		ID:       uid,
 		Email:    user.Email(),
 		Name:     user.Name(),
@@ -126,6 +125,8 @@ func (r *PgUserRepository) Create(ctx context.Context, user *domain.User) error 
 		}
 		return fmt.Errorf("inserting user: %w", err)
 	}
+	// Overwrite entity with DB-authoritative timestamps (created_at, updated_at).
+	*user = *toDomainFromCreateRow(row)
 	return nil
 }
 
@@ -145,13 +146,17 @@ func (r *PgUserRepository) Update(ctx context.Context, id domain.UserID, fn func
 	row, err := q.GetUserByIDForUpdate(ctx, uid)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return domainerr.ErrNotFound()
+			return sharederr.ErrNotFound()
 		}
 		return fmt.Errorf("fetching user for update: %w", err)
 	}
 
 	user := toDomain(row)
 	if err := fn(user); err != nil {
+		// No mutations — skip SQL UPDATE and commit the read-lock transaction.
+		if errors.Is(err, sharederr.ErrNoChange()) {
+			return tx.Commit(ctx)
+		}
 		return err
 	}
 
@@ -178,27 +183,20 @@ func (r *PgUserRepository) Update(ctx context.Context, id domain.UserID, fn func
 	return tx.Commit(ctx)
 }
 
+// SoftDelete atomically soft-deletes a user in a single UPDATE … RETURNING query,
+// eliminating the previous GET-then-DELETE TOCTOU race and using DB-authoritative timestamps.
 func (r *PgUserRepository) SoftDelete(ctx context.Context, id domain.UserID) (*domain.User, error) {
 	uid, err := parseUserID(id)
 	if err != nil {
 		return nil, err
 	}
 	q := sqlcgen.New(r.pool)
-	// SoftDeleteUser is :exec (no password returned). Use GetByID first
-	// to verify existence, then delete.
-	row, err := q.GetUserByID(ctx, uid)
+	row, err := q.SoftDeleteUser(ctx, uid)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, domainerr.ErrNotFound()
+			return nil, sharederr.ErrNotFound()
 		}
-		return nil, fmt.Errorf("getting user for delete: %w", err)
-	}
-	if err := q.SoftDeleteUser(ctx, uid); err != nil {
 		return nil, fmt.Errorf("soft deleting user: %w", err)
 	}
-	// Return entity with deletedAt set to now (the DB sets it).
-	now := time.Now()
-	user := toDomainFromGetRow(row)
-	return domain.Reconstitute(user.ID(), user.Email(), user.Name(), "",
-		user.Role(), user.CreatedAt(), now, &now), nil
+	return toDomainFromSoftDeleteRow(row), nil
 }

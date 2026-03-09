@@ -16,16 +16,16 @@ For custom plural naming:
 task module:create name=category plural=categories
 ```
 
-This creates 26 files + runs code generation. Then:
+This creates 27 files + runs code generation. Then:
 1. Customize proto fields in `proto/{name}/v1/{name}.proto`
 2. Customize DB columns in `db/migrations/{timestamp}_create_{plural}.sql`
 3. Customize SQL queries in `db/queries/{name}.sql`
 4. Run `task generate` after customizing proto/SQL
 5. Update domain entity, handlers, and adapters to match new fields
-6. Define event contracts in `internal/shared/events/contracts/{name}_events.go`
-7. Re-export events in `internal/modules/{name}/domain/events.go`
-8. Configure RBAC permissions (see **RBAC Setup** below)
-9. Register module in `cmd/server/main.go`
+6. (Auto-generated) Verify event contracts in `internal/shared/events/contracts/{name}_events.go`
+7. (Auto-generated) Verify event re-exports in `internal/modules/{name}/domain/events.go`
+8. (Auto-injected) Verify RBAC permissions in `rbac.go` and `rbac_interceptor.go`
+9. Register module in `cmd/server/main.go` (manual step)
 10. Run `task migrate:up && task check`
 
 ## Module Structure Tiers
@@ -112,6 +112,8 @@ service ProductService {
   rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
   rpc GetProduct(GetProductRequest) returns (GetProductResponse);
   rpc ListProducts(ListProductsRequest) returns (ListProductsResponse);
+  rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse);
+  rpc DeleteProduct(DeleteProductRequest) returns (DeleteProductResponse);
 }
 
 message Product {
@@ -181,18 +183,19 @@ ORDER BY created_at DESC, id DESC
 LIMIT $1;
 
 -- name: CreateProduct :one
-INSERT INTO products (id, name) VALUES ($1, $2) RETURNING *;
+INSERT INTO products (id, name) VALUES ($1, $2)
+RETURNING id, name, created_at, updated_at, deleted_at;
 
 -- name: UpdateProduct :one
 UPDATE products
 SET name = COALESCE(sqlc.narg('name'), name), updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
-RETURNING *;
+RETURNING id, name, created_at, updated_at, deleted_at;
 
 -- name: SoftDeleteProduct :one
 UPDATE products SET deleted_at = NOW(), updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
-RETURNING *;
+RETURNING id, name, created_at, updated_at, deleted_at;
 ```
 
 ## 3. Generate Code
@@ -486,6 +489,10 @@ var Module = fx.Module("product",
         ),
     ),
     fx.Provide(app.NewCreateProductHandler),
+    fx.Provide(app.NewGetProductHandler),
+    fx.Provide(app.NewListProductsHandler),
+    fx.Provide(app.NewUpdateProductHandler),
+    fx.Provide(app.NewDeleteProductHandler),
     fx.Provide(grpc.NewProductServiceHandler),
     fx.Invoke(grpc.RegisterRoutes),
 )

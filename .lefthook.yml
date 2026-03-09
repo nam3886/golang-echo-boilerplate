@@ -9,7 +9,8 @@ pre-commit:
       run: |
         buf generate 2>/dev/null
         sqlc generate 2>/dev/null
-        git diff --exit-code gen/
+        go generate ./...
+        git diff --exit-code gen/ internal/shared/mocks/
       fail_text: "Generated code is stale. Run 'task generate' and commit."
 
 pre-push:

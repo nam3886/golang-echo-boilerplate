@@ -31,11 +31,17 @@ func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
 		return err
 	}
 
+	// Use DB-authoritative deletion timestamp; fall back to UpdatedAt if nil (defensive).
+	deletedAt := user.UpdatedAt()
+	if user.DeletedAt() != nil {
+		deletedAt = *user.DeletedAt()
+	}
+
 	if err := h.bus.Publish(ctx, domain.TopicUserDeleted, domain.UserDeletedEvent{
 		UserID:    id,
 		ActorID:   auth.ActorIDFromContext(ctx),
 		IPAddress: netutil.GetClientIP(ctx),
-		At:        *user.DeletedAt(), // DB-authoritative deletion timestamp
+		At:        deletedAt,
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to publish user.deleted event",
 			"user_id", id, "err", err)

@@ -3,7 +3,6 @@ package grpc
 import (
 	{{.Name}}v1 "{{.GoModule}}/gen/proto/{{.Name}}/v1"
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
-	"{{.GoModule}}/internal/shared/connectutil"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -15,9 +14,4 @@ func toProto(e *domain.{{.NameTitle}}) *{{.Name}}v1.{{.NameTitle}} {
 		CreatedAt: timestamppb.New(e.CreatedAt()),
 		UpdatedAt: timestamppb.New(e.UpdatedAt()),
 	}
-}
-
-// domainErrorToConnect maps DomainError to Connect RPC error codes.
-func domainErrorToConnect(err error) error {
-	return connectutil.DomainErrorToConnect(err)
 }

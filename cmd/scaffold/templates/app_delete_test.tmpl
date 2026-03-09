@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
-	domainerr "{{.GoModule}}/internal/shared/errors"
+	sharederr "{{.GoModule}}/internal/shared/errors"
 	"{{.GoModule}}/internal/shared/events"
 	"{{.GoModule}}/internal/shared/mocks"
 	"{{.GoModule}}/internal/shared/testutil"
@@ -27,11 +27,15 @@ func TestDelete{{.NameTitle}}Handler_Success(t *testing.T) {
 		SoftDelete(gomock.Any(), domain.{{.NameID}}("entity-id-1")).
 		Return(deleted{{.NameTitle}}Fixture(), nil)
 
-	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	recorder := &testutil.CapturingPublisher{}
+	bus := events.NewEventBus(recorder)
 	handler := NewDelete{{.NameTitle}}Handler(mockRepo, bus)
 	err := handler.Handle(context.Background(), "entity-id-1")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(recorder.Messages) == 0 || recorder.Messages[0].Topic != domain.TopicDeleted {
+		t.Error("expected delete event to be published")
 	}
 }
 
@@ -41,7 +45,7 @@ func TestDelete{{.NameTitle}}Handler_NotFound(t *testing.T) {
 
 	mockRepo.EXPECT().
 		SoftDelete(gomock.Any(), domain.{{.NameID}}("missing-id")).
-		Return(nil, domainerr.ErrNotFound())
+		Return(nil, sharederr.ErrNotFound())
 
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewDelete{{.NameTitle}}Handler(mockRepo, bus)

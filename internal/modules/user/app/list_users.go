@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
 )
@@ -25,5 +26,9 @@ func (h *ListUsersHandler) Handle(ctx context.Context, limit int, cursor string)
 		limit = 100
 	}
 
-	return h.repo.List(ctx, limit, cursor)
+	result, err := h.repo.List(ctx, limit, cursor)
+	if err != nil {
+		return domain.ListResult{}, fmt.Errorf("listing users: %w", err)
+	}
+	return result, nil
 }

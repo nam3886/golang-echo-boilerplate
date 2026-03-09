@@ -33,6 +33,7 @@ func New{{.NameTitle}}(name string) (*{{.NameTitle}}, error) {
 }
 
 // Reconstitute rebuilds a {{.NameTitle}} from persistence data (no validation).
+// TODO: Add all entity fields when extending the domain model.
 func Reconstitute(id {{.NameID}}, name string, createdAt, updatedAt time.Time, deletedAt *time.Time) *{{.NameTitle}} {
 	return &{{.NameTitle}}{
 		id: id, name: name,

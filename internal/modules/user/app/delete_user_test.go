@@ -70,6 +70,29 @@ func TestDeleteUserHandler_NotFound(t *testing.T) {
 	}
 }
 
+// TestDeleteUserHandler_AlreadyDeleted verifies that re-deleting an already-deleted
+// user surfaces ErrNotFound (SoftDelete WHERE deleted_at IS NULL finds no row).
+func TestDeleteUserHandler_AlreadyDeleted(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMockUserRepository(ctrl)
+
+	mockRepo.EXPECT().
+		SoftDelete(gomock.Any(), domain.UserID("already-deleted-id")).
+		Return(nil, domainerr.ErrNotFound())
+
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	handler := NewDeleteUserHandler(mockRepo, bus)
+
+	err := handler.Handle(context.Background(), "already-deleted-id")
+	if err == nil {
+		t.Fatal("expected error for already-deleted user")
+	}
+	var domErr *domainerr.DomainError
+	if !errors.As(err, &domErr) || domErr.Code != domainerr.CodeNotFound {
+		t.Errorf("expected CodeNotFound, got %v", err)
+	}
+}
+
 func TestDeleteUserHandler_RepoError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockRepo := mocks.NewMockUserRepository(ctrl)

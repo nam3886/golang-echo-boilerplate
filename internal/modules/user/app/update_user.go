@@ -7,6 +7,7 @@ import (
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
 	"github.com/gnha/gnha-services/internal/shared/auth"
 	"github.com/gnha/gnha-services/internal/shared/events"
+	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
 	"github.com/gnha/gnha-services/internal/shared/netutil"
 )
 
@@ -67,6 +68,9 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*dom
 			mutated = true
 		}
 		updated = user
+		if !mutated {
+			return sharederr.ErrNoChange()
+		}
 		return nil
 	})
 	if err != nil {

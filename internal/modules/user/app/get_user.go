@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
 )
@@ -21,5 +22,9 @@ func (h *GetUserHandler) Handle(ctx context.Context, id string) (*domain.User, e
 	if id == "" {
 		return nil, domain.ErrInvalidArgument()
 	}
-	return h.repo.GetByID(ctx, domain.UserID(id))
+	user, err := h.repo.GetByID(ctx, domain.UserID(id))
+	if err != nil {
+		return nil, fmt.Errorf("getting user %s: %w", id, err)
+	}
+	return user, nil
 }

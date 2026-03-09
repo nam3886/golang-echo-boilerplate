@@ -37,10 +37,7 @@ func ErrorHandler(err error, c echo.Context) {
 		if m, ok := echoErr.Message.(string); ok {
 			msg = m
 		}
-		code := domainerr.CodeInternal
-		if echoErr.Code == http.StatusTooManyRequests {
-			code = domainerr.CodeResourceExhausted
-		}
+		code := echoHTTPToDomainCode(echoErr.Code)
 		_ = c.JSON(echoErr.Code, ErrorResponse{
 			Code:    code.String(),
 			Message: msg,
@@ -54,4 +51,20 @@ func ErrorHandler(err error, c echo.Context) {
 		Code:    domainerr.CodeInternal.String(),
 		Message: "internal error",
 	})
+}
+
+// echoHTTPToDomainCode maps Echo HTTP status codes to domain error codes.
+func echoHTTPToDomainCode(status int) domainerr.ErrorCode {
+	switch status {
+	case http.StatusNotFound:
+		return domainerr.CodeNotFound
+	case http.StatusMethodNotAllowed, http.StatusBadRequest, http.StatusRequestEntityTooLarge:
+		return domainerr.CodeInvalidArgument
+	case http.StatusTooManyRequests:
+		return domainerr.CodeResourceExhausted
+	case http.StatusRequestTimeout, http.StatusGatewayTimeout:
+		return domainerr.CodeUnavailable
+	default:
+		return domainerr.CodeInternal
+	}
 }

@@ -3,9 +3,10 @@ package notification
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"html/template"
 	"log/slog"
-	"strings"
+	"net/textproto"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/gnha/gnha-services/internal/shared/events/contracts"
@@ -28,7 +29,7 @@ func (h *Handler) HandleUserCreated(msg *message.Message) error {
 	var event contracts.UserCreatedEvent
 	if err := json.Unmarshal(msg.Payload, &event); err != nil {
 		slog.Error("notification: failed to unmarshal event", "err", err,
-			"payload", string(msg.Payload))
+			"msg_id", msg.UUID)
 		return nil // ack — schema mismatch is permanent, retrying won't help
 	}
 
@@ -56,14 +57,10 @@ func (h *Handler) HandleUserCreated(msg *message.Message) error {
 // isPermanentSMTPError checks if the error wraps an SMTP 5xx response.
 // SMTP 5xx codes indicate permanent failures (bad address, policy reject, etc.)
 // that won't be resolved by retrying.
-// Codes are matched with a trailing space to reduce false positives
-// (e.g., "after 550ms" won't match "550 ").
 func isPermanentSMTPError(err error) bool {
-	errStr := err.Error()
-	for _, code := range []string{"550 ", "551 ", "552 ", "553 ", "554 ", "555 "} {
-		if strings.Contains(errStr, code) {
-			return true
-		}
+	var tpErr *textproto.Error
+	if errors.As(err, &tpErr) {
+		return tpErr.Code >= 500 && tpErr.Code < 600
 	}
 	return false
 }

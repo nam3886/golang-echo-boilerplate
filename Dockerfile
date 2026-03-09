@@ -15,8 +15,9 @@ FROM alpine:3.21
 RUN apk add --no-cache ca-certificates tzdata curl && \
     addgroup -S app && adduser -S app -G app
 COPY --from=builder /server /server
+COPY --from=builder /app/db/migrations /db/migrations
 USER app
 EXPOSE 8080
-HEALTHCHECK --interval=10s --timeout=3s --retries=3 \
+HEALTHCHECK --interval=10s --timeout=3s --start-period=60s --retries=5 \
     CMD curl -f http://localhost:8080/healthz || exit 1
 ENTRYPOINT ["/server"]

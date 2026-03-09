@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
+	"github.com/gnha/gnha-services/internal/shared/connectutil"
 	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
 	"connectrpc.com/connect"
 )
@@ -86,7 +87,7 @@ func TestDomainErrorToConnect_DomainError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(string(tt.code), func(t *testing.T) {
 			err := sharederr.New(tt.code, "test message")
-			result := domainErrorToConnect(err)
+			result := connectutil.DomainErrorToConnect(err)
 
 			ce := &connect.Error{}
 			if !errors.As(result, &ce) {
@@ -101,7 +102,7 @@ func TestDomainErrorToConnect_DomainError(t *testing.T) {
 
 func TestDomainErrorToConnect_NonDomainError(t *testing.T) {
 	err := fmt.Errorf("some random error")
-	result := domainErrorToConnect(err)
+	result := connectutil.DomainErrorToConnect(err)
 
 	ce := &connect.Error{}
 	if !errors.As(result, &ce) {

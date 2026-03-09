@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
+	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
 	"github.com/gnha/gnha-services/internal/shared/events"
 	"github.com/gnha/gnha-services/internal/shared/mocks"
 	"github.com/gnha/gnha-services/internal/shared/testutil"
@@ -182,6 +183,70 @@ func TestUpdateUserHandler_InvalidEmail_ReturnsError(t *testing.T) {
 	}
 	if !errors.Is(err, domain.ErrInvalidEmail()) {
 		t.Errorf("expected ErrInvalidEmail, got %v", err)
+	}
+}
+
+// TestUpdateUserHandler_NoFieldsProvided verifies the fast-path: when no fields
+// are provided, GetByID is called instead of Update and the user is returned unchanged.
+func TestUpdateUserHandler_NoFieldsProvided(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMockUserRepository(ctrl)
+
+	mockRepo.EXPECT().
+		GetByID(gomock.Any(), domain.UserID("00000000-0000-0000-0000-000000000001")).
+		Return(makeTestUser(), nil)
+
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	handler := NewUpdateUserHandler(mockRepo, bus)
+
+	user, err := handler.Handle(context.Background(), UpdateUserCmd{
+		ID: "00000000-0000-0000-0000-000000000001",
+		// Name, Role, Email all nil
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if user.Name() != "Original Name" {
+		t.Errorf("expected unchanged name %q, got %q", "Original Name", user.Name())
+	}
+}
+
+// TestUpdateUserHandler_SameValues_NoEvent verifies that when all provided field
+// values match the current state, no event is published and the user is returned.
+func TestUpdateUserHandler_SameValues_NoEvent(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMockUserRepository(ctrl)
+
+	// Simulate real repo behaviour: fn returns ErrNoChange → repo commits read-tx and returns nil.
+	mockRepo.EXPECT().
+		Update(gomock.Any(), domain.UserID("00000000-0000-0000-0000-000000000001"), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ domain.UserID, fn func(*domain.User) error) error {
+			u := makeTestUser()
+			if err := fn(u); err != nil {
+				if errors.Is(err, sharederr.ErrNoChange()) {
+					return nil // mirrors real repo: commit read-tx, no SQL UPDATE
+				}
+				return err
+			}
+			return nil
+		})
+
+	recorder := &testutil.CapturingPublisher{}
+	bus := events.NewEventBus(recorder)
+	handler := NewUpdateUserHandler(mockRepo, bus)
+
+	user, err := handler.Handle(context.Background(), UpdateUserCmd{
+		ID:   "00000000-0000-0000-0000-000000000001",
+		Name: testutil.Ptr("Original Name"), // same as fixture — no mutation
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if user == nil {
+		t.Fatal("expected user, got nil")
+	}
+	if len(recorder.Messages) > 0 {
+		t.Error("expected no event for same-value update")
 	}
 }
 

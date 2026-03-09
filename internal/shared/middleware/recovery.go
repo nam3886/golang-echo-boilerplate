@@ -29,8 +29,13 @@ func Recovery() echo.MiddlewareFunc {
 						}
 						buf = make([]byte, len(buf)*2)
 					}
+					// Truncate panic value to prevent PII/secrets from leaking into logs.
+					panicStr := fmt.Sprintf("%v", r)
+					if len(panicStr) > 200 {
+						panicStr = panicStr[:200] + "...[truncated]"
+					}
 					slog.Error("panic recovered",
-						"error", fmt.Sprintf("%v", r),
+						"error", panicStr,
 						"stack", string(buf),
 						"path", c.Request().URL.Path,
 					)

@@ -14,7 +14,18 @@ import (
 )
 
 // NewTracerProvider creates an OTel tracer provider exporting to OTLP.
+// When OTLPEndpoint is empty, returns a no-op provider to avoid silent connection failures.
 func NewTracerProvider(cfg *config.Config, version config.AppVersion) (*sdktrace.TracerProvider, error) {
+	if cfg.OTLPEndpoint == "" {
+		tp := sdktrace.NewTracerProvider()
+		otel.SetTracerProvider(tp)
+		otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
+			propagation.TraceContext{},
+			propagation.Baggage{},
+		))
+		return tp, nil
+	}
+
 	ctx := context.Background()
 
 	opts := []otlptracegrpc.Option{

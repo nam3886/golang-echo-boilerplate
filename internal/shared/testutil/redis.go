@@ -2,6 +2,7 @@ package testutil
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/redis/go-redis/v9"
@@ -9,9 +10,20 @@ import (
 )
 
 // NewTestRedis starts a temporary Redis container and returns a connected *redis.Client.
+// In CI, set REDIS_URL to use the service container instead of testcontainers.
 // The container and client are cleaned up automatically via t.Cleanup.
 func NewTestRedis(t *testing.T) *redis.Client {
 	t.Helper()
+
+	// In CI, use the service container instead of testcontainers.
+	if url := os.Getenv("REDIS_URL"); url != "" {
+		opt, err := redis.ParseURL(url)
+		if err != nil {
+			t.Fatalf("parsing REDIS_URL: %v", err)
+		}
+		return redis.NewClient(opt)
+	}
+
 	ctx := context.Background()
 
 	container, err := tcredis.Run(ctx, "redis:7-alpine")

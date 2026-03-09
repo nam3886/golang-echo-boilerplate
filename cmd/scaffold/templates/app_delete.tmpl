@@ -31,11 +31,17 @@ func (h *Delete{{.NameTitle}}Handler) Handle(ctx context.Context, id string) err
 		return err
 	}
 
+	// Use DB-authoritative deletion timestamp; fall back to UpdatedAt if nil (defensive).
+	deletedAt := entity.UpdatedAt()
+	if entity.DeletedAt() != nil {
+		deletedAt = *entity.DeletedAt()
+	}
+
 	if err := h.bus.Publish(ctx, domain.Topic{{.NameTitle}}Deleted, domain.{{.NameTitle}}DeletedEvent{
 		{{.NameTitle}}ID: id,
 		ActorID:         auth.ActorIDFromContext(ctx),
 		IPAddress:       netutil.GetClientIP(ctx),
-		At:              entity.UpdatedAt(), // DB-authoritative timestamp
+		At:              deletedAt, // DB-authoritative deletion timestamp
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to publish {{.Name}}.deleted event",
 			"{{.Name}}_id", id, "err", err)

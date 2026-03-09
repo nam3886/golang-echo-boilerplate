@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/caarlos0/env/v11"
@@ -108,34 +109,32 @@ func (c *Config) IsProduction() bool {
 // String returns a human-readable config summary with sensitive fields masked.
 // Safe to log or print without leaking credentials.
 func (c Config) String() string {
-	return fmt.Sprintf(
-		"Config{AppEnv:%s AppName:%s Port:%d DatabaseURL:%s DBMaxConns:%d DBMinConns:%d "+
-			"RedisURL:%s RabbitURL:%s JWTSecret:%s JWTAccessTTL:%s JWTRefreshTTL:%s "+
-			"LogLevel:%s OTLPEndpoint:%s SMTPHost:%s SMTPPort:%d SMTPFrom:%s SMTPUser:%s SMTPPassword:%s SMTPFromAlias:%s "+
-			"ElasticsearchURL:%s ElasticsearchIndexPrefix:%s CORSOrigins:%v}",
-		c.AppEnv,
-		c.AppName,
-		c.Port,
-		maskURL(c.DatabaseURL),
-		c.DBMaxConns,
-		c.DBMinConns,
-		maskURL(c.RedisURL),
-		maskURL(c.RabbitURL),
-		mask(c.JWTSecret),
-		c.JWTAccessTTL,
-		c.JWTRefreshTTL,
-		c.LogLevel,
-		c.OTLPEndpoint,
-		c.SMTPHost,
-		c.SMTPPort,
-		c.SMTPFrom,
-		c.SMTPUser,
-		mask(c.SMTPPassword),
-		c.SMTPFromAlias,
-		c.ElasticsearchURL,
-		c.ElasticsearchIndexPrefix,
-		c.CORSOrigins,
-	)
+	var b strings.Builder
+	b.WriteString("Config{")
+	fmt.Fprintf(&b, "AppEnv:%s ", c.AppEnv)
+	fmt.Fprintf(&b, "AppName:%s ", c.AppName)
+	fmt.Fprintf(&b, "Port:%d ", c.Port)
+	fmt.Fprintf(&b, "DatabaseURL:%s ", maskURL(c.DatabaseURL))
+	fmt.Fprintf(&b, "DBMaxConns:%d ", c.DBMaxConns)
+	fmt.Fprintf(&b, "DBMinConns:%d ", c.DBMinConns)
+	fmt.Fprintf(&b, "RedisURL:%s ", maskURL(c.RedisURL))
+	fmt.Fprintf(&b, "RabbitURL:%s ", maskURL(c.RabbitURL))
+	fmt.Fprintf(&b, "JWTSecret:%s ", mask(c.JWTSecret))
+	fmt.Fprintf(&b, "JWTAccessTTL:%s ", c.JWTAccessTTL)
+	fmt.Fprintf(&b, "JWTRefreshTTL:%s ", c.JWTRefreshTTL)
+	fmt.Fprintf(&b, "LogLevel:%s ", c.LogLevel)
+	fmt.Fprintf(&b, "OTLPEndpoint:%s ", c.OTLPEndpoint)
+	fmt.Fprintf(&b, "SMTPHost:%s ", c.SMTPHost)
+	fmt.Fprintf(&b, "SMTPPort:%d ", c.SMTPPort)
+	fmt.Fprintf(&b, "SMTPFrom:%s ", c.SMTPFrom)
+	fmt.Fprintf(&b, "SMTPUser:%s ", c.SMTPUser)
+	fmt.Fprintf(&b, "SMTPPassword:%s ", mask(c.SMTPPassword))
+	fmt.Fprintf(&b, "SMTPFromAlias:%s ", c.SMTPFromAlias)
+	fmt.Fprintf(&b, "ElasticsearchURL:%s ", c.ElasticsearchURL)
+	fmt.Fprintf(&b, "ElasticsearchIndexPrefix:%s ", c.ElasticsearchIndexPrefix)
+	fmt.Fprintf(&b, "CORSOrigins:%v", c.CORSOrigins)
+	b.WriteByte('}')
+	return b.String()
 }
 
 // mask replaces a non-empty secret string with "***".

@@ -8,9 +8,9 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type contextKey string
+type middlewareContextKey string
 
-const requestIDKey contextKey = "request_id"
+const requestIDKey middlewareContextKey = "request_id"
 
 // isValidRequestID checks that the ID contains only safe characters
 // (alphanumeric, hyphen, underscore, dot) and is within length bounds.
