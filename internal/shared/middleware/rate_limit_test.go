@@ -83,7 +83,8 @@ func TestRateLimit_RedisFailure_FailsOpen(t *testing.T) {
 	}
 }
 
-func TestRateLimit_AuthenticatedUser_KeyedByUserID(t *testing.T) {
+// Rate limiter is always IP-based; auth context does not change the key.
+func TestRateLimit_WithAuthContext_StillKeyedByIP(t *testing.T) {
 	mr, _ := miniredis.Run()
 	defer mr.Close()
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
