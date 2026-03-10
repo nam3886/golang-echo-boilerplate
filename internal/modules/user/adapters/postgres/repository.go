@@ -126,7 +126,10 @@ func (r *PgUserRepository) Create(ctx context.Context, user *domain.User) error 
 		return fmt.Errorf("inserting user: %w", err)
 	}
 	// Overwrite entity with DB-authoritative timestamps (created_at, updated_at).
+	// Preserve password — RETURNING clause excludes it for security.
+	pwd := user.Password()
 	*user = *toDomainFromCreateRow(row)
+	*user = *domain.Reconstitute(user.ID(), user.Email(), user.Name(), pwd, user.Role(), user.CreatedAt(), user.UpdatedAt(), user.DeletedAt())
 	return nil
 }
 
@@ -178,7 +181,10 @@ func (r *PgUserRepository) Update(ctx context.Context, id domain.UserID, fn func
 	}
 
 	// Overwrite the entity with DB-generated timestamps (e.g. updated_at = NOW()).
+	// Preserve password — RETURNING clause excludes it for security.
+	pwd := user.Password()
 	*user = *toDomainFromUpdateRow(updatedRow)
+	*user = *domain.Reconstitute(user.ID(), user.Email(), user.Name(), pwd, user.Role(), user.CreatedAt(), user.UpdatedAt(), user.DeletedAt())
 
 	return tx.Commit(ctx)
 }

@@ -10,6 +10,8 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
 	"github.com/gnha/gnha-services/internal/shared/config"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 	"go.uber.org/fx"
 )
 
@@ -28,6 +30,16 @@ type HandlerRegistration struct {
 	HandlerFunc message.NoPublishHandlerFunc
 }
 
+// otelExtractMiddleware extracts OTel trace context from message metadata,
+// restoring distributed trace continuity across event boundaries.
+func otelExtractMiddleware(h message.HandlerFunc) message.HandlerFunc {
+	return func(msg *message.Message) ([]*message.Message, error) {
+		ctx := otel.GetTextMapPropagator().Extract(msg.Context(), propagation.MapCarrier(msg.Metadata))
+		msg.SetContext(ctx)
+		return h(msg)
+	}
+}
+
 // NewRouter creates and configures the Watermill message router.
 // Each handler gets its own subscriber (and thus its own queue) via the
 // SubscriberFactory, ensuring every handler receives all messages on its topic
@@ -42,10 +54,13 @@ func NewRouter(params RouterParams) (*message.Router, error) {
 
 	// Add middleware
 	router.AddMiddleware(
+		otelExtractMiddleware,
 		middleware.Recoverer,
 		middleware.Retry{
 			MaxRetries:          3,
 			InitialInterval:     time.Second,
+			Multiplier:          2,
+			MaxInterval:         10 * time.Second,
 			RandomizationFactor: 0.5,
 		}.Middleware,
 	)

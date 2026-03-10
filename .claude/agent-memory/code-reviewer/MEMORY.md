@@ -38,23 +38,32 @@
 - Middleware order: OTel > Recovery > RequestID > RateLimit > Logger > BodyLimit > Gzip > Security > CORS > Timeout
 - Per-handler subscriber queues via SubscriberFactory (prevents round-robin message loss)
 - DLQ uses separate AMQP connection at startup for exchange/queue declaration
+- Event flow: EventBus.Publish -> AMQP fanout -> per-handler queues (SubscriberFactory) -> Watermill router -> handlers
+- Watermill router middleware: otelExtract > Recoverer > Retry(3x, 1s initial, 2x multiplier, 10s max, 0.5 randomization)
+- Subscribers use msg.Context() for DB/ES/SMTP operations (context propagation)
+- Audit handler: idempotent via msg UUID as PK + ON CONFLICT DO NOTHING
+- Notification handler: permanent SMTP 5xx errors acked (not retried), transient errors returned for retry
+- Fx shutdown order: router.Close() (stops consuming) -> publisher.Close() (correct order via reverse invoke)
+- Integration tests: testcontainers for Postgres/Redis/ES/RabbitMQ, CI env var fallback
+- Config validation: APP_ENV whitelist, JWT_SECRET >=32 chars, URL scheme+host, DBMinConns<=DBMaxConns
 
-## Remaining Issues (updated 2026-03-10 post-fix)
+## Remaining Issues (updated 2026-03-10 round 7 deep dive)
 ### CRITICAL
 - C-1: Rate limiter user-keying is dead code (Auth runs after RateLimit in chain) -- WONTFIX (by design)
-### HIGH (all fixed 2026-03-10)
-- ~~H-DOC-1 thru H-DOC-6~~: FIXED — docs accuracy (architecture.md, CLAUDE.md, code-standards.md, rbac.md)
-- ~~H-SEC-1~~: FIXED — JWT time.Now() single call
-- ~~H-SEC-2~~: FIXED — CORS localhost production warning
-- ~~H-ERR-1~~: FIXED — errors.Is() for http.ErrServerClosed
-- ~~H-ARCH-1~~: FIXED — audit uses shared contracts
-- ~~H-DX-1~~: FIXED — removed dead RequirePermission/RequireRole
-- ~~H-CI-1~~: FIXED — govulncheck in CI
-- ~~H-CI-2~~: FIXED — 50% coverage threshold gate
-- ~~H-SCAF-1~~: FIXED — scaffold rollback on partial failure
+### HIGH
+- H-EVT-1: OTel trace extraction on subscribe — FIXED (otelExtractMiddleware using MapCarrier)
+- H-EVT-2: Watermill Retry Multiplier/MaxInterval — FIXED (Multiplier:2, MaxInterval:10s)
+- H-R7-1: repo.Create password preservation — FIXED (save pwd before overwrite, Reconstitute with it)
+- H-R7-2: repo.Update password preservation — FIXED (same pattern as Create)
+- H-SCAF-2: Scaffold Update proto template missing validation on optional name field — FIXED
+- H-SCAF-6: Scaffold mapper WARNING about per-query variants — FIXED (prominent WARNING block)
+- H-DOC-7: code-standards.md test example uses wrong handler constructor (NoopPublisher directly vs EventBus wrapper)
 - H-INFRA-2: search.NewClient returns (nil, nil) -- ACCEPTED (documented + Enabled() helper)
 - H-MW-1: Global 30s ContextTimeout may cancel context mid-transaction — DOCUMENTED (warning comment)
 ### MEDIUM (remaining)
+- M-R7-1: mail.ParseAddress accepts RFC 5322 display-name format; stored email correct but API behavior surprising
+- M-R7-2: No name length validation in domain entity (DB VARCHAR(255) is only guard)
+- M-R7-3: DomainError.Is code-only matching lacks identity-matching test/documentation
 - M-2: No login/logout endpoint despite full auth infrastructure
 - M-7: Swagger discoverSpecs silently swallows filepath.Walk errors
 - M-9: No RabbitMQ health check in /readyz
@@ -69,13 +78,25 @@
 - M-CFG-3: DB MaxConnIdleTime hardcoded 30m, not configurable via env
 - M-DC-1: ES version mismatch: dev compose 8.13.0 vs testutil 8.17.0
 - M-TEST-4: NewTestRabbitMQ doesn't check RABBITMQ_URL env var (unlike Postgres/Redis)
+- M-SCAF-3: Multi-word module names create package/directory name mismatch (root: main.go L241 + module.tmpl L1)
+- M-SCAF-4: Scaffold rollback doesn't clean intermediate directories from MkdirAll
+- M-SCAF-5: Scaffold RBAC injection assumes Connect naming convention (fragile)
+- M-SCAF-7: Missing handler_test.go and mapper_test.go templates for gRPC adapter
+- M-SCAF-9: domain_test ChangeName time assertion uses Before (should be After)
+- M-SCAF-12: Multi-word proto go_package produces underscore in package name
+- M-CFG-4: Config Load() does not validate negative DB pool sizes
+- M-CFG-5: Config String() omits RequestTimeout and DBMaxConnLifetime
+- M-EVT-5: No unit tests for EventBus.Publish or SubscriberFactory.Create
+- M-TEST-5: Integration test setupRepo() creates new testcontainer per test function (slow)
+- M-TEST-6: Blacklist integration test uses time.Sleep(2s) for TTL expiry (flaky)
+- M-ENV-1: No production .env example showing Redis password requirement
 ### LOW
 - Non-UUID strings as IDs in unit tests bypass parseUserID
 - Swagger UI CDN lacks SRI integrity hashes
-- DLQ declaration opens/closes separate AMQP connection at startup
-- code-standards.md test examples use testify but codebase uses stdlib testing
+- DLQ declaration opens/closes separate AMQP connection at startup (one-time, startup only)
 - Scaffold does not validate plural against reserved words
 - EventBus.Publish topic param is untyped string (typo-prone)
+- Scaffold ChangeName test uses weak time assertion (>=, not >)
 
 ## Test Coverage (2026-03-10, updated round 28)
 | Package | Coverage |
@@ -92,25 +113,24 @@
 | shared/retry | 0% (needs unit tests) |
 | shared/connectutil | 0% (needs tests) |
 
-## Review History (30 reports, 2026-03-10)
+## Review History (35 reports, 2026-03-10)
 See `review-history.md` for full report index.
-- Latest: Consolidated deep review (30) — 4 parallel reviewers
-- Report: `plans/reports/code-reviewer-260310-0847-consolidated-deep-review.md`
-- Sub-reports: architecture-dx-consistency, docs-accuracy-onboarding, shared-infra-security, scaffold-codegen-cicd
-- 57 issues total: 0C, 15H, 29M, 13L
-- Key themes: docs accuracy (6H), CI gaps (2H), scaffold gaps (2H), infra (5H)
+- Latest: HIGH fix verification (5 issues from round 7)
+- Report: `plans/reports/code-reviewer-260310-1130-high-issues-fix-verification.md`
+- All 5 HIGH fixes verified correct, 1 new M (double allocation in pwd preservation)
 
-## Docs Accuracy Status (2026-03-10 post-fix)
+## Docs Accuracy Status (2026-03-10 fresh review 31)
 - error-codes.md: VERIFIED ACCURATE
 - authentication.md: VERIFIED ACCURATE
 - event-subscribers.md: MOSTLY ACCURATE
 - testing-strategy.md: MOSTLY ACCURATE
-- architecture.md: FIXED — correct middleware order + request flow
-- code-standards.md: FIXED — per-query mapper pattern + constraint name check added
-- rbac.md: FIXED — clarified only RBACInterceptor enforces permissions
-- CLAUDE.md: FIXED — 8 commands added, fixtures corrected, 9/9 docs listed
+- architecture.md: VERIFIED ACCURATE (middleware order, request flow)
+- code-standards.md: BUG — test example line 683 uses wrong constructor (H-DOC-7)
+- rbac.md: VERIFIED ACCURATE
+- CLAUDE.md: VERIFIED ACCURATE
+- adding-a-module.md: VERIFIED ACCURATE (27 files, scaffold steps correct)
 
-## Overall Score: 9.0/10 (post-fix) | 15 HIGH issues resolved
+## Overall Score: 9.0/10 (review 35) | All HIGH issues now FIXED or ACCEPTED
 
 ## File Locations
 - Entry: `cmd/server/main.go`
