@@ -91,7 +91,7 @@ HTTP → Echo global middleware → Echo route group Auth middleware
 - **Domain entities use unexported fields** — construct via `NewX()`, mutate via methods, read via getters
 - **Repository is an interface in domain/** — implementation lives in `adapters/postgres/`
 - **Events published after DB persistence** — subscriber failures don't cascade to client
-- **Cursor-based pagination** — keyset (created_at + ID), fetch limit+1 to detect end
+- **Offset-based pagination** — page/page_size request, total/total_pages response
 
 ## Code Generation Pipeline
 

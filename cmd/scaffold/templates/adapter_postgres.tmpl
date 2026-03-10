@@ -41,24 +41,22 @@ func (r *Pg{{.NameTitle}}Repository) GetByID(ctx context.Context, id domain.{{.N
 	return toDomain(row), nil
 }
 
-// List returns a cursor-paginated list of {{.NamePlural}}.
-func (r *Pg{{.NameTitle}}Repository) List(ctx context.Context, limit int, cursor string) (domain.ListResult, error) {
+// List returns a paginated list of {{.NamePlural}} using offset pagination.
+func (r *Pg{{.NameTitle}}Repository) List(ctx context.Context, page, pageSize int) (domain.ListResult, error) {
 	q := sqlcgen.New(r.pool)
 
-	// Fetch limit+1 to detect whether more pages exist.
-	params := sqlcgen.List{{.NamePluralTitle}}Params{Limit: int32(limit + 1)}
-	if cursor != "" {
-		decoded, err := decodeCursor(cursor)
-		if err != nil {
-			return domain.ListResult{}, sharederr.New(sharederr.CodeInvalidArgument, "invalid pagination cursor")
-		}
-		params.CursorCreatedAt = pgtype.Timestamptz{Time: decoded.T, Valid: true}
-		params.CursorID = pgtype.UUID{Bytes: decoded.U, Valid: true}
-	}
-
-	rows, err := q.List{{.NamePluralTitle}}(ctx, params)
+	offset := (page - 1) * pageSize
+	rows, err := q.List{{.NamePluralTitle}}(ctx, sqlcgen.List{{.NamePluralTitle}}Params{
+		Limit:  int32(pageSize),
+		Offset: int32(offset),
+	})
 	if err != nil {
 		return domain.ListResult{}, fmt.Errorf("listing {{.NamePlural}}: %w", err)
+	}
+
+	total, err := q.Count{{.NamePluralTitle}}(ctx)
+	if err != nil {
+		return domain.ListResult{}, fmt.Errorf("counting {{.NamePlural}}: %w", err)
 	}
 
 	items := make([]*domain.{{.NameTitle}}, 0, len(rows))
@@ -66,29 +64,9 @@ func (r *Pg{{.NameTitle}}Repository) List(ctx context.Context, limit int, cursor
 		items = append(items, toDomain(row))
 	}
 
-	hasMore := len(items) > limit
-	if hasMore {
-		items = items[:limit]
-	}
-
-	var nextCursor string
-	if hasMore && len(items) > 0 {
-		last := items[len(items)-1]
-		uid, err := parse{{.NameTitle}}ID(last.ID())
-		if err != nil {
-			return domain.ListResult{}, fmt.Errorf("parsing {{.Name}} ID for cursor: %w", err)
-		}
-		cursor, err := encodeCursor(last.CreatedAt(), uid)
-		if err != nil {
-			return domain.ListResult{}, fmt.Errorf("encoding pagination cursor: %w", err)
-		}
-		nextCursor = cursor
-	}
-
 	return domain.ListResult{
 		{{.NamePluralTitle}}: items,
-		NextCursor:          nextCursor,
-		HasMore:             hasMore,
+		Total:               int(total),
 	}, nil
 }
 

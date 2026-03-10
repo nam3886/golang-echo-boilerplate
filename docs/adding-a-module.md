@@ -134,13 +134,15 @@ message GetProductRequest {
 message GetProductResponse { Product product = 1; }
 
 message ListProductsRequest {
-  int32 limit = 1 [(buf.validate.field).int32 = {gte: 1, lte: 100}];
-  string cursor = 2;
+  int32 page = 1 [(buf.validate.field).int32.gte = 1];
+  int32 page_size = 2 [(buf.validate.field).int32 = {gte: 1, lte: 100}];
 }
 message ListProductsResponse {
   repeated Product items = 1;
-  string next_cursor = 2;
-  bool has_more = 3;
+  int32 total = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+  int32 total_pages = 5;
 }
 ```
 
@@ -160,7 +162,7 @@ CREATE TABLE products (
 
 CREATE INDEX idx_products_active ON products (id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_products_name ON products (name) WHERE deleted_at IS NULL;
-CREATE INDEX idx_products_cursor ON products (created_at DESC, id DESC) WHERE deleted_at IS NULL;
+CREATE INDEX idx_products_pagination ON products (created_at DESC) WHERE deleted_at IS NULL;
 
 -- +goose Down
 DROP TABLE IF EXISTS products;
@@ -175,13 +177,14 @@ SELECT id, name, created_at, updated_at, deleted_at FROM products WHERE id = $1 
 -- name: GetProductByIDForUpdate :one
 SELECT id, name, created_at, updated_at, deleted_at FROM products WHERE id = $1 AND deleted_at IS NULL FOR UPDATE;
 
+-- name: CountProducts :one
+SELECT COUNT(*) FROM products WHERE deleted_at IS NULL;
+
 -- name: ListProducts :many
 SELECT id, name, created_at, updated_at, deleted_at FROM products
 WHERE deleted_at IS NULL
-  AND (sqlc.narg('cursor_created_at')::timestamptz IS NULL
-       OR (created_at, id) < (sqlc.narg('cursor_created_at'), sqlc.narg('cursor_id')::uuid))
-ORDER BY created_at DESC, id DESC
-LIMIT $1;
+ORDER BY created_at DESC
+LIMIT $1 OFFSET $2;
 
 -- name: CreateProduct :one
 INSERT INTO products (id, name) VALUES ($1, $2)
@@ -304,14 +307,13 @@ import "context"
 //go:generate mockgen -source=repository.go -destination=../../../shared/mocks/mock_product_repository.go -package=mocks
 
 type ListResult struct {
-    Products   []*Product
-    NextCursor string
-    HasMore    bool
+    Products []*Product
+    Total    int
 }
 
 type ProductRepository interface {
     GetByID(ctx context.Context, id ProductID) (*Product, error)
-    List(ctx context.Context, limit int, cursor string) (ListResult, error)
+    List(ctx context.Context, page, pageSize int) (ListResult, error)
     Create(ctx context.Context, p *Product) error
     Update(ctx context.Context, id ProductID, fn func(*Product) error) error
     SoftDelete(ctx context.Context, id ProductID) (*Product, error)

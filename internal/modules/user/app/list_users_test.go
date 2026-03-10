@@ -20,22 +20,19 @@ func TestListUsersHandler_Success(t *testing.T) {
 		domain.Reconstitute("id-2", "b@example.com", "B", "hash", domain.RoleAdmin, time.Now(), time.Now(), nil),
 	}
 	mockRepo.EXPECT().
-		List(gomock.Any(), 20, "").
-		Return(domain.ListResult{Users: users, NextCursor: "cursor-2", HasMore: true}, nil)
+		List(gomock.Any(), 1, 20).
+		Return(domain.ListResult{Users: users, Total: 5}, nil)
 
 	handler := NewListUsersHandler(mockRepo)
-	result, err := handler.Handle(context.Background(), 20, "")
+	result, err := handler.Handle(context.Background(), 1, 20)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if len(result.Users) != 2 {
 		t.Errorf("expected 2 users, got %d", len(result.Users))
 	}
-	if !result.HasMore {
-		t.Error("expected HasMore to be true")
-	}
-	if result.NextCursor != "cursor-2" {
-		t.Errorf("expected cursor-2, got %s", result.NextCursor)
+	if result.Total != 5 {
+		t.Errorf("expected total=5, got %d", result.Total)
 	}
 }
 
@@ -44,49 +41,49 @@ func TestListUsersHandler_EmptyResult(t *testing.T) {
 	mockRepo := mocks.NewMockUserRepository(ctrl)
 
 	mockRepo.EXPECT().
-		List(gomock.Any(), 20, "").
-		Return(domain.ListResult{Users: []*domain.User{}, NextCursor: "", HasMore: false}, nil)
+		List(gomock.Any(), 1, 20).
+		Return(domain.ListResult{Users: []*domain.User{}, Total: 0}, nil)
 
 	handler := NewListUsersHandler(mockRepo)
-	result, err := handler.Handle(context.Background(), 20, "")
+	result, err := handler.Handle(context.Background(), 1, 20)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if len(result.Users) != 0 {
 		t.Errorf("expected 0 users, got %d", len(result.Users))
 	}
-	if result.HasMore {
-		t.Error("expected HasMore to be false")
+	if result.Total != 0 {
+		t.Errorf("expected total=0, got %d", result.Total)
 	}
 }
 
-func TestListUsersHandler_DefaultLimit(t *testing.T) {
+func TestListUsersHandler_DefaultPageSize(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockRepo := mocks.NewMockUserRepository(ctrl)
 
-	// Limit 0 should default to 20
+	// pageSize 0 should default to 20
 	mockRepo.EXPECT().
-		List(gomock.Any(), 20, "").
+		List(gomock.Any(), 1, 20).
 		Return(domain.ListResult{}, nil)
 
 	handler := NewListUsersHandler(mockRepo)
-	_, err := handler.Handle(context.Background(), 0, "")
+	_, err := handler.Handle(context.Background(), 0, 0)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 }
 
-func TestListUsersHandler_LimitCappedAt100(t *testing.T) {
+func TestListUsersHandler_PageSizeCappedAt100(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockRepo := mocks.NewMockUserRepository(ctrl)
 
-	// Limit > 100 should be capped at 100
+	// pageSize > 100 should be capped at 100
 	mockRepo.EXPECT().
-		List(gomock.Any(), 100, "").
+		List(gomock.Any(), 1, 100).
 		Return(domain.ListResult{}, nil)
 
 	handler := NewListUsersHandler(mockRepo)
-	_, err := handler.Handle(context.Background(), 200, "")
+	_, err := handler.Handle(context.Background(), 1, 200)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -97,11 +94,11 @@ func TestListUsersHandler_RepoError(t *testing.T) {
 	mockRepo := mocks.NewMockUserRepository(ctrl)
 
 	mockRepo.EXPECT().
-		List(gomock.Any(), 20, "").
+		List(gomock.Any(), 1, 20).
 		Return(domain.ListResult{}, fmt.Errorf("db error"))
 
 	handler := NewListUsersHandler(mockRepo)
-	_, err := handler.Handle(context.Background(), 20, "")
+	_, err := handler.Handle(context.Background(), 1, 20)
 	if err == nil {
 		t.Fatal("expected repo error, got nil")
 	}

@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file user/v1/user.proto.
  */
 export const file_user_v1_user: GenFile = /*@__PURE__*/
-  fileDesc("ChJ1c2VyL3YxL3VzZXIucHJvdG8SB3VzZXIudjEinQEKBFVzZXISCgoCaWQYASABKAkSDQoFZW1haWwYAiABKAkSDAoEbmFtZRgDIAEoCRIMCgRyb2xlGAQgASgJEi4KCmNyZWF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIo4BChFDcmVhdGVVc2VyUmVxdWVzdBIWCgVlbWFpbBgBIAEoCUIHukgEcgJgARIYCgRuYW1lGAIgASgJQgq6SAdyBRABGP8BEhsKCHBhc3N3b3JkGAMgASgJQgm6SAZyBBAIGEgSKgoEcm9sZRgEIAEoCUIcukgZchdSBWFkbWluUgZtZW1iZXJSBnZpZXdlciIxChJDcmVhdGVVc2VyUmVzcG9uc2USGwoEdXNlchgBIAEoCzINLnVzZXIudjEuVXNlciImCg5HZXRVc2VyUmVxdWVzdBIUCgJpZBgBIAEoCUIIukgFcgOwAQEiLgoPR2V0VXNlclJlc3BvbnNlEhsKBHVzZXIYASABKAsyDS51c2VyLnYxLlVzZXIiPAoQTGlzdFVzZXJzUmVxdWVzdBIYCgVsaW1pdBgBIAEoBUIJukgGGgQYZCgBEg4KBmN1cnNvchgCIAEoCSJYChFMaXN0VXNlcnNSZXNwb25zZRIcCgVpdGVtcxgBIAMoCzINLnVzZXIudjEuVXNlchITCgtuZXh0X2N1cnNvchgCIAEoCRIQCghoYXNfbW9yZRgDIAEoCCKyAQoRVXBkYXRlVXNlclJlcXVlc3QSFAoCaWQYASABKAlCCLpIBXIDsAEBEh0KBG5hbWUYAiABKAlCCrpIB3IFEAEY/wFIAIgBARIvCgRyb2xlGAMgASgJQhy6SBlyF1IFYWRtaW5SBm1lbWJlclIGdmlld2VySAGIAQESGwoFZW1haWwYBCABKAlCB7pIBHICYAFIAogBAUIHCgVfbmFtZUIHCgVfcm9sZUIICgZfZW1haWwiMQoSVXBkYXRlVXNlclJlc3BvbnNlEhsKBHVzZXIYASABKAsyDS51c2VyLnYxLlVzZXIiKQoRRGVsZXRlVXNlclJlcXVlc3QSFAoCaWQYASABKAlCCLpIBXIDsAEBIhQKEkRlbGV0ZVVzZXJSZXNwb25zZTLkAgoLVXNlclNlcnZpY2USPAoHR2V0VXNlchIXLnVzZXIudjEuR2V0VXNlclJlcXVlc3QaGC51c2VyLnYxLkdldFVzZXJSZXNwb25zZRJCCglMaXN0VXNlcnMSGS51c2VyLnYxLkxpc3RVc2Vyc1JlcXVlc3QaGi51c2VyLnYxLkxpc3RVc2Vyc1Jlc3BvbnNlEkUKCkNyZWF0ZVVzZXISGi51c2VyLnYxLkNyZWF0ZVVzZXJSZXF1ZXN0GhsudXNlci52MS5DcmVhdGVVc2VyUmVzcG9uc2USRQoKVXBkYXRlVXNlchIaLnVzZXIudjEuVXBkYXRlVXNlclJlcXVlc3QaGy51c2VyLnYxLlVwZGF0ZVVzZXJSZXNwb25zZRJFCgpEZWxldGVVc2VyEhoudXNlci52MS5EZWxldGVVc2VyUmVxdWVzdBobLnVzZXIudjEuRGVsZXRlVXNlclJlc3BvbnNlQkJaQGdpdGh1Yi5jb20vZ25oYS9nb2xhbmctZWNoby1ib2lsZXJwbGF0ZS9nZW4vcHJvdG8vdXNlci92MTt1c2VydjFiBnByb3RvMw", [file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("ChJ1c2VyL3YxL3VzZXIucHJvdG8SB3VzZXIudjEinQEKBFVzZXISCgoCaWQYASABKAkSDQoFZW1haWwYAiABKAkSDAoEbmFtZRgDIAEoCRIMCgRyb2xlGAQgASgJEi4KCmNyZWF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIo4BChFDcmVhdGVVc2VyUmVxdWVzdBIWCgVlbWFpbBgBIAEoCUIHukgEcgJgARIYCgRuYW1lGAIgASgJQgq6SAdyBRABGP8BEhsKCHBhc3N3b3JkGAMgASgJQgm6SAZyBBAIGEgSKgoEcm9sZRgEIAEoCUIcukgZchdSBWFkbWluUgZtZW1iZXJSBnZpZXdlciIxChJDcmVhdGVVc2VyUmVzcG9uc2USGwoEdXNlchgBIAEoCzINLnVzZXIudjEuVXNlciImCg5HZXRVc2VyUmVxdWVzdBIUCgJpZBgBIAEoCUIIukgFcgOwAQEiLgoPR2V0VXNlclJlc3BvbnNlEhsKBHVzZXIYASABKAsyDS51c2VyLnYxLlVzZXIiRwoQTGlzdFVzZXJzUmVxdWVzdBIVCgRwYWdlGAEgASgFQge6SAQaAigBEhwKCXBhZ2Vfc2l6ZRgCIAEoBUIJukgGGgQYZCgBInYKEUxpc3RVc2Vyc1Jlc3BvbnNlEhwKBWl0ZW1zGAEgAygLMg0udXNlci52MS5Vc2VyEg0KBXRvdGFsGAIgASgFEgwKBHBhZ2UYAyABKAUSEQoJcGFnZV9zaXplGAQgASgFEhMKC3RvdGFsX3BhZ2VzGAUgASgFIrIBChFVcGRhdGVVc2VyUmVxdWVzdBIUCgJpZBgBIAEoCUIIukgFcgOwAQESHQoEbmFtZRgCIAEoCUIKukgHcgUQARj/AUgAiAEBEi8KBHJvbGUYAyABKAlCHLpIGXIXUgVhZG1pblIGbWVtYmVyUgZ2aWV3ZXJIAYgBARIbCgVlbWFpbBgEIAEoCUIHukgEcgJgAUgCiAEBQgcKBV9uYW1lQgcKBV9yb2xlQggKBl9lbWFpbCIxChJVcGRhdGVVc2VyUmVzcG9uc2USGwoEdXNlchgBIAEoCzINLnVzZXIudjEuVXNlciIpChFEZWxldGVVc2VyUmVxdWVzdBIUCgJpZBgBIAEoCUIIukgFcgOwAQEiFAoSRGVsZXRlVXNlclJlc3BvbnNlMuQCCgtVc2VyU2VydmljZRI8CgdHZXRVc2VyEhcudXNlci52MS5HZXRVc2VyUmVxdWVzdBoYLnVzZXIudjEuR2V0VXNlclJlc3BvbnNlEkIKCUxpc3RVc2VycxIZLnVzZXIudjEuTGlzdFVzZXJzUmVxdWVzdBoaLnVzZXIudjEuTGlzdFVzZXJzUmVzcG9uc2USRQoKQ3JlYXRlVXNlchIaLnVzZXIudjEuQ3JlYXRlVXNlclJlcXVlc3QaGy51c2VyLnYxLkNyZWF0ZVVzZXJSZXNwb25zZRJFCgpVcGRhdGVVc2VyEhoudXNlci52MS5VcGRhdGVVc2VyUmVxdWVzdBobLnVzZXIudjEuVXBkYXRlVXNlclJlc3BvbnNlEkUKCkRlbGV0ZVVzZXISGi51c2VyLnYxLkRlbGV0ZVVzZXJSZXF1ZXN0GhsudXNlci52MS5EZWxldGVVc2VyUmVzcG9uc2VCQlpAZ2l0aHViLmNvbS9nbmhhL2dvbGFuZy1lY2hvLWJvaWxlcnBsYXRlL2dlbi9wcm90by91c2VyL3YxO3VzZXJ2MWIGcHJvdG8z", [file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message user.v1.User
@@ -145,14 +145,14 @@ export const GetUserResponseSchema: GenMessage<GetUserResponse> = /*@__PURE__*/
  */
 export type ListUsersRequest = Message<"user.v1.ListUsersRequest"> & {
   /**
-   * @generated from field: int32 limit = 1;
+   * @generated from field: int32 page = 1;
    */
-  limit: number;
+  page: number;
 
   /**
-   * @generated from field: string cursor = 2;
+   * @generated from field: int32 page_size = 2;
    */
-  cursor: string;
+  pageSize: number;
 };
 
 /**
@@ -172,14 +172,24 @@ export type ListUsersResponse = Message<"user.v1.ListUsersResponse"> & {
   items: User[];
 
   /**
-   * @generated from field: string next_cursor = 2;
+   * @generated from field: int32 total = 2;
    */
-  nextCursor: string;
+  total: number;
 
   /**
-   * @generated from field: bool has_more = 3;
+   * @generated from field: int32 page = 3;
    */
-  hasMore: boolean;
+  page: number;
+
+  /**
+   * @generated from field: int32 page_size = 4;
+   */
+  pageSize: number;
+
+  /**
+   * @generated from field: int32 total_pages = 5;
+   */
+  totalPages: number;
 };
 
 /**

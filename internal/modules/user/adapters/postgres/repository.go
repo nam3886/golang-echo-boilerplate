@@ -9,7 +9,6 @@ import (
 	sqlcgen "github.com/gnha/golang-echo-boilerplate/gen/sqlc"
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
 	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -54,24 +53,22 @@ func (r *PgUserRepository) GetByEmail(ctx context.Context, email string) (*domai
 	return toDomain(row), nil
 }
 
-// List returns a paginated list of users.
-func (r *PgUserRepository) List(ctx context.Context, limit int, cursor string) (domain.ListResult, error) {
+// List returns a paginated list of users using offset pagination.
+func (r *PgUserRepository) List(ctx context.Context, page, pageSize int) (domain.ListResult, error) {
 	q := sqlcgen.New(r.pool)
 
-	// Fetch limit+1 to detect whether more pages exist.
-	params := sqlcgen.ListUsersParams{Limit: int32(limit + 1)}
-	if cursor != "" {
-		decoded, err := decodeCursor(cursor)
-		if err != nil {
-			return domain.ListResult{}, sharederr.New(sharederr.CodeInvalidArgument, "invalid pagination cursor")
-		}
-		params.CursorCreatedAt = pgtype.Timestamptz{Time: decoded.T, Valid: true}
-		params.CursorID = pgtype.UUID{Bytes: decoded.U, Valid: true}
-	}
-
-	rows, err := q.ListUsers(ctx, params)
+	offset := (page - 1) * pageSize
+	rows, err := q.ListUsers(ctx, sqlcgen.ListUsersParams{
+		Limit:  int32(pageSize),
+		Offset: int32(offset),
+	})
 	if err != nil {
 		return domain.ListResult{}, fmt.Errorf("listing users: %w", err)
+	}
+
+	total, err := q.CountUsers(ctx)
+	if err != nil {
+		return domain.ListResult{}, fmt.Errorf("counting users: %w", err)
 	}
 
 	users := make([]*domain.User, 0, len(rows))
@@ -79,29 +76,9 @@ func (r *PgUserRepository) List(ctx context.Context, limit int, cursor string) (
 		users = append(users, toDomainFromListRow(row))
 	}
 
-	hasMore := len(users) > limit
-	if hasMore {
-		users = users[:limit]
-	}
-
-	var nextCursor string
-	if hasMore && len(users) > 0 {
-		last := users[len(users)-1]
-		uid, err := uuid.Parse(string(last.ID()))
-		if err != nil {
-			return domain.ListResult{}, fmt.Errorf("parsing user ID for cursor: %w", err)
-		}
-		cursor, err := encodeCursor(last.CreatedAt(), uid)
-		if err != nil {
-			return domain.ListResult{}, fmt.Errorf("encoding pagination cursor: %w", err)
-		}
-		nextCursor = cursor
-	}
-
 	return domain.ListResult{
-		Users:      users,
-		NextCursor: nextCursor,
-		HasMore:    hasMore,
+		Users: users,
+		Total: int(total),
 	}, nil
 }
 

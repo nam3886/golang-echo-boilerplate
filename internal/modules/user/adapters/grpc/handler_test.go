@@ -113,11 +113,10 @@ func TestHandler_ListUsers_Pagination(t *testing.T) {
 	u2 := makeUser("id-2", "b@example.com", "Bob", domain.RoleViewer)
 
 	mockRepo.EXPECT().
-		List(gomock.Any(), 2, "").
+		List(gomock.Any(), 1, 2).
 		Return(domain.ListResult{
-			Users:      []*domain.User{u1, u2},
-			NextCursor: "cursor-abc",
-			HasMore:    true,
+			Users: []*domain.User{u1, u2},
+			Total: 5,
 		}, nil)
 
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
@@ -130,7 +129,8 @@ func TestHandler_ListUsers_Pagination(t *testing.T) {
 	h := buildHandler(create, get, list, update, del)
 
 	resp, err := h.ListUsers(context.Background(), connect.NewRequest(&userv1.ListUsersRequest{
-		Limit: 2,
+		Page:     1,
+		PageSize: 2,
 	}))
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -138,11 +138,14 @@ func TestHandler_ListUsers_Pagination(t *testing.T) {
 	if len(resp.Msg.Items) != 2 {
 		t.Errorf("expected 2 items, got %d", len(resp.Msg.Items))
 	}
-	if !resp.Msg.HasMore {
-		t.Error("expected HasMore=true")
+	if resp.Msg.Total != 5 {
+		t.Errorf("expected total=5, got %d", resp.Msg.Total)
 	}
-	if resp.Msg.NextCursor != "cursor-abc" {
-		t.Errorf("expected NextCursor=cursor-abc, got %s", resp.Msg.NextCursor)
+	if resp.Msg.Page != 1 {
+		t.Errorf("expected page=1, got %d", resp.Msg.Page)
+	}
+	if resp.Msg.TotalPages != 3 {
+		t.Errorf("expected totalPages=3, got %d", resp.Msg.TotalPages)
 	}
 }
 

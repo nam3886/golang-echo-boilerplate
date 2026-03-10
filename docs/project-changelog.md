@@ -133,17 +133,17 @@ All notable changes to GNHA Services are documented here.
 
 ### Added
 - **Event System Enhancement** — All domain events (UserCreatedEvent, UserUpdatedEvent, UserDeletedEvent) now include ActorID field for complete audit trail correlation
-- **Pagination Support** — User listing endpoint implements cursor-based pagination with hasMore indicator for efficient data retrieval
+- **Pagination Support** — User listing endpoint implements offset-based pagination with page/page_size request and total/total_pages response
 - **Input Validation** — protovalidate interceptor integrated into Connect RPC handler stack for declarative request validation
 
 ### Changed
-- **Repository Pagination** — List method signature updated to return (users, nextCursor, hasMore, error) with internal limit+1 probing for efficient page boundary detection
+- **Repository Pagination** — List method signature updated to `List(ctx, page, pageSize int)` returning `ListResult{Users, Total}`; SQL uses LIMIT/OFFSET + COUNT query
 - **Error Handling** — SoftDelete now returns ErrNotFound when user doesn't exist (previously silent no-op)
 - **Event Publishing** — Update and Delete handlers now publish UserUpdatedEvent and UserDeletedEvent respectively, with ActorID extracted from authentication context
 - **Repository Constraint Handling** — Create handler catches Postgres 23505 (unique violation) and maps to domain.ErrEmailTaken for clean error semantics
 
 ### Fixed
-- **Pagination Probe Efficiency** — Repository internally fetches limit+1 records to detect page boundaries, reducing extra database queries
+- **Pagination Switch** — Replaced cursor-based keyset pagination with offset pagination; removed cursor.go encoding/decoding
 - **Soft Delete Idempotency** — SoftDelete properly signals non-existence vs. internal errors for correct client-side error handling
 
 ---

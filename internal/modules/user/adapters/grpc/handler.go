@@ -61,7 +61,7 @@ func (h *UserServiceHandler) GetUser(ctx context.Context, req *connect.Request[u
 }
 
 func (h *UserServiceHandler) ListUsers(ctx context.Context, req *connect.Request[userv1.ListUsersRequest]) (*connect.Response[userv1.ListUsersResponse], error) {
-	result, err := h.listUsers.Handle(ctx, int(req.Msg.Limit), req.Msg.Cursor)
+	result, err := h.listUsers.Handle(ctx, int(req.Msg.Page), int(req.Msg.PageSize))
 	if err != nil {
 		return nil, connectutil.DomainErrorToConnect(err)
 	}
@@ -71,10 +71,17 @@ func (h *UserServiceHandler) ListUsers(ctx context.Context, req *connect.Request
 		items = append(items, toProto(u))
 	}
 
+	var totalPages int32
+	if req.Msg.PageSize > 0 {
+		totalPages = int32((int64(result.Total) + int64(req.Msg.PageSize) - 1) / int64(req.Msg.PageSize))
+	}
+
 	return connect.NewResponse(&userv1.ListUsersResponse{
 		Items:      items,
-		NextCursor: result.NextCursor,
-		HasMore:    result.HasMore,
+		Total:      int32(result.Total),
+		Page:       req.Msg.Page,
+		PageSize:   req.Msg.PageSize,
+		TotalPages: totalPages,
 	}), nil
 }
 

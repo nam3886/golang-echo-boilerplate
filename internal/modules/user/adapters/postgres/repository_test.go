@@ -121,30 +121,27 @@ func TestPgUserRepository_List_Pagination(t *testing.T) {
 		}
 	}
 
-	// List with limit=2 → should get 2 users + hasMore=true
-	res1, err := repo.List(ctx, 2, "")
+	// Page 1 with pageSize=2 → should get 2 users + total=3
+	res1, err := repo.List(ctx, 1, 2)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
 	if len(res1.Users) != 2 {
 		t.Errorf("expected 2 users, got %d", len(res1.Users))
 	}
-	if !res1.HasMore {
-		t.Error("expected hasMore=true")
-	}
-	if res1.NextCursor == "" {
-		t.Error("expected non-empty cursor")
+	if res1.Total != 3 {
+		t.Errorf("expected total=3, got %d", res1.Total)
 	}
 
-	// Next page with cursor → should get 1 user + hasMore=false
-	res2, err := repo.List(ctx, 2, res1.NextCursor)
+	// Page 2 → should get 1 user + total=3
+	res2, err := repo.List(ctx, 2, 2)
 	if err != nil {
 		t.Fatalf("List page 2: %v", err)
 	}
 	if len(res2.Users) != 1 {
 		t.Errorf("expected 1 user on page 2, got %d", len(res2.Users))
 	}
-	if res2.HasMore {
-		t.Error("expected hasMore=false on last page")
+	if res2.Total != 3 {
+		t.Errorf("expected total=3, got %d", res2.Total)
 	}
 }

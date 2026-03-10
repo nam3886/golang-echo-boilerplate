@@ -39,14 +39,16 @@ message Get{{.NameTitle}}Response {
 }
 
 message List{{.NamePluralTitle}}Request {
-  int32 limit = 1 [(buf.validate.field).int32 = {gte: 1, lte: 100}];
-  string cursor = 2;
+  int32 page = 1 [(buf.validate.field).int32 = {gte: 1}];
+  int32 page_size = 2 [(buf.validate.field).int32 = {gte: 1, lte: 100}];
 }
 
 message List{{.NamePluralTitle}}Response {
   repeated {{.NameTitle}} items = 1;
-  string next_cursor = 2;
-  bool has_more = 3;
+  int32 total = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+  int32 total_pages = 5;
 }
 
 message Update{{.NameTitle}}Request {

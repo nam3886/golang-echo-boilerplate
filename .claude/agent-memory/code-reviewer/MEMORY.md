@@ -22,8 +22,9 @@
 - Closure-based `Update(ctx, id, func(*Entity) error)` for transactional UoW in repos
 - SoftDelete uses single `UPDATE ... RETURNING` (no TOCTOU race)
 - Auth middleware on route groups; all RBAC via RBACInterceptor per procedure (no RequirePermission on group)
-- Cursor-based pagination with base64-encoded JSON cursors (keyset: created_at DESC, id DESC)
-- Cursor validation: rejects zero time or nil UUID
+- Offset-based pagination: page/pageSize params, ListResult{Users, Total}, totalPages computed in gRPC handler
+- Proto validation: page >= 1, page_size in [1, 100]; app layer has defense-in-depth defaults
+- COUNT(*) runs as separate query (not transactional with ListUsers) -- documented trade-off
 - Config String() uses strings.Builder (not positional fmt.Sprintf)
 - Exponential backoff in retry.Connect: `1<<uint(i)` seconds, capped at 30s
 - isPermanentSMTPError uses textproto.Error type assertion (not string matching)
@@ -130,9 +131,9 @@
 
 ## Review History (37 reports, 2026-03-10)
 See `review-history.md` for full report index.
-- Latest: Round 8b — proto/SQL/deploy/swagger/seed/go.mod
-- Report: `plans/reports/code-reviewer-260310-round8-proto-sql-deploy.md`
-- 1 HIGH (empty OpenAPI spec), 6 MEDIUM, 4 LOW. H-R8-2/M-R8-1 verified OK.
+- Latest: Offset pagination review
+- Report: `plans/reports/code-reviewer-260310-1903-offset-pagination-review.md`
+- 1 HIGH (stale docs), 4 MEDIUM, 2 LOW. Code implementation correct.
 
 ## Key Verified Facts (round 8b)
 - Repo Update() handles 23505 uniqueness violation at line 177 -> ErrEmailTaken
@@ -149,8 +150,10 @@ See `review-history.md` for full report index.
 - architecture.md: VERIFIED ACCURATE (middleware order, request flow)
 - code-standards.md: BUG — test example line 683 uses wrong constructor (H-DOC-7)
 - rbac.md: VERIFIED ACCURATE
-- CLAUDE.md: VERIFIED ACCURATE
-- adding-a-module.md: VERIFIED ACCURATE (27 files, scaffold steps correct)
+- CLAUDE.md: STALE — line 94 still says cursor-based pagination
+- adding-a-module.md: STALE — proto/SQL/domain examples still show cursor-based pagination
+- code-standards.md: STALE — "Cursor-Based Pagination Pattern" section needs full rewrite to offset
+- project-changelog.md: STALE — describes cursor-based pagination as implemented feature
 
 ## Overall Score: 9.0/10 (review 35) | All HIGH issues now FIXED or ACCEPTED
 

@@ -112,7 +112,6 @@ func main() {
 		{"app_delete.tmpl", filepath.Join("internal", "modules", data.Name, "app", "delete_"+data.Name+".go")},
 		{"app_delete_test.tmpl", filepath.Join("internal", "modules", data.Name, "app", "delete_"+data.Name+"_test.go")},
 		{"adapter_postgres.tmpl", filepath.Join("internal", "modules", data.Name, "adapters", "postgres", "repository.go")},
-		{"adapter_postgres_cursor.tmpl", filepath.Join("internal", "modules", data.Name, "adapters", "postgres", "cursor.go")},
 		{"adapter_postgres_mapper.tmpl", filepath.Join("internal", "modules", data.Name, "adapters", "postgres", "domain_mapper.go")},
 		{"adapter_postgres_test.tmpl", filepath.Join("internal", "modules", data.Name, "adapters", "postgres", "repository_test.go")},
 		{"adapter_grpc_handler.tmpl", filepath.Join("internal", "modules", data.Name, "adapters", "grpc", "handler.go")},

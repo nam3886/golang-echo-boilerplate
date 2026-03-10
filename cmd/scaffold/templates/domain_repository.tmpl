@@ -8,8 +8,7 @@ import "context"
 // Convention: use the entity-specific plural field name (e.g. Users, Products) — not Items.
 type ListResult struct {
 	{{.NamePluralTitle}} []*{{.NameTitle}}
-	NextCursor          string
-	HasMore             bool
+	Total               int
 }
 
 // {{.NameTitle}}Repository is the port for {{.Name}} persistence.
@@ -17,7 +16,7 @@ type ListResult struct {
 // These enable uniqueness pre-checks and alternative access patterns beyond ID.
 type {{.NameTitle}}Repository interface {
 	GetByID(ctx context.Context, id {{.NameID}}) (*{{.NameTitle}}, error)
-	List(ctx context.Context, limit int, cursor string) (ListResult, error)
+	List(ctx context.Context, page, pageSize int) (ListResult, error)
 	Create(ctx context.Context, entity *{{.NameTitle}}) error
 	Update(ctx context.Context, id {{.NameID}}, fn func(*{{.NameTitle}}) error) error
 	SoftDelete(ctx context.Context, id {{.NameID}}) (*{{.NameTitle}}, error)

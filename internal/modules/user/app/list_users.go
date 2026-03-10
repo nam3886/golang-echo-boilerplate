@@ -7,7 +7,7 @@ import (
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
 )
 
-// ListUsersHandler handles listing users with cursor pagination.
+// ListUsersHandler handles listing users with offset pagination.
 type ListUsersHandler struct {
 	repo domain.UserRepository
 }
@@ -18,15 +18,18 @@ func NewListUsersHandler(repo domain.UserRepository) *ListUsersHandler {
 }
 
 // Handle returns a paginated list of users.
-func (h *ListUsersHandler) Handle(ctx context.Context, limit int, cursor string) (domain.ListResult, error) {
-	if limit <= 0 {
-		limit = 20
+func (h *ListUsersHandler) Handle(ctx context.Context, page, pageSize int) (domain.ListResult, error) {
+	if page <= 0 {
+		page = 1
 	}
-	if limit > 100 {
-		limit = 100
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+	if pageSize > 100 {
+		pageSize = 100
 	}
 
-	result, err := h.repo.List(ctx, limit, cursor)
+	result, err := h.repo.List(ctx, page, pageSize)
 	if err != nil {
 		return domain.ListResult{}, fmt.Errorf("listing users: %w", err)
 	}

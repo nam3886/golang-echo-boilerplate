@@ -7,7 +7,7 @@ import (
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
 )
 
-// List{{.NamePluralTitle}}Handler handles listing {{.NamePlural}} with cursor pagination.
+// List{{.NamePluralTitle}}Handler handles listing {{.NamePlural}} with offset pagination.
 type List{{.NamePluralTitle}}Handler struct {
 	repo domain.{{.NameTitle}}Repository
 }
@@ -18,15 +18,18 @@ func NewList{{.NamePluralTitle}}Handler(repo domain.{{.NameTitle}}Repository) *L
 }
 
 // Handle returns a paginated list of {{.NamePlural}}.
-func (h *List{{.NamePluralTitle}}Handler) Handle(ctx context.Context, limit int, cursor string) (domain.ListResult, error) {
-	if limit <= 0 {
-		limit = 20
+func (h *List{{.NamePluralTitle}}Handler) Handle(ctx context.Context, page, pageSize int) (domain.ListResult, error) {
+	if page <= 0 {
+		page = 1
 	}
-	if limit > 100 {
-		limit = 100
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+	if pageSize > 100 {
+		pageSize = 100
 	}
 
-	result, err := h.repo.List(ctx, limit, cursor)
+	result, err := h.repo.List(ctx, page, pageSize)
 	if err != nil {
 		return domain.ListResult{}, fmt.Errorf("listing {{.NamePlural}}: %w", err)
 	}

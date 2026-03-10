@@ -13,6 +13,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countUsers = `-- name: CountUsers :one
+SELECT count(*) FROM users WHERE deleted_at IS NULL
+`
+
+func (q *Queries) CountUsers(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, countUsers)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (id, email, name, password, role)
 VALUES ($1, $2, $3, $4, $5)
@@ -132,16 +143,13 @@ func (q *Queries) GetUserByIDForUpdate(ctx context.Context, id uuid.UUID) (User,
 const listUsers = `-- name: ListUsers :many
 SELECT id, email, name, role, created_at, updated_at, deleted_at FROM users
 WHERE deleted_at IS NULL
-  AND ($2::timestamptz IS NULL
-       OR (created_at, id) < ($2, $3::uuid))
 ORDER BY created_at DESC, id DESC
-LIMIT $1
+LIMIT $1 OFFSET $2
 `
 
 type ListUsersParams struct {
-	Limit           int32              `json:"limit"`
-	CursorCreatedAt pgtype.Timestamptz `json:"cursor_created_at"`
-	CursorID        pgtype.UUID        `json:"cursor_id"`
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
 }
 
 type ListUsersRow struct {
@@ -155,7 +163,7 @@ type ListUsersRow struct {
 }
 
 func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]ListUsersRow, error) {
-	rows, err := q.db.Query(ctx, listUsers, arg.Limit, arg.CursorCreatedAt, arg.CursorID)
+	rows, err := q.db.Query(ctx, listUsers, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}

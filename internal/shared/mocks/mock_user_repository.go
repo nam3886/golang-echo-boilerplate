@@ -86,18 +86,18 @@ func (mr *MockUserRepositoryMockRecorder) GetByID(ctx, id any) *gomock.Call {
 }
 
 // List mocks base method.
-func (m *MockUserRepository) List(ctx context.Context, limit int, cursor string) (domain.ListResult, error) {
+func (m *MockUserRepository) List(ctx context.Context, page, pageSize int) (domain.ListResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "List", ctx, limit, cursor)
+	ret := m.ctrl.Call(m, "List", ctx, page, pageSize)
 	ret0, _ := ret[0].(domain.ListResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // List indicates an expected call of List.
-func (mr *MockUserRepositoryMockRecorder) List(ctx, limit, cursor any) *gomock.Call {
+func (mr *MockUserRepositoryMockRecorder) List(ctx, page, pageSize any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockUserRepository)(nil).List), ctx, limit, cursor)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockUserRepository)(nil).List), ctx, page, pageSize)
 }
 
 // SoftDelete mocks base method.

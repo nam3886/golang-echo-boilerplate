@@ -221,15 +221,14 @@ Repositories abstract persistence:
 
 ```go
 type ListResult struct {
-    Users      []*User
-    NextCursor string
-    HasMore    bool
+    Users []*User
+    Total int
 }
 
 type UserRepository interface {
     GetByID(ctx context.Context, id UserID) (*User, error)
     GetByEmail(ctx context.Context, email string) (*User, error)
-    List(ctx context.Context, limit int, cursor string) (ListResult, error)
+    List(ctx context.Context, page, pageSize int) (ListResult, error)
     Create(ctx context.Context, user *User) error
     Update(ctx context.Context, id UserID, fn func(*User) error) error
     SoftDelete(ctx context.Context, id UserID) (*User, error)
@@ -239,7 +238,7 @@ type UserRepository interface {
 **Key Patterns:**
 
 - **Get methods** return `ErrNotFound` when resource doesn't exist
-- **List** returns `(users, nextCursor, hasMore, error)` with cursor-based pagination; implementation probes with `limit+1` internally to detect page boundaries
+- **List** returns `ListResult{Users, Total}` with offset-based pagination; accepts `page` and `pageSize`, executes LIMIT/OFFSET + COUNT query
 - **Create** may catch database constraint errors (e.g., Postgres 23505 for uniqueness) and map to domain errors
 - **Update** accepts a closure to apply mutations within a transaction; publishes events after successful persistence
 - **SoftDelete** marks record as deleted, returns the deleted entity for event publishing; returns `ErrNotFound` if the user doesn't exist
@@ -611,27 +610,26 @@ json.Unmarshal(msg.Payload, &event)
 
 ## Pagination
 
-### Cursor-Based Pagination Pattern
+### Offset-Based Pagination Pattern
 
-List endpoints use cursor-based pagination for efficient large-dataset traversal:
+List endpoints use offset-based pagination with total count:
 
 ```go
 // Repository signature
-List(ctx context.Context, limit int, cursor string) (ListResult, error)
-// Returns: (ListResult{Users, NextCursor, HasMore}, error)
+List(ctx context.Context, page, pageSize int) (ListResult, error)
+// Returns: (ListResult{Users []*User, Total int}, error)
 ```
 
 **Implementation Details:**
-- Internally fetches `limit+1` records to detect whether more pages exist
-- Avoids extra COUNT queries or offset calculations
-- Returns `nextCursor` only if `hasMore` is true
-- Cursor is an opaque base64-encoded string containing timestamp+UUID for keyset pagination
+- SQL: `LIMIT $1 OFFSET $2` with a separate `COUNT(*)` query
+- `page` is 1-indexed; `pageSize` range 1–100
+- Caller derives `total_pages` as `ceil(Total / pageSize)`
 
 **Usage Pattern:**
-1. Client requests: `List(limit: 20, cursor: "")`
-2. Repository returns: `([20 users], "cursor-abc...", true, nil)`
-3. Client requests next page: `List(limit: 20, cursor: "cursor-abc...")`
-4. When `hasMore == false`, pagination is complete
+1. Client requests: `List(page: 1, pageSize: 20)`
+2. Repository returns: `ListResult{Users: [...], Total: 85}`
+3. Client computes `total_pages = ceil(85/20) = 5`
+4. Client requests next page: `List(page: 2, pageSize: 20)`
 
 ## Testing Conventions
 
