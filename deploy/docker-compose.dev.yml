@@ -70,7 +70,7 @@ services:
       - "1025:1025"
       - "8025:8025"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8025/api/v1/info"]
+      test: ["CMD", "/mailpit", "readyz"]
       interval: 10s
       timeout: 3s
       retries: 3

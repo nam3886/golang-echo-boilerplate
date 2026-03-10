@@ -4,12 +4,12 @@ RUN apk add --no-cache git ca-certificates tzdata
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
+RUN go install github.com/pressly/goose/v3/cmd/goose@v3.24.3
 COPY . .
 ARG VERSION=dev
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -ldflags="-s -w -X main.Version=${VERSION}" \
     -o /server ./cmd/server
-RUN go install github.com/pressly/goose/v3/cmd/goose@v3.24.3
 
 # Stage 2: Runtime
 FROM alpine:3.21

@@ -9,9 +9,8 @@ import (
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/adapters/postgres"
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
-	"github.com/gnha/golang-echo-boilerplate/internal/shared/config"
-	"github.com/gnha/golang-echo-boilerplate/internal/shared/database"
 	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type seedUser struct {
@@ -28,13 +27,15 @@ var seedUsers = []seedUser{
 }
 
 func main() {
-	cfg, err := config.Load()
-	if err != nil {
-		slog.Error("loading config", "err", err)
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		slog.Error("DATABASE_URL environment variable is required")
 		os.Exit(1)
 	}
 
-	pool, err := database.NewPostgresPool(cfg)
+	ctx := context.Background()
+
+	pool, err := pgxpool.New(ctx, dbURL)
 	if err != nil {
 		slog.Error("connecting to postgres", "err", err)
 		os.Exit(1)
@@ -43,7 +44,6 @@ func main() {
 
 	repo := postgres.NewPgUserRepository(pool)
 	hasher := auth.NewPasswordHasher()
-	ctx := context.Background()
 
 	slog.Info("starting database seed")
 
@@ -57,6 +57,9 @@ func main() {
 	slog.Info("seed completed successfully")
 }
 
+// NOTE: Seed uses direct repo.Create() for speed — no events published.
+// Elasticsearch index will NOT be updated by seeding.
+// If using search, run a manual reindex after seeding.
 func seedOne(ctx context.Context, repo domain.UserRepository, hasher auth.PasswordHasher, s seedUser) error {
 	existing, err := repo.GetByEmail(ctx, s.email)
 	if err != nil && !errors.Is(err, sharederr.ErrNotFound()) {

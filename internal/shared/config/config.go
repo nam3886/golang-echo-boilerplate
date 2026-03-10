@@ -120,6 +120,8 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "DatabaseURL:%s ", maskURL(c.DatabaseURL))
 	fmt.Fprintf(&b, "DBMaxConns:%d ", c.DBMaxConns)
 	fmt.Fprintf(&b, "DBMinConns:%d ", c.DBMinConns)
+	fmt.Fprintf(&b, "DBMaxConnLifetime:%s ", c.DBMaxConnLifetime)
+	fmt.Fprintf(&b, "RequestTimeout:%s ", c.RequestTimeout)
 	fmt.Fprintf(&b, "RedisURL:%s ", maskURL(c.RedisURL))
 	fmt.Fprintf(&b, "RabbitURL:%s ", maskURL(c.RabbitURL))
 	fmt.Fprintf(&b, "JWTSecret:%s ", mask(c.JWTSecret))
