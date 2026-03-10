@@ -24,10 +24,10 @@ The Echo route group applies only `Auth` (JWT validation); permission checks hap
 `Auth(cfg, rdb)` — validates the JWT/API key and injects `AuthUser` into the request context.
 Returns 401 if the token is missing, expired, or invalid.
 
-`RequirePermission` and `RequireRole` exist in `internal/shared/middleware/rbac.go` as optional
-Echo middleware for non-Connect endpoints, but are **not** applied to the Connect RPC route groups.
+No Echo-level permission middleware is applied. All permission enforcement
+is handled exclusively by `RBACInterceptor` at the Connect RPC layer.
 
-Source: `internal/shared/middleware/rbac.go`
+Source: `internal/shared/middleware/rbac_interceptor.go`
 
 ### Connect RPC Interceptor: Permission Enforcement
 

@@ -598,21 +598,15 @@ const (
 
 Subscriber modules import event types from `internal/shared/events/contracts/`,
 not from other modules' `domain/` packages. This preserves the no-cross-module-imports rule.
-If the subscriber only needs a few fields, prefer a local struct (as `audit` does with `auditPayload`).
+All subscribers (audit, notification) use the shared contract types.
 
 ```go
-// notification/subscriber.go — importing from shared contracts (correct)
+// Both audit and notification subscribers use shared contracts:
 import "github.com/gnha/gnha-services/internal/shared/events/contracts"
 
 var event contracts.UserCreatedEvent
 json.Unmarshal(msg.Payload, &event)
-
-// audit/subscriber.go — local struct (also acceptable, lower coupling)
-type auditPayload struct {
-    UserID    string `json:"user_id"`
-    ActorID   string `json:"actor_id"`
-    IPAddress string `json:"ip_address,omitempty"`
-}
+// Access: event.UserID, event.ActorID, event.IPAddress, event.Email, etc.
 ```
 
 ## Pagination
