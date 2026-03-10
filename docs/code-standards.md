@@ -208,7 +208,8 @@ func NewUser(email, name, hashedPassword string, role Role) (*User, error) {
     // ...
 }
 
-// Reconstitute rebuilds from persistence (no validation)
+// Reconstitute rebuilds from persistence (no validation).
+// Parameter order: identity → content → metadata → lifecycle
 func Reconstitute(id UserID, email, name, password string, role Role,
     createdAt, updatedAt time.Time, deletedAt *time.Time) *User {
     return &User{id: id, email: email, ...}
@@ -325,6 +326,33 @@ func (h *GetUserHandler) Handle(ctx context.Context, id string) (*domain.User, e
     }
     return user, nil
 }
+```
+
+### Update Pattern with ErrNoChange
+
+When a handler attempts to mutate an entity, track mutations with a flag. If no mutations occur, return `sharederr.ErrNoChange()` inside the repo's update closure. The repo catches `ErrNoChange`, commits a read-only transaction, and returns `nil`. The handler checks `!mutated` and skips event publishing:
+
+```go
+var mutated bool
+err := h.repo.Update(ctx, id, func(user *domain.User) error {
+    if newVal != oldVal && newVal != "" {
+        if err := user.ChangeField(newVal); err != nil {
+            return err
+        }
+        mutated = true
+    }
+    if !mutated {
+        return sharederr.ErrNoChange()
+    }
+    return nil
+})
+if err != nil {
+    return nil, err
+}
+if !mutated {
+    return user, nil  // No event published
+}
+// Publish event here
 ```
 
 ### Update & Delete Handlers
@@ -466,9 +494,9 @@ func (r *PgUserRepository) Create(ctx context.Context, user *domain.User) error 
 var pgErr *pgconn.PgError
 if errors.As(err, &pgErr) && pgErr.Code == "23505" {
     if pgErr.ConstraintName == "idx_users_email_active" {
-        return nil, domain.ErrEmailTaken()
+        return domain.ErrEmailTaken()
     }
-    return nil, sharederr.ErrAlreadyExists().WithMessage("duplicate entry")
+    return sharederr.ErrAlreadyExists().WithMessage("duplicate entry")
 }
 ```
 

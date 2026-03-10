@@ -16,7 +16,11 @@ For custom plural naming:
 task module:create name=category plural=categories
 ```
 
-This creates 27 files + runs code generation. Then:
+This creates 27 files + runs code generation.
+
+> **Note:** Scaffolded code imports from `gen/proto/` and `gen/sqlc/` which don't exist until code generation runs. Run `task generate` to resolve IDE errors.
+
+Then:
 1. Customize proto fields in `proto/{name}/v1/{name}.proto`
 2. Customize DB columns in `db/migrations/{timestamp}_create_{plural}.sql`
 3. Customize SQL queries in `db/queries/{name}.sql`
@@ -677,3 +681,114 @@ go vet ./...            # correctness check
 task test               # unit tests
 task test:integration   # integration tests (requires Docker)
 ```
+
+## Customizing After Scaffold
+
+The scaffold generates a basic CRUD module. Extend it for your domain:
+
+### Password/Secret Fields
+
+Inject `auth.PasswordHasher` (like user module does). Hash before creating:
+
+```go
+type CreateUserHandler struct {
+    repo   domain.UserRepository
+    hasher auth.PasswordHasher
+}
+
+hashedPwd, err := h.hasher.Hash(cmd.Password)
+// Use hashedPwd in entity creation
+```
+
+### Email/Uniqueness Pre-checks
+
+Before creating, check for existing email. Return domain error if found:
+
+```go
+existing, err := h.repo.GetByEmail(ctx, cmd.Email)
+if existing != nil {
+    return nil, domain.ErrEmailTaken()
+}
+```
+
+### Multiple Field Updates
+
+Track mutations with a boolean flag. Return `ErrNoChange` if nothing changed:
+
+```go
+var mutated bool
+err := h.repo.Update(ctx, id, func(user *domain.User) error {
+    if cmd.Name != nil && *cmd.Name != user.Name() {
+        user.ChangeName(*cmd.Name)
+        mutated = true
+    }
+    if !mutated {
+        return sharederr.ErrNoChange()
+    }
+    return nil
+})
+```
+
+### Per-Query Mappers
+
+sqlc generates a unique struct per query. Create separate mappers for different SELECT column sets:
+
+```go
+func toDomain(row sqlcgen.User) *domain.User           // Full entity
+func toDomainFromGetRow(row sqlcgen.GetUserByIDRow)     // Read-only
+func toDomainFromListRow(row sqlcgen.ListUsersRow)      // Pagination
+```
+
+See `internal/modules/user/adapters/postgres/mapper.go` for reference.
+
+### Constraint Handling
+
+Map Postgres constraint errors to domain errors. Check both code AND constraint name:
+
+```go
+if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+    if pgErr.ConstraintName == "idx_users_email_active" {
+        return domain.ErrEmailTaken()
+    }
+}
+```
+
+## Troubleshooting
+
+### Module not registered at startup
+
+If you see "module not found" errors or the API returns 404, the module may not be registered in `cmd/server/main.go`. The scaffold auto-injects the import and fx.Module call. Verify both are present:
+
+```go
+import "github.com/gnha/golang-echo-boilerplate/internal/modules/yourmodule"
+
+fx.New(
+    // ...
+    yourmodule.Module,  // Must be here
+)
+```
+
+### sqlc codegen failures
+
+If `task generate:sqlc` fails with "syntax error", check `db/queries/{name}.sql`:
+- Ensure `:one` or `:many` appears on each query comment
+- Verify all parameter names match placeholders (`$1`, `$2`)
+- Check table and column names exist in migrations
+
+### buf lint failures
+
+If `task generate:proto` fails with lint errors:
+- Proto file must include `syntax = "proto3"` at the top
+- All messages must have fields with explicit field numbers (no auto-numbering)
+- Service names must be PascalCase; procedure names PascalCase
+- Use `buf lint` locally to debug: `buf lint proto/{name}/`
+
+### Missing mocks after updating repository interface
+
+If you add a new method to `domain/repository.go`, regenerate mocks:
+
+```bash
+task generate:mocks
+```
+
+Then commit `internal/shared/mocks/mock_*.go` to the repo.

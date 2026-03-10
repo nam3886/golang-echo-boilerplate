@@ -2,7 +2,7 @@
 
 ## Overview
 
-GNHA Services uses a **Simplified Hexagonal Architecture** organized as a modular monolith. Each domain module is self-contained with clear boundaries, making it straightforward to extract into a microservice if needed.
+Golang Echo Boilerplate uses a **Simplified Hexagonal Architecture** organized as a modular monolith. Each domain module is self-contained with clear boundaries, making it straightforward to extract into a microservice if needed.
 
 ## Module Structure
 

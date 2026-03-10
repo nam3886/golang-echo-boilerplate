@@ -69,3 +69,31 @@ Source: `internal/shared/auth/context.go`
 | `JWT_ACCESS_TTL` | no | `15m` | Access token lifetime |
 | `JWT_REFRESH_TTL` | no | `168h` | Refresh token lifetime (7d) |
 | `APP_NAME` | no | `golang-echo-boilerplate` | Used as JWT issuer |
+
+## Testing Authenticated Endpoints
+
+### Seed Test Users
+
+Run `task seed` to populate the database with test users:
+
+```
+user@example.com (password: SecurePass123!)
+admin@example.com (password: SecurePass123!)
+```
+
+### Using Swagger UI
+
+Navigate to `http://localhost:8080/swagger/` (after starting the dev server with `task dev`). Use the "Authorize" button to enter a Bearer token and test endpoints interactively.
+
+### Example cURL with Bearer Token
+
+```bash
+# Get token from auth endpoint (if implemented)
+TOKEN=$(curl -s http://localhost:8080/api/user/v1/auth \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"SecurePass123!"}' | jq -r '.token')
+
+# Use token in subsequent requests
+curl http://localhost:8080/api/user/v1/profile \
+  -H "Authorization: Bearer $TOKEN"
+```

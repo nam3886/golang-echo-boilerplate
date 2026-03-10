@@ -1,5 +1,15 @@
 # Event Subscribers
 
+## Publisher Abstraction Levels
+
+The event system uses three publisher layers — depend on the interface, never on implementations:
+
+- **`events.EventPublisher` interface** — Used by app layer (handlers, domain). Only public abstraction.
+- **`events.EventBus` struct** — Internal wrapper that manages retry logic and dead-letter routing via Watermill.
+- **`message.Publisher` (Watermill)** — Raw message broker interface. Never use directly in app code.
+
+Always inject `events.EventPublisher` into handlers; fx wires it from `EventBus`.
+
 ## Event Contracts Location
 
 All shared event types and topic constants live in:
@@ -42,7 +52,7 @@ Source: `internal/shared/events/subscriber.go`
 The audit subscriber is the canonical example.
 
 - Handler methods: `internal/modules/audit/subscriber.go`
-- Registration: `provideAuditHandlers` in `internal/modules/audit/module.go`
+- Registration: `provideHandlers` in `internal/modules/audit/module.go`
 
 The subscriber returns `nil` (ack) on schema errors and a real error (nack) on DB failures,
 triggering the router's retry middleware (3 retries, 1s initial, 0.5 jitter).

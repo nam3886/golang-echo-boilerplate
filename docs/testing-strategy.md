@@ -1,6 +1,6 @@
 # Testing Strategy
 
-Testing conventions and patterns for GNHA Services.
+Testing conventions and patterns for Golang Echo Boilerplate.
 
 ## Test Types
 
@@ -29,7 +29,8 @@ func TestCreateUserHandler_Success(t *testing.T) {
     mockRepo.EXPECT().GetByEmail(gomock.Any(), "new@example.com").Return(nil, sharederr.ErrNotFound())
     mockRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 
-    handler := NewCreateUserHandler(mockRepo, &testutil.StubHasher{}, &testutil.NoopPublisher{})
+    bus := events.NewEventBus(&testutil.NoopPublisher{})
+    handler := app.NewCreateUserHandler(mockRepo, &testutil.StubHasher{}, bus)
     user, err := handler.Handle(ctx, cmd)
     // assert...
 }
@@ -96,6 +97,34 @@ Output: `internal/shared/mocks/mock_*.go` — committed to repo.
 | `RunMigrations(t, pool)` | `testutil` | Applies goose migrations on test DB |
 
 All containers auto-cleanup via `t.Cleanup`.
+
+## Test Utilities Reference
+
+### Stubs (Lightweight replacements)
+
+| Stub | Package | Purpose |
+|------|---------|---------|
+| `StubHasher` | `testutil` | Password hashing that returns input as-is (no crypto) |
+| `FailHasher` | `testutil` | Password hashing that always returns an error |
+| `NoopPublisher` | `testutil` | Event publisher that does nothing (silent drop) |
+| `CapturingPublisher` | `testutil` | Event publisher that records published events for assertion |
+| `FailPublisher` | `testutil` | Event publisher that always returns an error |
+
+### Testcontainers (Real infrastructure)
+
+| Helper | Package | Container | Cleanup |
+|--------|---------|-----------|---------|
+| `NewTestPostgres(t)` | `testutil` | postgres:16-alpine | Auto via `t.Cleanup` |
+| `NewTestRedis(t)` | `testutil` | redis:7-alpine | Auto via `t.Cleanup` |
+| `NewTestRabbitMQ(t)` | `testutil` | rabbitmq:3-management-alpine | Auto via `t.Cleanup` |
+| `NewTestElasticsearch(t)` | `testutil` | elasticsearch:8-alpine | Auto via `t.Cleanup` |
+
+### Helpers (Utilities)
+
+| Helper | Package | Usage |
+|--------|---------|-------|
+| `Ptr[T](v)` | `testutil` | Generic helper: `Ptr(42)` returns `*int` |
+| `RunMigrations(t, pool)` | `testutil` | Apply goose migrations on test DB |
 
 ## Running Tests
 
