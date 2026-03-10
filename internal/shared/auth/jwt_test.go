@@ -1,12 +1,11 @@
 package auth_test
 
 import (
-	"strings"
 	"testing"
 	"time"
 
-	"github.com/gnha/gnha-services/internal/shared/auth"
-	"github.com/gnha/gnha-services/internal/shared/config"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/config"
 )
 
 func testJWTConfig() *config.Config {
@@ -112,8 +111,8 @@ func TestJWT_ClaimsFieldsPresent(t *testing.T) {
 	if claims.ExpiresAt == nil {
 		t.Error("expected non-nil ExpiresAt")
 	}
-	if len(claims.Audience) == 0 || !strings.Contains(claims.Audience[0], "gnha") {
-		t.Errorf("expected gnha audience, got %v", claims.Audience)
+	if len(claims.Audience) == 0 || claims.Audience[0] != "golang-echo-boilerplate" {
+		t.Errorf("expected golang-echo-boilerplate audience, got %v", claims.Audience)
 	}
 	if claims.Issuer != cfg.AppName {
 		t.Errorf("expected issuer=%s, got %s", cfg.AppName, claims.Issuer)

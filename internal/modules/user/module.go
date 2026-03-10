@@ -3,12 +3,12 @@ package user
 import (
 	"context"
 
-	"github.com/gnha/gnha-services/internal/modules/user/adapters/grpc"
-	"github.com/gnha/gnha-services/internal/modules/user/adapters/postgres"
-	usersearch "github.com/gnha/gnha-services/internal/modules/user/adapters/search"
-	"github.com/gnha/gnha-services/internal/modules/user/app"
-	"github.com/gnha/gnha-services/internal/modules/user/domain"
-	"github.com/gnha/gnha-services/internal/shared/events"
+	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/adapters/grpc"
+	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/adapters/postgres"
+	usersearch "github.com/gnha/golang-echo-boilerplate/internal/modules/user/adapters/search"
+	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/app"
+	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/events"
 	"go.uber.org/fx"
 )
 

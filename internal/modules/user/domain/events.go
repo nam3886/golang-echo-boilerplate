@@ -1,6 +1,6 @@
 package domain
 
-import "github.com/gnha/gnha-services/internal/shared/events/contracts"
+import "github.com/gnha/golang-echo-boilerplate/internal/shared/events/contracts"
 
 // Re-export event topics from shared contracts so existing user module code
 // compiles unchanged. External modules (audit, notification) should import

@@ -3,7 +3,7 @@ package middleware
 import (
 	"context"
 
-	"github.com/gnha/gnha-services/internal/shared/netutil"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/netutil"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 )

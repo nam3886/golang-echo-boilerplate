@@ -4,9 +4,9 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/gnha/gnha-services/internal/shared/config"
-	"github.com/gnha/gnha-services/internal/shared/database"
-	"github.com/gnha/gnha-services/internal/shared/observability"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/config"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/database"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/observability"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"

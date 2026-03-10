@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gnha/gnha-services/internal/shared/config"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/config"
 	"github.com/labstack/echo/v4"
 	echomw "github.com/labstack/echo/v4/middleware"
 	"github.com/redis/go-redis/v9"

@@ -1,9 +1,9 @@
 package audit
 
 import (
-	sqlcgen "github.com/gnha/gnha-services/gen/sqlc"
-	"github.com/gnha/gnha-services/internal/shared/events"
-	"github.com/gnha/gnha-services/internal/shared/events/contracts"
+	sqlcgen "github.com/gnha/golang-echo-boilerplate/gen/sqlc"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/events"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/events/contracts"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/fx"
 )

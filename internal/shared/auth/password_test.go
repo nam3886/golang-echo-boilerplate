@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gnha/gnha-services/internal/shared/auth"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
 )
 
 func TestPassword_RoundTrip(t *testing.T) {

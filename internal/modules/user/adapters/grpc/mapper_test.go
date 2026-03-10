@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gnha/gnha-services/internal/modules/user/domain"
-	"github.com/gnha/gnha-services/internal/shared/connectutil"
-	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
+	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/connectutil"
+	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
 	"connectrpc.com/connect"
 )
 

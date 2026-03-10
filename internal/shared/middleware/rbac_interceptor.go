@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"connectrpc.com/connect"
-	userv1connect "github.com/gnha/gnha-services/gen/proto/user/v1/userv1connect"
-	"github.com/gnha/gnha-services/internal/shared/auth"
+	userv1connect "github.com/gnha/golang-echo-boilerplate/gen/proto/user/v1/userv1connect"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
 )
 
 // procedurePermissions maps exact Connect RPC procedure paths to required permissions.

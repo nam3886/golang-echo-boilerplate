@@ -103,7 +103,7 @@ Create `proto/product/v1/product.proto`:
 ```proto
 syntax = "proto3";
 package product.v1;
-option go_package = "github.com/gnha/gnha-services/gen/proto/product/v1;productv1";
+option go_package = "github.com/gnha/golang-echo-boilerplate/gen/proto/product/v1;productv1";
 
 import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
@@ -280,7 +280,7 @@ func (p *Product) ChangeName(name string) error {
 ```go
 package domain
 
-import sharederr "github.com/gnha/gnha-services/internal/shared/errors"
+import sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
 
 // Constructor functions return fresh instances to prevent data races
 // when errors are wrapped concurrently.
@@ -328,9 +328,9 @@ import (
     "errors"
     "fmt"
 
-    sqlcgen "github.com/gnha/gnha-services/gen/sqlc"
-    "github.com/gnha/gnha-services/internal/modules/product/domain"
-    sharederr "github.com/gnha/gnha-services/internal/shared/errors"
+    sqlcgen "github.com/gnha/golang-echo-boilerplate/gen/sqlc"
+    "github.com/gnha/golang-echo-boilerplate/internal/modules/product/domain"
+    sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
     "github.com/google/uuid"
     "github.com/jackc/pgx/v5"
     "github.com/jackc/pgx/v5/pgxpool"
@@ -387,9 +387,9 @@ package grpc
 import (
     "context"
     "connectrpc.com/connect"
-    productv1 "github.com/gnha/gnha-services/gen/proto/product/v1"
-    "github.com/gnha/gnha-services/gen/proto/product/v1/productv1connect"
-    "github.com/gnha/gnha-services/internal/modules/product/app"
+    productv1 "github.com/gnha/golang-echo-boilerplate/gen/proto/product/v1"
+    "github.com/gnha/golang-echo-boilerplate/gen/proto/product/v1/productv1connect"
+    "github.com/gnha/golang-echo-boilerplate/internal/modules/product/app"
 )
 
 type ProductServiceHandler struct {
@@ -423,9 +423,9 @@ import (
     "net/http"
     "connectrpc.com/connect"
     "connectrpc.com/validate"
-    "github.com/gnha/gnha-services/gen/proto/product/v1/productv1connect"
-    "github.com/gnha/gnha-services/internal/shared/config"
-    appmw "github.com/gnha/gnha-services/internal/shared/middleware"
+    "github.com/gnha/golang-echo-boilerplate/gen/proto/product/v1/productv1connect"
+    "github.com/gnha/golang-echo-boilerplate/internal/shared/config"
+    appmw "github.com/gnha/golang-echo-boilerplate/internal/shared/middleware"
     "github.com/labstack/echo/v4"
     "github.com/redis/go-redis/v9"
 )
@@ -479,10 +479,10 @@ package product
 
 import (
     "go.uber.org/fx"
-    "github.com/gnha/gnha-services/internal/modules/product/adapters/grpc"
-    "github.com/gnha/gnha-services/internal/modules/product/adapters/postgres"
-    "github.com/gnha/gnha-services/internal/modules/product/app"
-    "github.com/gnha/gnha-services/internal/modules/product/domain"
+    "github.com/gnha/golang-echo-boilerplate/internal/modules/product/adapters/grpc"
+    "github.com/gnha/golang-echo-boilerplate/internal/modules/product/adapters/postgres"
+    "github.com/gnha/golang-echo-boilerplate/internal/modules/product/app"
+    "github.com/gnha/golang-echo-boilerplate/internal/modules/product/domain"
 )
 
 var Module = fx.Module("product",
@@ -559,7 +559,7 @@ Create `internal/modules/{name}/domain/events.go`:
 ```go
 package domain
 
-import "github.com/gnha/gnha-services/internal/shared/events/contracts"
+import "github.com/gnha/golang-echo-boilerplate/internal/shared/events/contracts"
 
 // Re-export event topics from shared contracts for internal convenience.
 const (
@@ -593,7 +593,7 @@ if err := h.bus.Publish(ctx, domain.TopicProductCreated, domain.ProductCreatedEv
 ## 6. Register in main.go
 
 ```go
-import "github.com/gnha/gnha-services/internal/modules/product"
+import "github.com/gnha/golang-echo-boilerplate/internal/modules/product"
 
 fx.New(
     shared.Module,

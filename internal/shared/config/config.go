@@ -17,7 +17,7 @@ type AppVersion string
 // Config holds all application configuration loaded from environment variables.
 type Config struct {
 	AppEnv  string `env:"APP_ENV" envDefault:"development"`
-	AppName string `env:"APP_NAME" envDefault:"gnha-services"`
+	AppName string `env:"APP_NAME" envDefault:"golang-echo-boilerplate"`
 	Port    int    `env:"PORT" envDefault:"8080"`
 
 	// Database
@@ -53,7 +53,7 @@ type Config struct {
 
 	// Elasticsearch (optional — empty URL disables search)
 	ElasticsearchURL         string `env:"ELASTICSEARCH_URL"`
-	ElasticsearchIndexPrefix string `env:"ELASTICSEARCH_INDEX_PREFIX" envDefault:"gnha"`
+	ElasticsearchIndexPrefix string `env:"ELASTICSEARCH_INDEX_PREFIX" envDefault:"app"`
 
 	// HTTP
 	RequestTimeout time.Duration `env:"REQUEST_TIMEOUT" envDefault:"30s"`

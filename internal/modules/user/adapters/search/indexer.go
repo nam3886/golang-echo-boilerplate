@@ -8,8 +8,8 @@ import (
 	"log/slog"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/gnha/gnha-services/internal/modules/user/domain"
-	sharedsearch "github.com/gnha/gnha-services/internal/shared/search"
+	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
+	sharedsearch "github.com/gnha/golang-echo-boilerplate/internal/shared/search"
 )
 
 // Indexer handles indexing user documents into Elasticsearch.

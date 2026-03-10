@@ -2,7 +2,7 @@
 #
 # IMPORTANT: The app container communicates with services via Docker network.
 # Your .env file must use container names (not localhost) for service URLs:
-#   DATABASE_URL=postgres://user:pass@postgres:5432/gnha
+#   DATABASE_URL=postgres://user:pass@postgres:5432/mydb
 #   REDIS_URL=redis://redis:6379
 #   RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
 #
@@ -11,7 +11,7 @@
 
 services:
   app:
-    image: ${DOCKER_IMAGE:-ghcr.io/gnha/gnha-services}:${IMAGE_TAG:-latest}
+    image: ${DOCKER_IMAGE:-ghcr.io/gnha/golang-echo-boilerplate}:${IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file: ../.env
     environment:

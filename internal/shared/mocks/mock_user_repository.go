@@ -13,7 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	domain "github.com/gnha/gnha-services/internal/modules/user/domain"
+	domain "github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
 	gomock "go.uber.org/mock/gomock"
 )
 

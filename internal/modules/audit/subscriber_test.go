@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	sqlcgen "github.com/gnha/gnha-services/gen/sqlc"
+	sqlcgen "github.com/gnha/golang-echo-boilerplate/gen/sqlc"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )

@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"connectrpc.com/connect"
-	userv1 "github.com/gnha/gnha-services/gen/proto/user/v1"
-	"github.com/gnha/gnha-services/gen/proto/user/v1/userv1connect"
-	"github.com/gnha/gnha-services/internal/modules/user/app"
-	"github.com/gnha/gnha-services/internal/shared/connectutil"
+	userv1 "github.com/gnha/golang-echo-boilerplate/gen/proto/user/v1"
+	"github.com/gnha/golang-echo-boilerplate/gen/proto/user/v1/userv1connect"
+	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/app"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/connectutil"
 )
 
 // UserServiceHandler implements the Connect RPC UserService.

@@ -4,9 +4,9 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/gnha/gnha-services/internal/shared/auth"
-	"github.com/gnha/gnha-services/internal/shared/config"
-	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/config"
+	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
 )

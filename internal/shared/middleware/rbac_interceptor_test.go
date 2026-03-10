@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
-	"github.com/gnha/gnha-services/internal/shared/auth"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
 )
 
 // newRequestWithProcedure creates a connect.Request[struct{}] with the given

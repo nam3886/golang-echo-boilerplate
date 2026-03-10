@@ -7,14 +7,14 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	userv1 "github.com/gnha/gnha-services/gen/proto/user/v1"
-	grpcadapter "github.com/gnha/gnha-services/internal/modules/user/adapters/grpc"
-	"github.com/gnha/gnha-services/internal/modules/user/app"
-	"github.com/gnha/gnha-services/internal/modules/user/domain"
-	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
-	"github.com/gnha/gnha-services/internal/shared/events"
-	"github.com/gnha/gnha-services/internal/shared/mocks"
-	"github.com/gnha/gnha-services/internal/shared/testutil"
+	userv1 "github.com/gnha/golang-echo-boilerplate/gen/proto/user/v1"
+	grpcadapter "github.com/gnha/golang-echo-boilerplate/internal/modules/user/adapters/grpc"
+	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/app"
+	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
+	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/events"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/mocks"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/testutil"
 	"go.uber.org/mock/gomock"
 )
 

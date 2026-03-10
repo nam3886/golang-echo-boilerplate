@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gnha/gnha-services/internal/shared/config"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/config"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
@@ -20,7 +20,7 @@ type TokenClaims struct {
 }
 
 // jwtAudience is the intended audience for access tokens issued by this service.
-const jwtAudience = "gnha-services"
+const jwtAudience = "golang-echo-boilerplate"
 
 // GenerateAccessToken creates a signed JWT access token.
 func GenerateAccessToken(cfg *config.Config, userID, role string, permissions []string) (string, error) {

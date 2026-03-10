@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gnha/gnha-services/internal/modules/user/domain"
+	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
 )
 
 // ListUsersHandler handles listing users with cursor pagination.

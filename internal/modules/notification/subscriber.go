@@ -9,7 +9,7 @@ import (
 	"net/textproto"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/gnha/gnha-services/internal/shared/events/contracts"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/events/contracts"
 )
 
 // Handler processes notification-related events.

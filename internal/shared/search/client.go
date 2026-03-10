@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v8"
-	"github.com/gnha/gnha-services/internal/shared/config"
-	"github.com/gnha/gnha-services/internal/shared/retry"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/config"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/retry"
 )
 
 // Client wraps the official Elasticsearch client with an index prefix.

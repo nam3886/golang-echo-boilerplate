@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/gnha/gnha-services/internal/modules/user/domain"
-	"github.com/gnha/gnha-services/internal/shared/auth"
-	"github.com/gnha/gnha-services/internal/shared/events"
-	"github.com/gnha/gnha-services/internal/shared/netutil"
+	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/events"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/netutil"
 )
 
 // DeleteUserHandler handles soft-deleting a user.

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gnha/gnha-services/internal/modules/user/domain"
-	"github.com/gnha/gnha-services/internal/shared/mocks"
+	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/mocks"
 	"go.uber.org/mock/gomock"
 )
 

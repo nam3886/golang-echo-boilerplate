@@ -9,7 +9,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill-amqp/v3/pkg/amqp"
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/gnha/gnha-services/internal/shared/config"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/config"
 	"github.com/google/uuid"
 	amqplib "github.com/rabbitmq/amqp091-go"
 	"go.opentelemetry.io/otel"

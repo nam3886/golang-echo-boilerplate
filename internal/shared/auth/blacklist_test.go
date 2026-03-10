@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gnha/gnha-services/internal/shared/auth"
-	"github.com/gnha/gnha-services/internal/shared/testutil"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/testutil"
 )
 
 func TestBlacklist_BlacklistAndCheck(t *testing.T) {

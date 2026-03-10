@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gnha/gnha-services/internal/shared/config"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/config"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"

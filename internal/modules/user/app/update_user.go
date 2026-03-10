@@ -4,11 +4,11 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/gnha/gnha-services/internal/modules/user/domain"
-	"github.com/gnha/gnha-services/internal/shared/auth"
-	"github.com/gnha/gnha-services/internal/shared/events"
-	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
-	"github.com/gnha/gnha-services/internal/shared/netutil"
+	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/events"
+	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/netutil"
 )
 
 // UpdateUserCmd holds input for updating a user.

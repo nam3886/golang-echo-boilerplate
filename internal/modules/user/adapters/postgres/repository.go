@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 
-	sqlcgen "github.com/gnha/gnha-services/gen/sqlc"
-	"github.com/gnha/gnha-services/internal/modules/user/domain"
-	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
+	sqlcgen "github.com/gnha/golang-echo-boilerplate/gen/sqlc"
+	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
+	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"

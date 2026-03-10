@@ -1,6 +1,6 @@
 # Code Standards
 
-This document outlines Go coding standards and patterns used across the GNHA Services codebase.
+This document outlines Go coding standards and patterns used across the Golang Echo Boilerplate codebase.
 
 ## Project Structure
 
@@ -602,7 +602,7 @@ All subscribers (audit, notification) use the shared contract types.
 
 ```go
 // Both audit and notification subscribers use shared contracts:
-import "github.com/gnha/gnha-services/internal/shared/events/contracts"
+import "github.com/gnha/golang-echo-boilerplate/internal/shared/events/contracts"
 
 var event contracts.UserCreatedEvent
 json.Unmarshal(msg.Payload, &event)
@@ -715,7 +715,7 @@ Use `testcontainers` for real infrastructure:
 
 ```go
 import (
-    "github.com/gnha/gnha-services/internal/shared/testutil"
+    "github.com/gnha/golang-echo-boilerplate/internal/shared/testutil"
 )
 
 func TestUserIntegration(t *testing.T) {

@@ -3,7 +3,7 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/gnha/gnha-services/internal/shared/auth"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
 	"github.com/labstack/echo/v4"
 )
 

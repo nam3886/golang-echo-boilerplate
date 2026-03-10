@@ -7,8 +7,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/gnha/gnha-services/internal/shared/config"
-	"github.com/gnha/gnha-services/internal/shared/retry"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/config"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/retry"
 	"github.com/redis/go-redis/v9"
 )
 

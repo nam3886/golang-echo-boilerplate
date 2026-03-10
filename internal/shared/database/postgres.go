@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/gnha/gnha-services/internal/shared/config"
-	"github.com/gnha/gnha-services/internal/shared/retry"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/config"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/retry"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 

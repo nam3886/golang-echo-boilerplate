@@ -5,9 +5,9 @@ import (
 
 	"connectrpc.com/connect"
 	"connectrpc.com/validate"
-	"github.com/gnha/gnha-services/gen/proto/user/v1/userv1connect"
-	"github.com/gnha/gnha-services/internal/shared/config"
-	appmw "github.com/gnha/gnha-services/internal/shared/middleware"
+	"github.com/gnha/golang-echo-boilerplate/gen/proto/user/v1/userv1connect"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/config"
+	appmw "github.com/gnha/golang-echo-boilerplate/internal/shared/middleware"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
 )

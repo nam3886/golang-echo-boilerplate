@@ -6,12 +6,12 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/gnha/gnha-services/internal/modules/user/adapters/postgres"
-	"github.com/gnha/gnha-services/internal/modules/user/domain"
-	"github.com/gnha/gnha-services/internal/shared/auth"
-	"github.com/gnha/gnha-services/internal/shared/config"
-	"github.com/gnha/gnha-services/internal/shared/database"
-	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
+	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/adapters/postgres"
+	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/config"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/database"
+	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
 )
 
 type seedUser struct {

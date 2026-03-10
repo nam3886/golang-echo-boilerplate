@@ -1,8 +1,8 @@
 package notification
 
 import (
-	"github.com/gnha/gnha-services/internal/shared/events"
-	"github.com/gnha/gnha-services/internal/shared/events/contracts"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/events"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/events/contracts"
 	"go.uber.org/fx"
 )
 

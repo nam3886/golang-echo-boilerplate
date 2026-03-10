@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"github.com/gnha/gnha-services/internal/shared/config"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/config"
 	"github.com/labstack/echo/v4"
 )
 

@@ -1,4 +1,4 @@
-module github.com/gnha/gnha-services
+module github.com/gnha/golang-echo-boilerplate
 
 go 1.26.0
 

@@ -12,7 +12,7 @@ Source: `internal/shared/auth/jwt.go`
 | Claim | JSON key | Description |
 |-------|----------|-------------|
 | `iss` | standard | `APP_NAME` env value |
-| `aud` | standard | `"gnha-services"` |
+| `aud` | standard | `"golang-echo-boilerplate"` |
 | `exp` | standard | `now + JWT_ACCESS_TTL` (default 15m) |
 | `iat` | standard | issued-at timestamp |
 | `jti` | standard | UUID — used for blacklisting |
@@ -25,7 +25,7 @@ Source: `internal/shared/auth/jwt.go`
 `auth.ValidateAccessToken(cfg, tokenStr)` — parses and verifies:
 - Signing method is HMAC
 - Issuer matches `APP_NAME`
-- Audience matches `"gnha-services"`
+- Audience matches `"golang-echo-boilerplate"`
 - Signature valid against `JWT_SECRET`
 - Not expired (standard `exp` check)
 
@@ -68,4 +68,4 @@ Source: `internal/shared/auth/context.go`
 | `JWT_SECRET` | yes | — | HS256 signing key (min 32 chars) |
 | `JWT_ACCESS_TTL` | no | `15m` | Access token lifetime |
 | `JWT_REFRESH_TTL` | no | `168h` | Refresh token lifetime (7d) |
-| `APP_NAME` | no | `gnha-services` | Used as JWT issuer |
+| `APP_NAME` | no | `golang-echo-boilerplate` | Used as JWT issuer |

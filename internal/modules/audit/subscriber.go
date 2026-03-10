@@ -6,9 +6,9 @@ import (
 	"net/netip"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/gnha/gnha-services/internal/shared/events/contracts"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/events/contracts"
 	"github.com/google/uuid"
-	sqlcgen "github.com/gnha/gnha-services/gen/sqlc"
+	sqlcgen "github.com/gnha/golang-echo-boilerplate/gen/sqlc"
 )
 
 // Handler processes audit-related events.

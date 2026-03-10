@@ -1,8 +1,8 @@
 package grpc
 
 import (
-	userv1 "github.com/gnha/gnha-services/gen/proto/user/v1"
-	"github.com/gnha/gnha-services/internal/modules/user/domain"
+	userv1 "github.com/gnha/golang-echo-boilerplate/gen/proto/user/v1"
+	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 

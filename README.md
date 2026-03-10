@@ -1,4 +1,4 @@
-# GNHA Services
+# Golang Echo Boilerplate
 
 Production-ready Go API boilerplate — modular monolith.
 
@@ -6,7 +6,7 @@ Production-ready Go API boilerplate — modular monolith.
 
 ```bash
 # 1. Clone & setup
-git clone <repo> && cd gnha-services
+git clone <repo> && cd golang-echo-boilerplate
 cp .env.example .env
 task dev:setup    # Install tools, start infra, migrate, seed
 

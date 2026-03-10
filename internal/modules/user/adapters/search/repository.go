@@ -8,7 +8,7 @@ import (
 	"log/slog"
 	"strings"
 
-	sharedsearch "github.com/gnha/gnha-services/internal/shared/search"
+	sharedsearch "github.com/gnha/golang-echo-boilerplate/internal/shared/search"
 )
 
 // Result holds search results with pagination metadata.

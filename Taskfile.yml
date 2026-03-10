@@ -3,10 +3,15 @@ version: '3'
 dotenv: ['.env']
 
 vars:
-  APP_NAME: gnha-services
+  APP_NAME: golang-echo-boilerplate
   BUILD_DIR: bin
 
 tasks:
+  init:
+    desc: Initialize boilerplate with your project name and module path
+    cmds:
+      - bash scripts/init.sh {{.module}} {{.app}}
+
   dev:setup:
     desc: Install tools, start infra, migrate, seed
     cmds:
@@ -155,8 +160,8 @@ tasks:
   db:reset:
     desc: Drop and recreate dev database, run migrations and seed
     cmds:
-      - docker compose -f deploy/docker-compose.dev.yml exec postgres psql -U postgres -c "DROP DATABASE IF EXISTS gnha_dev"
-      - docker compose -f deploy/docker-compose.dev.yml exec postgres psql -U postgres -c "CREATE DATABASE gnha_dev"
+      - docker compose -f deploy/docker-compose.dev.yml exec postgres psql -U postgres -c "DROP DATABASE IF EXISTS boilerplate_dev"
+      - docker compose -f deploy/docker-compose.dev.yml exec postgres psql -U postgres -c "CREATE DATABASE boilerplate_dev"
       - task: migrate:up
       - task: seed
 

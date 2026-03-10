@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/elastic/go-elasticsearch/v8"
-	"github.com/gnha/gnha-services/internal/shared/search"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/search"
 	tc "github.com/testcontainers/testcontainers-go"
 	esMod "github.com/testcontainers/testcontainers-go/modules/elasticsearch"
 )

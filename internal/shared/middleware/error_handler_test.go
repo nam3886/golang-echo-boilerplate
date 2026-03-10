@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
+	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
 	"github.com/labstack/echo/v4"
 )
 

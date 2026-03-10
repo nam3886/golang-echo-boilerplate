@@ -7,7 +7,7 @@ import (
 	"log/slog"
 
 	"connectrpc.com/connect"
-	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
+	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
 )
 
 var codeToConnect = map[sharederr.ErrorCode]connect.Code{

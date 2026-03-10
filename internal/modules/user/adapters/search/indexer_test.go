@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/gnha/gnha-services/internal/modules/user/adapters/search"
-	"github.com/gnha/gnha-services/internal/modules/user/domain"
-	"github.com/gnha/gnha-services/internal/shared/testutil"
+	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/adapters/search"
+	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/testutil"
 	"github.com/google/uuid"
 )
 
