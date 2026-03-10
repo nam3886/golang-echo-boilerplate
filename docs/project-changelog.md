@@ -1,6 +1,6 @@
 # Project Changelog
 
-All notable changes to GNHA Services are documented here.
+All notable changes to Golang Echo Boilerplate are documented here.
 
 ## [Unreleased]
 
@@ -98,36 +98,36 @@ All notable changes to GNHA Services are documented here.
 
 ### Boilerplate Review (2026-03-05)
 
-**Score: 16/20 đạt/vượt | 2 đạt một phần | 2 thiếu**
+**Score: 16/20 met/exceeded | 2 partially met | 2 gaps**
 
-| # | Tiêu chí | Status | Ghi chú |
-|---|----------|--------|---------|
-| 1 | Convention over Configuration | STRONG | Fx DI, buf.validate, sqlc codegen, module structure chuẩn |
+| # | Criteria | Status | Notes |
+|---|----------|--------|-------|
+| 1 | Convention over Configuration | STRONG | Fx DI, buf.validate, sqlc codegen, standard module structure |
 | 2 | Module Template (CLI/script) | **COMPLETE** | `task module:create name=X` scaffolds 27 files in <10 sec |
-| 3 | Structure rõ ràng | STRONG | cmd/, internal/shared/, internal/modules/, db/, proto/, gen/, deploy/ |
-| 4 | Enforced Architecture | STRONG | domain→app→adapters enforce qua Go packages + interfaces |
+| 3 | Clear Structure | STRONG | cmd/, internal/shared/, internal/modules/, db/, proto/, gen/, deploy/ |
+| 4 | Enforced Architecture | STRONG | domain→app→adapters enforced via Go packages + interfaces |
 | 5 | Standard Error System | STRONG | DomainError + ErrorCode enum + HTTP mapping + module errors |
-| 6 | Standard Response Format | PARTIAL | Protobuf response (Connect RPC) — không có REST wrapper `{data,error,meta}` |
-| 7 | Middleware sẵn | EXCELLENT | 10 middleware: recovery, request-id, logger, body-limit, gzip, security-headers, CORS, timeout, rate-limit, auth+RBAC |
-| 8 | Logging chuẩn | STRONG | slog stdlib, JSON prod / text dev, structured fields |
-| 9 | Validation | STRONG | buf/validate declarative, Connect interceptor — thiếu custom business validator |
-| 10 | Testing pattern | STRONG | testcontainers real infra, mock repos, fixtures — thiếu test template |
-| 11 | Dev commands | STRONG | Taskfile: dev, test, lint, migrate, build, seed, check |
-| 12 | Local development | EXCELLENT | docker-compose: PG16, Redis7, RabbitMQ, ES8, Mailpit + air hot reload |
-| 13 | Code generation | STRONG | buf + sqlc + CI verify + module scaffold CLI |
-| 14 | Documentation | STRONG | architecture.md, code-standards.md (633L), adding-a-module.md, error-codes.md |
-| 15 | Example module | EXCELLENT | user (full CRUD) + audit (subscriber) + notification (subscriber) |
+| 6 | Standard Response Format | PARTIAL | Protobuf response (Connect RPC) — no REST wrapper `{data,error,meta}` |
+| 7 | Built-in Middleware | EXCELLENT | 10 middleware: recovery, request-id, logger, body-limit, gzip, security-headers, CORS, timeout, rate-limit, auth+RBAC |
+| 8 | Standard Logging | STRONG | slog stdlib, JSON prod / text dev, structured fields |
+| 9 | Validation | STRONG | buf/validate declarative, Connect interceptor — missing custom business validator |
+| 10 | Testing Pattern | STRONG | testcontainers real infra, mock repos, fixtures — missing test template |
+| 11 | Dev Commands | STRONG | Taskfile: dev, test, lint, migrate, build, seed, check |
+| 12 | Local Development | EXCELLENT | docker-compose: PG16, Redis7, RabbitMQ, ES8, Mailpit + air hot reload |
+| 13 | Code Generation | STRONG | buf + sqlc + CI verify + module scaffold CLI |
+| 14 | Documentation | STRONG | architecture.md, code-standards.md (765L), adding-a-module.md, error-codes.md |
+| 15 | Example Module | EXCELLENT | user (full CRUD) + audit (subscriber) + notification (subscriber) |
 | 16 | Guardrails | STRONG | golangci-lint (11 linters), lefthook pre-commit/push, GitLab CI pipeline |
-| 17 | Performance-safe defaults | STRONG | pgx pool, 30s timeout, Redis rate-limit, gzip, body-limit, distributed cron lock |
+| 17 | Performance-safe Defaults | STRONG | pgx pool, 30s timeout, Redis rate-limit, gzip, body-limit, distributed cron lock |
 | 18 | Observability | STRONG | /healthz, /readyz, OpenTelemetry traces+metrics, SigNoz |
-| 19 | API versioning | STRONG | proto/user/v1/, Connect RPC path versioning |
-| 20 | Scalable module design | STRONG | Modular monolith, Fx modules, event-driven, zero coupling |
+| 19 | API Versioning | STRONG | proto/user/v1/, Connect RPC path versioning |
+| 20 | Scalable Module Design | STRONG | Modular monolith, Fx modules, event-driven, zero coupling |
 
-**Top gaps cần bổ sung:**
-1. **P1** — Test template cho module mới (unit + integration boilerplate) — partially done via scaffold
-2. **P2** — OpenAPI/Swagger serving cho frontend team
+**Top gaps to address:**
+1. **P1** — Test template for new modules (unit + integration boilerplate) — partially done via scaffold
+2. **P2** — OpenAPI/Swagger serving for frontend team
 
-**Điểm mạnh:** Hexagonal architecture thực sự enforce, event-driven sẵn sàng, type-safe toàn bộ (protobuf + sqlc), security-first (Argon2id, JWT blacklist, RBAC), real testing (testcontainers)
+**Strengths:** Hexagonal architecture truly enforced, event-driven ready, fully type-safe (protobuf + sqlc), security-first (Argon2id, JWT blacklist, RBAC), real testing (testcontainers)
 
 ---
 
