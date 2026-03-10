@@ -52,7 +52,7 @@ func parseActorID(actorIDStr string, entityID uuid.UUID) uuid.UUID {
 func (h *Handler) handleAuditEvent(msg *message.Message, userID, actorID, ipAddress, action string) error {
 	entityID, err := uuid.Parse(userID)
 	if err != nil {
-		slog.Error("audit: invalid user ID in event", "user_id", userID, "err", err)
+		slog.ErrorContext(msg.Context(), "audit: invalid user ID in event", "user_id", userID, "err", err)
 		return nil // ack — retrying won't fix bad data
 	}
 
@@ -78,7 +78,7 @@ func (h *Handler) handleAuditEvent(msg *message.Message, userID, actorID, ipAddr
 func (h *Handler) HandleUserCreated(msg *message.Message) error {
 	var ev contracts.UserCreatedEvent
 	if err := json.Unmarshal(msg.Payload, &ev); err != nil {
-		slog.Error("audit: failed to unmarshal user.created event", "err", err, "msg_id", msg.UUID)
+		slog.ErrorContext(msg.Context(), "audit: failed to unmarshal user.created event", "err", err, "msg_id", msg.UUID)
 		return nil // ack — schema mismatch is permanent, retrying won't help
 	}
 	return h.handleAuditEvent(msg, ev.UserID, ev.ActorID, ev.IPAddress, "created")
@@ -88,7 +88,7 @@ func (h *Handler) HandleUserCreated(msg *message.Message) error {
 func (h *Handler) HandleUserUpdated(msg *message.Message) error {
 	var ev contracts.UserUpdatedEvent
 	if err := json.Unmarshal(msg.Payload, &ev); err != nil {
-		slog.Error("audit: failed to unmarshal user.updated event", "err", err, "msg_id", msg.UUID)
+		slog.ErrorContext(msg.Context(), "audit: failed to unmarshal user.updated event", "err", err, "msg_id", msg.UUID)
 		return nil // ack — schema mismatch is permanent, retrying won't help
 	}
 	return h.handleAuditEvent(msg, ev.UserID, ev.ActorID, ev.IPAddress, "updated")
@@ -98,7 +98,7 @@ func (h *Handler) HandleUserUpdated(msg *message.Message) error {
 func (h *Handler) HandleUserDeleted(msg *message.Message) error {
 	var ev contracts.UserDeletedEvent
 	if err := json.Unmarshal(msg.Payload, &ev); err != nil {
-		slog.Error("audit: failed to unmarshal user.deleted event", "err", err, "msg_id", msg.UUID)
+		slog.ErrorContext(msg.Context(), "audit: failed to unmarshal user.deleted event", "err", err, "msg_id", msg.UUID)
 		return nil // ack — schema mismatch is permanent, retrying won't help
 	}
 	return h.handleAuditEvent(msg, ev.UserID, ev.ActorID, ev.IPAddress, "deleted")
