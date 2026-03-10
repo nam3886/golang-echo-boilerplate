@@ -21,7 +21,21 @@
 | 2026-03-09 | `plans/reports/code-reviewer-260309-1847-ci-docs-config-deep-review.md` | 8.5/10 | CI/docs/config deep review (round 23) |
 | 2026-03-09 | `plans/reports/code-reviewer-260309-1847-adapter-shared-deep-review.md` | 9/10 | Adapter & shared layer deep review (round 24) |
 
+| 2026-03-10 | `plans/reports/review-260310-2038-adapters-infra.md` | 8.5/10 | Adapters & infra deep review (round 39) |
+
 ## Key Findings Per Review
+
+### Adapters & Infrastructure Deep Review (8.5/10, round 39)
+- Report: `plans/reports/review-260310-2038-adapters-infra.md`
+- 2 critical, 6 important, 11 minor. 57 files reviewed (~3,987 LOC).
+- C-ADAPT-1: connectutil map miss returns CodeCanceled (zero-value) -- needs ok-check fallback to CodeInternal
+- C-ADAPT-2: Proto total field is int32, COUNT(*) returns int64 -- silent truncation risk for boilerplate
+- I-ADAPT-1: Scaffold adapter_postgres.tmpl loses sensitive fields on entity overwrite (pwd preservation)
+- I-ADAPT-2: retry.Connect time.After timer leak on context cancellation
+- I-ADAPT-3: Seed bypasses events -- ES out of sync after task dev:setup
+- I-ADAPT-5: Config.String() omits RequestTimeout + DBMaxConnLifetime
+- DX: totalPages computed in gRPC handler (not domain), handler tests create all 5 handlers per test
+- Strengths: clean adapter separation, consistent error handling, robust retry, nil-safe search, comprehensive scaffold
 
 ### Adapter & Shared Layer Deep Review (9/10, round 24)
 - Report: `plans/reports/code-reviewer-260309-1847-adapter-shared-deep-review.md`

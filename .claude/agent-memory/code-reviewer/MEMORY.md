@@ -51,9 +51,11 @@
 - Integration tests: testcontainers for Postgres/Redis/ES/RabbitMQ, CI env var fallback
 - Config validation: APP_ENV whitelist, JWT_SECRET >=32 chars, URL scheme+host, DBMinConns<=DBMaxConns
 
-## Remaining Issues (updated 2026-03-10 round 7 deep dive)
+## Remaining Issues (updated 2026-03-10 round 39 adapters-infra)
 ### CRITICAL
 - C-1: Rate limiter user-keying is dead code (Auth runs after RateLimit in chain) -- WONTFIX (by design)
+- C-ADAPT-1: connectutil.DomainErrorToConnect map miss returns CodeCanceled (zero-value) -- needs ok-check guard
+- C-ADAPT-2: Proto ListUsersResponse.total is int32, COUNT(*) returns int64 -- silent truncation
 ### HIGH
 - H-EVT-1: OTel trace extraction on subscribe — FIXED (otelExtractMiddleware using MapCarrier)
 - H-EVT-2: Watermill Retry Multiplier/MaxInterval — FIXED (Multiplier:2, MaxInterval:10s)
@@ -106,6 +108,12 @@
 - M-R8b-7: Redis healthcheck env var expansion fragile in production compose
 - M-R8b-8: Seed cmd requires full config.Load() but only uses Postgres
 - M-R8b-10: No updated_at trigger (app-layer only, explicit but fragile)
+### IMPORTANT (round 39)
+- I-ADAPT-1: Scaffold adapter_postgres.tmpl Create/Update loses sensitive fields on entity overwrite (no pwd preservation)
+- I-ADAPT-2: retry.Connect time.After leak on ctx cancellation (use time.NewTimer instead)
+- I-ADAPT-3: Seed cmd bypasses event publishing -- ES index out of sync after seed
+- I-ADAPT-4: Handler tests create all 5 handlers per test case (DX noise, scaffold propagates)
+- I-ADAPT-5: .env.example missing REQUEST_TIMEOUT
 ### LOW
 - Non-UUID strings as IDs in unit tests bypass parseUserID
 - Swagger UI CDN lacks SRI integrity hashes
@@ -114,26 +122,28 @@
 - EventBus.Publish topic param is untyped string (typo-prone)
 - Scaffold ChangeName test uses weak time assertion (>=, not >)
 
-## Test Coverage (2026-03-10, updated round 28)
+## Test Coverage (2026-03-10, updated round 39)
 | Package | Coverage |
 |---------|----------|
 | user/app | 93.7% |
 | user/domain | 79.2% |
 | user/adapters/grpc | 65.7% |
-| shared/middleware | 55.0% |
+| shared/middleware | 50.0% (recovery/security/request_id at 0%) |
 | shared/errors | 54.2% |
-| shared/auth | 50.7% |
-| shared/config | 45.6% |
+| shared/auth | 51.4% (GenerateRefreshToken, Verify oversized at 0%) |
+| shared/config | 45.6% (missing DBMinConns>DBMaxConns test) |
 | audit | >0% (7 tests) |
 | notification | >0% (5 tests) |
 | shared/retry | 0% (needs unit tests) |
-| shared/connectutil | 0% (needs tests) |
+| shared/connectutil | 0% (no test file; tested indirectly via grpc/mapper_test.go) |
 
-## Review History (37 reports, 2026-03-10)
+## Review History (39 reports, 2026-03-10)
 See `review-history.md` for full report index.
-- Latest: Offset pagination review
-- Report: `plans/reports/code-reviewer-260310-1903-offset-pagination-review.md`
-- 1 HIGH (stale docs), 4 MEDIUM, 2 LOW. Code implementation correct.
+- Latest: Adapters & infrastructure deep review
+- Report: `plans/reports/review-260310-2038-adapters-infra.md`
+- 2 CRITICAL (connectutil map miss, int32 truncation), 6 IMPORTANT, 11 MINOR. Score 8.5/10.
+- Key findings: DomainErrorToConnect silent CodeCanceled on unknown codes,
+  scaffold template loses sensitive fields, retry timer leak, seed bypasses events
 
 ## Key Verified Facts (round 8b)
 - Repo Update() handles 23505 uniqueness violation at line 177 -> ErrEmailTaken
