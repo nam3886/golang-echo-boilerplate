@@ -27,7 +27,10 @@ var codeToConnect = map[sharederr.ErrorCode]connect.Code{
 func DomainErrorToConnect(err error) error {
 	var domErr *sharederr.DomainError
 	if errors.As(err, &domErr) {
-		code := codeToConnect[domErr.Code]
+		code, ok := codeToConnect[domErr.Code]
+		if !ok {
+			code = connect.CodeInternal
+		}
 		return connect.NewError(code, fmt.Errorf("%s", domErr.Message))
 	}
 	slog.Error("unhandled internal error", "err", err)
