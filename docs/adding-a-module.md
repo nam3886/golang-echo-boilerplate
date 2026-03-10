@@ -124,7 +124,7 @@ message Product {
 }
 
 message CreateProductRequest {
-  string name = 1 [(buf.validate.field).string.min_len = 1];
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 255}];
 }
 message CreateProductResponse { Product product = 1; }
 
@@ -134,7 +134,7 @@ message GetProductRequest {
 message GetProductResponse { Product product = 1; }
 
 message ListProductsRequest {
-  int32 limit = 1;
+  int32 limit = 1 [(buf.validate.field).int32 = {gte: 1, lte: 100}];
   string cursor = 2;
 }
 message ListProductsResponse {
@@ -152,12 +152,13 @@ Create migration `db/migrations/000X_create_products.sql`:
 -- +goose Up
 CREATE TABLE products (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name       TEXT NOT NULL,
+  name       VARCHAR(255) NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   deleted_at TIMESTAMPTZ
 );
 
+CREATE INDEX idx_products_active ON products (id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_products_name ON products (name) WHERE deleted_at IS NULL;
 CREATE INDEX idx_products_cursor ON products (created_at DESC, id DESC) WHERE deleted_at IS NULL;
 
@@ -169,13 +170,13 @@ Create `db/queries/product.sql`:
 
 ```sql
 -- name: GetProductByID :one
-SELECT * FROM products WHERE id = $1 AND deleted_at IS NULL;
+SELECT id, name, created_at, updated_at, deleted_at FROM products WHERE id = $1 AND deleted_at IS NULL;
 
 -- name: GetProductByIDForUpdate :one
-SELECT * FROM products WHERE id = $1 AND deleted_at IS NULL FOR UPDATE;
+SELECT id, name, created_at, updated_at, deleted_at FROM products WHERE id = $1 AND deleted_at IS NULL FOR UPDATE;
 
 -- name: ListProducts :many
-SELECT * FROM products
+SELECT id, name, created_at, updated_at, deleted_at FROM products
 WHERE deleted_at IS NULL
   AND (sqlc.narg('cursor_created_at')::timestamptz IS NULL
        OR (created_at, id) < (sqlc.narg('cursor_created_at'), sqlc.narg('cursor_id')::uuid))
@@ -265,6 +266,9 @@ func (p *Product) ChangeName(name string) error {
     if name == "" {
         return ErrNameRequired()
     }
+    if name == p.name {
+        return nil
+    }
     p.name = name
     p.updatedAt = time.Now()
     return nil
@@ -299,7 +303,7 @@ import "context"
 
 //go:generate mockgen -source=repository.go -destination=../../../shared/mocks/mock_product_repository.go -package=mocks
 
-type ProductListResult struct {
+type ListResult struct {
     Products   []*Product
     NextCursor string
     HasMore    bool
@@ -307,7 +311,7 @@ type ProductListResult struct {
 
 type ProductRepository interface {
     GetByID(ctx context.Context, id ProductID) (*Product, error)
-    List(ctx context.Context, limit int, cursor string) (ProductListResult, error)
+    List(ctx context.Context, limit int, cursor string) (ListResult, error)
     Create(ctx context.Context, p *Product) error
     Update(ctx context.Context, id ProductID, fn func(*Product) error) error
     SoftDelete(ctx context.Context, id ProductID) (*Product, error)
@@ -341,9 +345,9 @@ func NewPgProductRepository(pool *pgxpool.Pool) *PgProductRepository {
 }
 
 func (r *PgProductRepository) GetByID(ctx context.Context, id domain.ProductID) (*domain.Product, error) {
-    uid, err := uuid.Parse(string(id))
+    uid, err := parseProductID(id)
     if err != nil {
-        return nil, sharederr.New(sharederr.CodeInvalidArgument, "invalid product ID")
+        return nil, err
     }
     q := sqlcgen.New(r.pool)
     row, err := q.GetProductByID(ctx, uid)
@@ -362,13 +366,15 @@ func (r *PgProductRepository) Create(ctx context.Context, p *domain.Product) err
         return err
     }
     q := sqlcgen.New(r.pool)
-    _, err = q.CreateProduct(ctx, sqlcgen.CreateProductParams{
+    row, err := q.CreateProduct(ctx, sqlcgen.CreateProductParams{
         ID:   uid,
         Name: p.Name(),
     })
     if err != nil {
         return fmt.Errorf("inserting product: %w", err)
     }
+    // Overwrite entity with DB-authoritative timestamps (created_at, updated_at).
+    *p = *toDomain(row)
     return nil
 }
 ```
@@ -400,7 +406,7 @@ var _ productv1connect.ProductServiceHandler = (*ProductServiceHandler)(nil)
 func (h *ProductServiceHandler) CreateProduct(ctx context.Context, req *connect.Request[productv1.CreateProductRequest]) (*connect.Response[productv1.CreateProductResponse], error) {
     p, err := h.createProduct.Handle(ctx, app.CreateProductCmd{Name: req.Msg.Name})
     if err != nil {
-        return nil, domainErrorToConnect(err)
+        return nil, connectutil.DomainErrorToConnect(err)
     }
     return connect.NewResponse(&productv1.CreateProductResponse{
         Product: toProto(p),
@@ -464,7 +470,6 @@ To enable role-based access control for your new module:
 
 3. The scaffold automatically:
    - Adds `RBACInterceptor()` to Connect handler setup (already in routes.go)
-   - Adds `RequirePermission(PermProductRead)` to the Echo route group (already in routes.go)
    - Injects procedure permission mappings in the scaffold comment `// ADD_PROCEDURE_PERMISSION_HERE`
 
 ### module.go — fx Module

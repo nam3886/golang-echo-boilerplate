@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
-	domainerr "github.com/gnha/gnha-services/internal/shared/errors"
+	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
 	"github.com/gnha/gnha-services/internal/shared/mocks"
 	"go.uber.org/mock/gomock"
 )
@@ -37,7 +37,7 @@ func TestGetUserHandler_NotFound(t *testing.T) {
 
 	mockRepo.EXPECT().
 		GetByID(gomock.Any(), domain.UserID("missing-id")).
-		Return(nil, domainerr.ErrNotFound())
+		Return(nil, sharederr.ErrNotFound())
 
 	handler := NewGetUserHandler(mockRepo)
 	_, err := handler.Handle(context.Background(), "missing-id")

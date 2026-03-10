@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
-	domainerr "github.com/gnha/gnha-services/internal/shared/errors"
+	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
 	"github.com/gnha/gnha-services/internal/shared/events"
 	"github.com/gnha/gnha-services/internal/shared/mocks"
 	"github.com/gnha/gnha-services/internal/shared/testutil"
@@ -55,7 +55,7 @@ func TestDeleteUserHandler_NotFound(t *testing.T) {
 
 	mockRepo.EXPECT().
 		SoftDelete(gomock.Any(), domain.UserID("missing-id")).
-		Return(nil, domainerr.ErrNotFound())
+		Return(nil, sharederr.ErrNotFound())
 
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewDeleteUserHandler(mockRepo, bus)
@@ -64,8 +64,8 @@ func TestDeleteUserHandler_NotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected not found error, got nil")
 	}
-	var domErr *domainerr.DomainError
-	if !errors.As(err, &domErr) || domErr.Code != domainerr.CodeNotFound {
+	var domErr *sharederr.DomainError
+	if !errors.As(err, &domErr) || domErr.Code != sharederr.CodeNotFound {
 		t.Errorf("expected CodeNotFound, got %v", err)
 	}
 }
@@ -78,7 +78,7 @@ func TestDeleteUserHandler_AlreadyDeleted(t *testing.T) {
 
 	mockRepo.EXPECT().
 		SoftDelete(gomock.Any(), domain.UserID("already-deleted-id")).
-		Return(nil, domainerr.ErrNotFound())
+		Return(nil, sharederr.ErrNotFound())
 
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewDeleteUserHandler(mockRepo, bus)
@@ -87,8 +87,8 @@ func TestDeleteUserHandler_AlreadyDeleted(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for already-deleted user")
 	}
-	var domErr *domainerr.DomainError
-	if !errors.As(err, &domErr) || domErr.Code != domainerr.CodeNotFound {
+	var domErr *sharederr.DomainError
+	if !errors.As(err, &domErr) || domErr.Code != sharederr.CodeNotFound {
 		t.Errorf("expected CodeNotFound, got %v", err)
 	}
 }

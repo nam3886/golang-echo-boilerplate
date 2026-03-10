@@ -107,6 +107,12 @@ func (r *Pg{{.NameTitle}}Repository) Create(ctx context.Context, entity *domain.
 		Name: entity.Name(),
 	})
 	if err != nil {
+		// TODO: If this entity has unique constraints (e.g. email, slug), handle
+		// pgconn.PgError code "23505" and map to a domain error:
+		//   var pgErr *pgconn.PgError
+		//   if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		//       return domain.ErrAlreadyExists()
+		//   }
 		return fmt.Errorf("inserting {{.Name}}: %w", err)
 	}
 	// Overwrite entity with DB-authoritative timestamps (created_at, updated_at).

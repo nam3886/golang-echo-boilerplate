@@ -55,6 +55,9 @@ type Config struct {
 	ElasticsearchURL         string `env:"ELASTICSEARCH_URL"`
 	ElasticsearchIndexPrefix string `env:"ELASTICSEARCH_INDEX_PREFIX" envDefault:"gnha"`
 
+	// HTTP
+	RequestTimeout time.Duration `env:"REQUEST_TIMEOUT" envDefault:"30s"`
+
 	// CORS
 	CORSOrigins []string `env:"CORS_ORIGINS" envSeparator:"," envDefault:"http://localhost:3000"`
 }

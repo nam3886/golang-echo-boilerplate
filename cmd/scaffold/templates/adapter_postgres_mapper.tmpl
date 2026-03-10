@@ -19,6 +19,8 @@ func parse{{.NameTitle}}ID(id domain.{{.NameID}}) (uuid.UUID, error) {
 }
 
 // toDomain converts a sqlc {{.NameTitle}} row to a domain entity.
+// TODO: If your queries return different column sets (e.g. List without description),
+// add per-query mapper variants (e.g. toDomainFromList) to avoid nil-field surprises.
 func toDomain(row sqlcgen.{{.NameTitle}}) *domain.{{.NameTitle}} {
 	var deletedAt *time.Time
 	if row.DeletedAt.Valid {

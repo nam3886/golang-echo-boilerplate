@@ -13,6 +13,8 @@ type ListResult struct {
 }
 
 // {{.NameTitle}}Repository is the port for {{.Name}} persistence.
+// TODO: Add domain-specific lookup methods as needed (e.g. GetByEmail, GetBySlug).
+// These enable uniqueness pre-checks and alternative access patterns beyond ID.
 type {{.NameTitle}}Repository interface {
 	GetByID(ctx context.Context, id {{.NameID}}) (*{{.NameTitle}}, error)
 	List(ctx context.Context, limit int, cursor string) (ListResult, error)

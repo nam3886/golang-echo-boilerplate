@@ -1,5 +1,5 @@
-// Package domainerr defines domain-level error types and sentinel constructors.
-package domainerr
+// Package sharederr defines domain-level error types and sentinel constructors.
+package sharederr
 
 import (
 	"errors"

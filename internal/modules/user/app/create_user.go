@@ -11,7 +11,7 @@ import (
 	"github.com/gnha/gnha-services/internal/shared/events"
 	"github.com/gnha/gnha-services/internal/shared/netutil"
 
-	domainerr "github.com/gnha/gnha-services/internal/shared/errors"
+	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
 )
 
 // CreateUserCmd holds input for creating a user.
@@ -39,7 +39,7 @@ func (h *CreateUserHandler) Handle(ctx context.Context, cmd CreateUserCmd) (*dom
 	// Fast-path: check email availability before expensive password hashing.
 	// The DB unique constraint (idx_users_email_active) is the authoritative guard against races.
 	existing, err := h.repo.GetByEmail(ctx, cmd.Email)
-	if err != nil && !errors.Is(err, domainerr.ErrNotFound()) {
+	if err != nil && !errors.Is(err, sharederr.ErrNotFound()) {
 		return nil, fmt.Errorf("checking email: %w", err)
 	}
 	if existing != nil {

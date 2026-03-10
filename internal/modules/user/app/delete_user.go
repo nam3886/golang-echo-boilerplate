@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
@@ -28,7 +29,7 @@ func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
 	}
 	user, err := h.repo.SoftDelete(ctx, domain.UserID(id))
 	if err != nil {
-		return err
+		return fmt.Errorf("deleting user %s: %w", id, err)
 	}
 
 	// Use DB-authoritative deletion timestamp; fall back to UpdatedAt if nil (defensive).

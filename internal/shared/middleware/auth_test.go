@@ -10,7 +10,7 @@ import (
 	"github.com/alicebob/miniredis/v2"
 	"github.com/gnha/gnha-services/internal/shared/auth"
 	"github.com/gnha/gnha-services/internal/shared/config"
-	domainerr "github.com/gnha/gnha-services/internal/shared/errors"
+	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
 )
@@ -203,5 +203,5 @@ func TestAuth_SetsUserInContext(t *testing.T) {
 	}
 }
 
-// ensure the domainerr package is used (avoids unused import if only referenced via ErrorHandler).
-var _ = domainerr.ErrUnauthorized
+// ensure the sharederr package is used (avoids unused import if only referenced via ErrorHandler).
+var _ = sharederr.ErrUnauthorized

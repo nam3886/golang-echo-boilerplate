@@ -63,7 +63,7 @@ Role alone is insufficient — the wildcard must appear in the permissions slice
 
 2. Protect the Echo route group with the read permission:
    ```go
-   g := e.Group(path, appmw.Auth(cfg, rdb), appmw.RequirePermission(middleware.PermOrderRead))
+   g := e.Group(path, appmw.Auth(cfg, rdb))
    ```
 
 3. Register ALL procedures in `procedurePermissions` (fail-closed pattern)

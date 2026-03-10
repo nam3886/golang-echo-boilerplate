@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	domainerr "github.com/gnha/gnha-services/internal/shared/errors"
+	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
 	"github.com/labstack/echo/v4"
 )
 
@@ -22,7 +22,7 @@ func ErrorHandler(err error, c echo.Context) {
 		return
 	}
 
-	var domErr *domainerr.DomainError
+	var domErr *sharederr.DomainError
 	if errors.As(err, &domErr) {
 		_ = c.JSON(domErr.HTTPStatus(), ErrorResponse{
 			Code:    string(domErr.Code),
@@ -48,23 +48,23 @@ func ErrorHandler(err error, c echo.Context) {
 	// Unexpected error — log and return generic 500
 	slog.Error("unhandled error", "err", err, "path", c.Request().URL.Path)
 	_ = c.JSON(http.StatusInternalServerError, ErrorResponse{
-		Code:    domainerr.CodeInternal.String(),
+		Code:    sharederr.CodeInternal.String(),
 		Message: "internal error",
 	})
 }
 
 // echoHTTPToDomainCode maps Echo HTTP status codes to domain error codes.
-func echoHTTPToDomainCode(status int) domainerr.ErrorCode {
+func echoHTTPToDomainCode(status int) sharederr.ErrorCode {
 	switch status {
 	case http.StatusNotFound:
-		return domainerr.CodeNotFound
+		return sharederr.CodeNotFound
 	case http.StatusMethodNotAllowed, http.StatusBadRequest, http.StatusRequestEntityTooLarge:
-		return domainerr.CodeInvalidArgument
+		return sharederr.CodeInvalidArgument
 	case http.StatusTooManyRequests:
-		return domainerr.CodeResourceExhausted
+		return sharederr.CodeResourceExhausted
 	case http.StatusRequestTimeout, http.StatusGatewayTimeout:
-		return domainerr.CodeUnavailable
+		return sharederr.CodeUnavailable
 	default:
-		return domainerr.CodeInternal
+		return sharederr.CodeInternal
 	}
 }

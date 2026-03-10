@@ -7,25 +7,25 @@ import (
 	"log/slog"
 
 	"connectrpc.com/connect"
-	domainerr "github.com/gnha/gnha-services/internal/shared/errors"
+	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
 )
 
-var codeToConnect = map[domainerr.ErrorCode]connect.Code{
-	domainerr.CodeInvalidArgument:    connect.CodeInvalidArgument,
-	domainerr.CodeNotFound:           connect.CodeNotFound,
-	domainerr.CodeAlreadyExists:      connect.CodeAlreadyExists,
-	domainerr.CodePermissionDenied:   connect.CodePermissionDenied,
-	domainerr.CodeUnauthenticated:    connect.CodeUnauthenticated,
-	domainerr.CodeFailedPrecondition: connect.CodeFailedPrecondition,
-	domainerr.CodeInternal:           connect.CodeInternal,
-	domainerr.CodeUnavailable:        connect.CodeUnavailable,
-	domainerr.CodeResourceExhausted:  connect.CodeResourceExhausted,
+var codeToConnect = map[sharederr.ErrorCode]connect.Code{
+	sharederr.CodeInvalidArgument:    connect.CodeInvalidArgument,
+	sharederr.CodeNotFound:           connect.CodeNotFound,
+	sharederr.CodeAlreadyExists:      connect.CodeAlreadyExists,
+	sharederr.CodePermissionDenied:   connect.CodePermissionDenied,
+	sharederr.CodeUnauthenticated:    connect.CodeUnauthenticated,
+	sharederr.CodeFailedPrecondition: connect.CodeFailedPrecondition,
+	sharederr.CodeInternal:           connect.CodeInternal,
+	sharederr.CodeUnavailable:        connect.CodeUnavailable,
+	sharederr.CodeResourceExhausted:  connect.CodeResourceExhausted,
 }
 
 // DomainErrorToConnect maps a DomainError to a Connect RPC error.
 // Non-domain errors are logged and returned as a generic internal error to avoid leaking internals.
 func DomainErrorToConnect(err error) error {
-	var domErr *domainerr.DomainError
+	var domErr *sharederr.DomainError
 	if errors.As(err, &domErr) {
 		code := codeToConnect[domErr.Code]
 		return connect.NewError(code, fmt.Errorf("%s", domErr.Message))

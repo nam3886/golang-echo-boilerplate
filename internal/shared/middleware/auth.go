@@ -6,7 +6,7 @@ import (
 
 	"github.com/gnha/gnha-services/internal/shared/auth"
 	"github.com/gnha/gnha-services/internal/shared/config"
-	domainerr "github.com/gnha/gnha-services/internal/shared/errors"
+	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
 )
@@ -17,12 +17,12 @@ func Auth(cfg *config.Config, rdb *redis.Client) echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			token := extractBearerToken(c)
 			if token == "" {
-				return domainerr.ErrUnauthorized()
+				return sharederr.ErrUnauthorized()
 			}
 
 			claims, err := auth.ValidateAccessToken(cfg, token)
 			if err != nil {
-				return domainerr.ErrUnauthorized()
+				return sharederr.ErrUnauthorized()
 			}
 
 			// Check token blacklist (logout). Fail closed: any Redis error rejects the token.
@@ -30,10 +30,10 @@ func Auth(cfg *config.Config, rdb *redis.Client) echo.MiddlewareFunc {
 			blacklisted, err := auth.IsBlacklisted(ctx, rdb, claims.ID)
 			if err != nil {
 				slog.ErrorContext(ctx, "blacklist check failed", "err", err, "jti", claims.ID)
-				return domainerr.ErrUnauthorized()
+				return sharederr.ErrUnauthorized()
 			}
 			if blacklisted {
-				return domainerr.ErrUnauthorized()
+				return sharederr.ErrUnauthorized()
 			}
 
 			ctx = auth.WithUser(ctx, claims)

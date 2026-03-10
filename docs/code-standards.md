@@ -121,7 +121,7 @@ type GetUserHandler struct { }
 
 ### Domain Errors
 
-All errors use the `DomainError` pattern from `internal/shared/errors` (package `domainerr`, imported as `sharederr`).
+All errors use the `DomainError` pattern from `internal/shared/errors` (imported as `sharederr`).
 Module-specific errors are **constructor functions**, not package-level vars:
 
 ```go
@@ -341,22 +341,32 @@ type UpdateUserHandler struct {
 
 func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*domain.User, error) {
     var updated *domain.User
+    var mutated bool
     err := h.repo.Update(ctx, domain.UserID(cmd.ID), func(user *domain.User) error {
-        if cmd.Name != nil {
+        if cmd.Name != nil && *cmd.Name != user.Name() {
             if err := user.ChangeName(*cmd.Name); err != nil {
                 return err
             }
+            mutated = true
         }
         updated = user
+        if !mutated {
+            return sharederr.ErrNoChange()
+        }
         return nil
     })
+    // err==nil && !mutated: repo committed read-only tx (ErrNoChange), no SQL UPDATE issued.
     if err != nil {
         return nil, err
     }
 
+    if !mutated {
+        return updated, nil
+    }
+
     // Publish event with ActorID from context
     if err := h.bus.Publish(ctx, domain.TopicUserUpdated, domain.UserUpdatedEvent{
-        UserID:    cmd.ID,
+        UserID:    string(updated.ID()),
         ActorID:   auth.ActorIDFromContext(ctx),
         Name:      updated.Name(),
         Email:     updated.Email(),
@@ -365,7 +375,7 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*dom
         At:        updated.UpdatedAt(),
     }); err != nil {
         slog.ErrorContext(ctx, "failed to publish user.updated event",
-            "user_id", cmd.ID, "err", err)
+            "user_id", string(updated.ID()), "err", err)
     }
 
     return updated, nil
@@ -380,18 +390,20 @@ type DeleteUserHandler struct {
 func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
     user, err := h.repo.SoftDelete(ctx, domain.UserID(id))
     if err != nil {
-        return err
+        return fmt.Errorf("deleting user %s: %w", id, err)
     }
 
-    // Publish event with ActorID from context
+    // Use DB-authoritative deletion timestamp; fall back to UpdatedAt if nil (defensive).
+    deletedAt := user.UpdatedAt()
+    if user.DeletedAt() != nil {
+        deletedAt = *user.DeletedAt()
+    }
+
     if err := h.bus.Publish(ctx, domain.TopicUserDeleted, domain.UserDeletedEvent{
         UserID:    id,
         ActorID:   auth.ActorIDFromContext(ctx),
         IPAddress: netutil.GetClientIP(ctx),
-        // Safe dereference -- DeletedAt is guaranteed non-nil after SoftDelete
-        // returns successfully (the SQL sets deleted_at = NOW()).
-        // For other contexts, guard with: if user.DeletedAt() != nil { ... }
-        At:        *user.DeletedAt(),
+        At:        deletedAt,
     }); err != nil {
         slog.ErrorContext(ctx, "failed to publish user.deleted event",
             "user_id", id, "err", err)
@@ -429,7 +441,7 @@ func (r *PgUserRepository) Create(ctx context.Context, user *domain.User) error 
         return err
     }
     q := sqlcgen.New(r.pool)
-    _, err = q.CreateUser(ctx, sqlcgen.CreateUserParams{
+    row, err := q.CreateUser(ctx, sqlcgen.CreateUserParams{
         ID:       uid,
         Email:    user.Email(),
         Name:     user.Name(),
@@ -443,6 +455,8 @@ func (r *PgUserRepository) Create(ctx context.Context, user *domain.User) error 
         }
         return fmt.Errorf("inserting user: %w", err)
     }
+    // Overwrite entity with DB-authoritative timestamps.
+    *user = *toDomain(row)
     return nil
 }
 ```
@@ -469,7 +483,7 @@ func (h *UserServiceHandler) CreateUser(
         Role:     req.Msg.Role,
     })
     if err != nil {
-        return nil, domainErrorToConnect(err)
+        return nil, connectutil.DomainErrorToConnect(err)
     }
     return connect.NewResponse(&userv1.CreateUserResponse{
         User: toProto(user),
@@ -495,13 +509,8 @@ func toProto(user *domain.User) *userv1.User {
     }
 }
 
-func domainErrorToConnect(err error) error {
-    var de *errors.DomainError
-    if errors.As(err, &de) {
-        return connect.NewError(codeToConnectCode(de.Code), de)
-    }
-    return connect.NewError(connect.CodeInternal, err)
-}
+// Domain-to-Connect error mapping is centralized in connectutil.DomainErrorToConnect().
+// See internal/shared/connectutil/errors.go for implementation.
 ```
 
 ## Event System

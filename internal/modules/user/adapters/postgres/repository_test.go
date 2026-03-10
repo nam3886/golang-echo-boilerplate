@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/gnha/gnha-services/internal/modules/user/domain"
-	domainerr "github.com/gnha/gnha-services/internal/shared/errors"
+	sharederr "github.com/gnha/gnha-services/internal/shared/errors"
 	"github.com/gnha/gnha-services/internal/shared/testutil"
 )
 
@@ -79,7 +79,7 @@ func TestPgUserRepository_GetByID_NotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for not found")
 	}
-	if !errors.Is(err, domainerr.ErrNotFound()) {
+	if !errors.Is(err, sharederr.ErrNotFound()) {
 		t.Errorf("expected ErrNotFound, got %v", err)
 	}
 }
@@ -103,7 +103,7 @@ func TestPgUserRepository_SoftDelete(t *testing.T) {
 
 	// GetByID should return not found after soft delete
 	_, err = repo.GetByID(ctx, user.ID())
-	if !errors.Is(err, domainerr.ErrNotFound()) {
+	if !errors.Is(err, sharederr.ErrNotFound()) {
 		t.Errorf("expected ErrNotFound after soft delete, got %v", err)
 	}
 }

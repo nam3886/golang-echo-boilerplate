@@ -64,6 +64,11 @@ func (h *argon2Hasher) Hash(password string) (string, error) {
 
 // Verify checks a password against an encoded argon2id hash.
 func (h *argon2Hasher) Verify(password, encoded string) (bool, error) {
+	// Reject oversized passwords to prevent CPU-intensive hashing (DoS prevention).
+	if len([]byte(password)) > maxPasswordBytes {
+		return false, nil
+	}
+
 	parts := strings.Split(encoded, "$")
 	if len(parts) != 6 {
 		return false, fmt.Errorf("invalid hash format")

@@ -14,7 +14,7 @@ import (
 //
 // Middleware layers (three tiers):
 //  1. Echo global (this function) — runs on every request
-//  2. Echo group (in routes.go) — Auth + RequirePermission per service
+//  2. Echo group (in routes.go) — Auth per service
 //  3. Connect interceptor (in routes.go) — RBACInterceptor + protovalidate per procedure
 func SetupMiddleware(e *echo.Echo, cfg *config.Config, rdb *redis.Client) {
 	// IMPORTANT: Configure trusted proxy for accurate client IP (rate limiting, audit).
@@ -27,15 +27,17 @@ func SetupMiddleware(e *echo.Echo, cfg *config.Config, rdb *redis.Client) {
 	e.Use(Recovery())
 	// 3. Request ID
 	e.Use(RequestID())
-	// 4. Request Logger (with sanitization)
+	// 4. Rate Limiting (100 req/min) — before body parsing to prevent resource-exhaustion DDoS.
+	e.Use(RateLimit(rdb, 100, time.Minute))
+	// 5. Request Logger (with sanitization)
 	e.Use(RequestLogger())
-	// 5. Body Limit
+	// 6. Body Limit
 	e.Use(echomw.BodyLimit("10M"))
-	// 6. Gzip
+	// 7. Gzip
 	e.Use(echomw.GzipWithConfig(echomw.GzipConfig{Level: 5}))
-	// 7. Security Headers
+	// 8. Security Headers
 	e.Use(SecurityHeaders(cfg))
-	// 8. CORS
+	// 9. CORS
 	// Only enable credentials when origins are explicitly listed (not wildcard).
 	// Access-Control-Allow-Origin: * with AllowCredentials: true is rejected by browsers.
 	allowCreds := true
@@ -55,16 +57,14 @@ func SetupMiddleware(e *echo.Echo, cfg *config.Config, rdb *redis.Client) {
 		AllowCredentials: allowCreds,
 		MaxAge:           3600,
 	}))
-	// 9. Global Timeout (30s default)
-	// WARNING: ContextTimeout cancels the request context after 30s. If a handler
-	// writes to the DB and then publishes an event, the context may cancel between
-	// the two operations. Handlers doing multi-step writes should use their own
+	// 10. Global Timeout (configurable, default 30s)
+	// WARNING: ContextTimeout cancels the request context after the configured duration.
+	// If a handler writes to the DB and then publishes an event, the context may cancel
+	// between the two operations. Handlers doing multi-step writes should use their own
 	// deadline or check ctx.Err() between steps.
 	e.Use(echomw.ContextTimeoutWithConfig(echomw.ContextTimeoutConfig{
-		Timeout: 30 * time.Second,
+		Timeout: cfg.RequestTimeout,
 	}))
-	// 10. Rate Limiting (100 req/min)
-	e.Use(RateLimit(rdb, 100, time.Minute))
 
 	// 11. Centralized error handler
 	e.HTTPErrorHandler = ErrorHandler

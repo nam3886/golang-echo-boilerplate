@@ -73,6 +73,7 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*dom
 		}
 		return nil
 	})
+	// err==nil && !mutated: repo committed read-only tx (ErrNoChange), no SQL UPDATE issued.
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +84,7 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*dom
 	}
 
 	if err := h.bus.Publish(ctx, domain.TopicUserUpdated, domain.UserUpdatedEvent{
-		UserID:    cmd.ID,
+		UserID:    string(updated.ID()),
 		ActorID:   auth.ActorIDFromContext(ctx),
 		Name:      updated.Name(),
 		Email:     updated.Email(),
