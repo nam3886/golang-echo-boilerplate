@@ -72,3 +72,15 @@ func TestPassword_HashFormat(t *testing.T) {
 		t.Errorf("expected hash to start with $argon2id$, got %q", encoded[:10])
 	}
 }
+
+func TestPassword_VerifyOversized_ReturnsFalse(t *testing.T) {
+	h := auth.NewPasswordHasher()
+	oversized := strings.Repeat("a", 100) // exceeds bcrypt 72-byte limit
+	ok, err := h.Verify(oversized, "$2a$10$invalidhashbutdoesntmatter")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if ok {
+		t.Error("expected false for oversized password")
+	}
+}

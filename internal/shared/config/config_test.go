@@ -77,6 +77,24 @@ func TestLoad_RejectsInvalidAppEnv(t *testing.T) {
 	}
 }
 
+func TestLoad_RejectsMinConnsExceedingMaxConns(t *testing.T) {
+	t.Setenv("DATABASE_URL", "postgres://localhost/test")
+	t.Setenv("REDIS_URL", "redis://localhost:6379")
+	t.Setenv("RABBITMQ_URL", "amqp://localhost:5672")
+	t.Setenv("JWT_SECRET", "thisisaverylongjwtsecretfor32chars")
+	t.Setenv("APP_ENV", "development")
+	t.Setenv("DB_MIN_CONNS", "50")
+	t.Setenv("DB_MAX_CONNS", "5")
+
+	cfg, err := Load()
+	if err == nil {
+		t.Fatal("expected error when DB_MIN_CONNS > DB_MAX_CONNS, got nil")
+	}
+	if cfg != nil {
+		t.Error("expected nil config when DB_MIN_CONNS > DB_MAX_CONNS")
+	}
+}
+
 func TestMask_NonEmpty(t *testing.T) {
 	result := mask("secret123")
 	if result != "***" {

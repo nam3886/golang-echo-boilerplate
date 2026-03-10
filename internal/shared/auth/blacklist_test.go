@@ -82,8 +82,9 @@ func TestBlacklist_TTLRespectsExpiry(t *testing.T) {
 		t.Fatal("expected jti to be blacklisted before TTL expiry")
 	}
 
-	// Wait for Redis key to expire
-	time.Sleep(2 * time.Second)
+	// Wait for Redis key to expire — intentionally slow (real Redis TTL, not a mock).
+	// 1100ms gives the 1s TTL time to expire plus a 100ms buffer for clock skew.
+	time.Sleep(1100 * time.Millisecond)
 
 	blacklisted, err = auth.IsBlacklisted(ctx, rdb, jti)
 	if err != nil {
