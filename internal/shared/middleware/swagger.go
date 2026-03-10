@@ -68,18 +68,12 @@ func buildSwaggerHTML(specs []string) string {
 	if len(specs) == 0 {
 		return `<!DOCTYPE html><html><body><p>No OpenAPI specs found in gen/openapi/</p></body></html>`
 	}
-	// Build urls array for SwaggerUI
-	var urlEntries string
-	for _, s := range specs {
-		name := html.EscapeString(strings.TrimSuffix(filepath.Base(s), ".swagger.json"))
-		urlEntries += `{url:"` + html.EscapeString(s) + `",name:"` + name + `"},`
-	}
 	return `<!DOCTYPE html>
 <html><head><title>API Docs</title>
 <link rel="stylesheet" href="` + swaggerCSSURL + `">
 </head><body>
 <div id="swagger-ui"></div>
 <script src="` + swaggerJSURL + `"></script>
-<script>SwaggerUIBundle({urls:[` + urlEntries + `],dom_id:"#swagger-ui","urls.primaryName":"` + html.EscapeString(strings.TrimSuffix(filepath.Base(specs[0]), ".swagger.json")) + `"})</script>
+<script>SwaggerUIBundle({url:"` + html.EscapeString(specs[0]) + `",dom_id:"#swagger-ui"})</script>
 </body></html>`
 }
