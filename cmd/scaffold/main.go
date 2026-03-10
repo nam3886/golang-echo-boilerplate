@@ -115,7 +115,9 @@ func main() {
 		{"adapter_postgres_mapper.tmpl", filepath.Join("internal", "modules", data.Name, "adapters", "postgres", "domain_mapper.go")},
 		{"adapter_postgres_test.tmpl", filepath.Join("internal", "modules", data.Name, "adapters", "postgres", "repository_test.go")},
 		{"adapter_grpc_handler.tmpl", filepath.Join("internal", "modules", data.Name, "adapters", "grpc", "handler.go")},
+		{"adapter_grpc_handler_test.tmpl", filepath.Join("internal", "modules", data.Name, "adapters", "grpc", "handler_test.go")},
 		{"adapter_grpc_mapper.tmpl", filepath.Join("internal", "modules", data.Name, "adapters", "grpc", "mapper.go")},
+		{"adapter_grpc_mapper_test.tmpl", filepath.Join("internal", "modules", data.Name, "adapters", "grpc", "mapper_test.go")},
 		{"adapter_grpc_routes.tmpl", filepath.Join("internal", "modules", data.Name, "adapters", "grpc", "routes.go")},
 		{"module.tmpl", filepath.Join("internal", "modules", data.Name, "module.go")},
 	}
