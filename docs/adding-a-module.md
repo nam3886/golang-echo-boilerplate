@@ -134,7 +134,7 @@ message GetProductRequest {
 message GetProductResponse { Product product = 1; }
 
 message ListProductsRequest {
-  int32 page = 1 [(buf.validate.field).int32.gte = 1];
+  int32 page = 1 [(buf.validate.field).int32 = {gte: 1}];
   int32 page_size = 2 [(buf.validate.field).int32 = {gte: 1, lte: 100}];
 }
 message ListProductsResponse {
@@ -162,7 +162,7 @@ CREATE TABLE products (
 
 CREATE INDEX idx_products_active ON products (id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_products_name ON products (name) WHERE deleted_at IS NULL;
-CREATE INDEX idx_products_pagination ON products (created_at DESC) WHERE deleted_at IS NULL;
+CREATE INDEX idx_products_pagination ON products (created_at DESC, id DESC) WHERE deleted_at IS NULL;
 
 -- +goose Down
 DROP TABLE IF EXISTS products;
@@ -183,7 +183,7 @@ SELECT COUNT(*) FROM products WHERE deleted_at IS NULL;
 -- name: ListProducts :many
 SELECT id, name, created_at, updated_at, deleted_at FROM products
 WHERE deleted_at IS NULL
-ORDER BY created_at DESC
+ORDER BY created_at DESC, id DESC
 LIMIT $1 OFFSET $2;
 
 -- name: CreateProduct :one
