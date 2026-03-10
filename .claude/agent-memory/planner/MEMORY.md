@@ -1,6 +1,6 @@
 # Planner Agent Memory
 
-## Project: gnha-services
+## Project: golang-echo-boilerplate
 - **Architecture:** Hexagonal modular monolith (Go 1.26, Echo, Connect RPC, Fx DI)
 - **DB:** Postgres (pgx + sqlc), Redis, RabbitMQ (Watermill), Elasticsearch (optional)
 - **Testing:** gomock for mocks, testcontainers for integration, `//go:build integration` tag convention

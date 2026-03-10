@@ -1,4 +1,4 @@
-# Code Reviewer Memory - gnha-services
+# Code Reviewer Memory - golang-echo-boilerplate
 
 ## Project Structure
 - Go 1.26.0 modular monolith using Fx DI, Echo HTTP, Connect RPC, pgx+sqlc, Watermill+RabbitMQ

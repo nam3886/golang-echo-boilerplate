@@ -1,4 +1,4 @@
-# Review History - gnha-services
+# Review History - golang-echo-boilerplate
 
 ## Reports Index
 | Date | Report | Score | Focus |
