@@ -104,6 +104,9 @@ func (u *User) UpdatedAt() time.Time { return u.updatedAt }
 // DeletedAt returns the soft-delete timestamp, or nil if not deleted.
 func (u *User) DeletedAt() *time.Time { return u.deletedAt }
 
+// IsDeleted reports whether the user has been soft-deleted.
+func (u *User) IsDeleted() bool { return u.deletedAt != nil }
+
 // ChangeName updates the user's name.
 // No-op when the new name is identical to the current value.
 func (u *User) ChangeName(name string) error {

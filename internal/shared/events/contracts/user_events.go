@@ -14,6 +14,8 @@ const (
 
 // UserCreatedEvent is published when a user is created.
 type UserCreatedEvent struct {
+	// Schema version, currently 1.
+	Version   int       `json:"version"`
 	UserID    string    `json:"user_id"`
 	ActorID   string    `json:"actor_id"`
 	Email     string    `json:"email"`
@@ -25,17 +27,22 @@ type UserCreatedEvent struct {
 
 // UserUpdatedEvent is published when a user is updated.
 type UserUpdatedEvent struct {
-	UserID    string    `json:"user_id"`
-	ActorID   string    `json:"actor_id"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	Role      string    `json:"role"`
-	IPAddress string    `json:"ip_address,omitempty"`
-	At        time.Time `json:"at"`
+	// Schema version, currently 1.
+	Version       int       `json:"version"`
+	UserID        string    `json:"user_id"`
+	ActorID       string    `json:"actor_id"`
+	Name          string    `json:"name"`
+	Email         string    `json:"email"`
+	Role          string    `json:"role"`
+	ChangedFields []string  `json:"changed_fields,omitempty"`
+	IPAddress     string    `json:"ip_address,omitempty"`
+	At            time.Time `json:"at"`
 }
 
 // UserDeletedEvent is published when a user is soft-deleted.
 type UserDeletedEvent struct {
+	// Schema version, currently 1.
+	Version   int       `json:"version"`
 	UserID    string    `json:"user_id"`
 	ActorID   string    `json:"actor_id"`
 	IPAddress string    `json:"ip_address,omitempty"`

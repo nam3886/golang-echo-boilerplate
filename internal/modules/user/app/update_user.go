@@ -33,7 +33,7 @@ func NewUpdateUserHandler(repo domain.UserRepository, bus events.EventPublisher)
 // Handle applies partial updates to a user within a transaction.
 func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*domain.User, error) {
 	if cmd.ID == "" {
-		return nil, domain.ErrInvalidArgument()
+		return nil, sharederr.New(sharederr.CodeInvalidArgument, "user ID is required")
 	}
 	// Skip DB lock entirely when no fields are provided.
 	if cmd.Name == nil && cmd.Role == nil && cmd.Email == nil {
@@ -47,50 +47,55 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*dom
 	// Unlike CreateUser, no pre-check is done here because the FOR UPDATE lock
 	// serializes concurrent updates to the same user row.
 	var updated *domain.User
-	var mutated bool
+	var changedFields []string
 	err := h.repo.Update(ctx, domain.UserID(cmd.ID), func(user *domain.User) error {
+		// Pre-check avoids false-positive mutation tracking.
+		// Entity methods also validate, but we need to know IF a change happened
+		// to skip unnecessary DB writes and event publishing.
 		if cmd.Email != nil && *cmd.Email != user.Email() {
 			if err := user.ChangeEmail(*cmd.Email); err != nil {
 				return err
 			}
-			mutated = true
+			changedFields = append(changedFields, "email")
 		}
 		if cmd.Name != nil && *cmd.Name != user.Name() {
 			if err := user.ChangeName(*cmd.Name); err != nil {
 				return err
 			}
-			mutated = true
+			changedFields = append(changedFields, "name")
 		}
 		if cmd.Role != nil && *cmd.Role != string(user.Role()) {
 			if err := user.ChangeRole(domain.Role(*cmd.Role)); err != nil {
 				return err
 			}
-			mutated = true
+			changedFields = append(changedFields, "role")
 		}
 		updated = user
-		if !mutated {
+		if len(changedFields) == 0 {
 			return sharederr.ErrNoChange()
 		}
 		return nil
 	})
-	// err==nil && !mutated: repo committed read-only tx (ErrNoChange), no SQL UPDATE issued.
+	// err==nil && len(changedFields)==0: repo committed read-only tx (ErrNoChange), no SQL UPDATE issued.
 	if err != nil {
 		return nil, err
 	}
 
 	// Skip event if nothing was actually changed.
-	if !mutated {
+	if len(changedFields) == 0 {
 		return updated, nil
 	}
 
 	if err := h.bus.Publish(ctx, domain.TopicUserUpdated, domain.UserUpdatedEvent{
-		UserID:    string(updated.ID()),
-		ActorID:   auth.ActorIDFromContext(ctx),
-		Name:      updated.Name(),
-		Email:     updated.Email(),
-		Role:      string(updated.Role()),
-		IPAddress: netutil.GetClientIP(ctx),
-		At:        updated.UpdatedAt(),
+		Version:       1,
+		UserID:        string(updated.ID()),
+		ActorID:       auth.ActorIDFromContext(ctx),
+		Name:          updated.Name(),
+		Email:         updated.Email(),
+		Role:          string(updated.Role()),
+		ChangedFields: changedFields,
+		IPAddress:     netutil.GetClientIP(ctx),
+		At:            updated.UpdatedAt(),
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to publish user.updated event",
 			"user_id", cmd.ID, "err", err)
