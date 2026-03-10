@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"html"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -47,15 +48,18 @@ func MountSwagger(e *echo.Echo, cfg *config.Config) {
 // discoverSpecs walks the given directory and returns relative URL paths for all .swagger.json files.
 func discoverSpecs(dir string) []string {
 	var specs []string
-	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+	if err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
+			slog.Warn("swagger spec discovery error", "path", path, "err", err)
 			return nil
 		}
 		if !info.IsDir() && strings.HasSuffix(path, ".swagger.json") {
 			specs = append(specs, "/swagger/spec/"+strings.TrimPrefix(path, dir+"/"))
 		}
 		return nil
-	})
+	}); err != nil {
+		slog.Warn("swagger spec walk failed", "dir", dir, "err", err)
+	}
 	return specs
 }
 

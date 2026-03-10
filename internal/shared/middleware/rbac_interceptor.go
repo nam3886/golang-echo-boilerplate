@@ -1,5 +1,9 @@
 package middleware
 
+// This file implements a Connect RPC interceptor (not Echo middleware).
+// It lives in the middleware package for organizational convenience since
+// it shares the RBAC permission constants defined in rbac.go.
+
 import (
 	"context"
 	"strings"

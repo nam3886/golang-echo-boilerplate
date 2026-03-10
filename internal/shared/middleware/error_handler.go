@@ -58,6 +58,10 @@ func echoHTTPToDomainCode(status int) sharederr.ErrorCode {
 	switch status {
 	case http.StatusNotFound:
 		return sharederr.CodeNotFound
+	case http.StatusUnauthorized:
+		return sharederr.CodeUnauthenticated
+	case http.StatusForbidden:
+		return sharederr.CodePermissionDenied
 	case http.StatusMethodNotAllowed, http.StatusBadRequest, http.StatusRequestEntityTooLarge:
 		return sharederr.CodeInvalidArgument
 	case http.StatusTooManyRequests:

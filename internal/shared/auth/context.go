@@ -40,7 +40,11 @@ func ActorIDFromContext(ctx context.Context) string {
 	return ""
 }
 
-// HasPermission checks if the user has a specific permission.
+// HasPermission checks if the claims contain the required permission.
+// Uses flat matching with a single admin wildcard (admin:*).
+// Namespace wildcards (e.g., user:*) are intentionally not supported
+// to keep the permission model simple. Expand matching logic here
+// if hierarchical permissions become needed.
 // Admin users must have "admin:*" in their permissions claim — role alone is not sufficient.
 func (u *AuthUser) HasPermission(perm string) bool {
 	for _, p := range u.Permissions {
