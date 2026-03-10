@@ -10,9 +10,10 @@ plugins:
     out: gen/proto
     opt: paths=source_relative
 
-  # OpenAPI v2 spec
+  # OpenAPI v2 spec (generate_unbound_methods creates paths for RPCs without google.api.http annotations)
   - remote: buf.build/grpc-ecosystem/openapiv2
     out: gen/openapi
+    opt: generate_unbound_methods=true
 
   # TypeScript protobuf types + service descriptors (Connect-ES v2)
   - remote: buf.build/bufbuild/es

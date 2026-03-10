@@ -16,8 +16,8 @@ import (
 // Avoid using floating tags like "@5" which can resolve to arbitrary versions.
 const (
 	swaggerUIVersion = "5.18.2"
-	swaggerCSSURL    = "https://unpkg.com/swagger-ui-dist@" + swaggerUIVersion + "/swagger-ui.css"
-	swaggerJSURL     = "https://unpkg.com/swagger-ui-dist@" + swaggerUIVersion + "/swagger-ui-bundle.js"
+	swaggerCSSURL    = "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/" + swaggerUIVersion + "/swagger-ui.css"
+	swaggerJSURL     = "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/" + swaggerUIVersion + "/swagger-ui-bundle.js"
 )
 
 // MountSwagger serves OpenAPI specs and Swagger UI in non-production environments.
@@ -36,8 +36,8 @@ func MountSwagger(e *echo.Echo, cfg *config.Config) {
 	e.GET("/swagger/", func(c echo.Context) error {
 		// Override the global CSP to allow Swagger UI CDN assets.
 		c.Response().Header().Set("Content-Security-Policy",
-			"default-src 'self'; style-src 'self' https://unpkg.com; "+
-				"script-src 'self' https://unpkg.com 'unsafe-inline'; "+
+			"default-src 'self'; style-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'; "+
+				"script-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'; "+
 				"img-src 'self' data:")
 		specs := discoverSpecs("gen/openapi")
 		swaggerHTML := buildSwaggerHTML(specs)
@@ -76,10 +76,10 @@ func buildSwaggerHTML(specs []string) string {
 	}
 	return `<!DOCTYPE html>
 <html><head><title>API Docs</title>
-<link rel="stylesheet" href="` + swaggerCSSURL + `" crossorigin="anonymous">
+<link rel="stylesheet" href="` + swaggerCSSURL + `">
 </head><body>
 <div id="swagger-ui"></div>
-<script src="` + swaggerJSURL + `" crossorigin="anonymous"></script>
+<script src="` + swaggerJSURL + `"></script>
 <script>SwaggerUIBundle({urls:[` + urlEntries + `],dom_id:"#swagger-ui","urls.primaryName":"` + html.EscapeString(strings.TrimSuffix(filepath.Base(specs[0]), ".swagger.json")) + `"})</script>
 </body></html>`
 }
