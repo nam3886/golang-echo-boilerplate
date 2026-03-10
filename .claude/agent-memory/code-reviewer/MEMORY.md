@@ -3,67 +3,114 @@
 ## Project Structure
 - Go 1.26.0 modular monolith using Fx DI, Echo HTTP, Connect RPC, pgx+sqlc, Watermill+RabbitMQ
 - Hexagonal architecture: `domain/ -> app/ -> adapters/{postgres,grpc}`
-- Generated code in `gen/sqlc/` and `gen/proto/`
+- Generated code in `gen/sqlc/`, `gen/proto/`, `gen/ts/`, `gen/openapi/`
 - Migrations in `db/migrations/` (3 files: initial, pagination index, role constraint fix)
 - CI/CD: `.gitlab-ci.yml` (4 stages: quality, test, build, deploy)
 - Task runner: `Taskfile.yml` (go-task)
-- Sentinel errors: shared pkg uses constructor funcs (ErrNotFound()) copying unexported templates
+- Sentinel errors: shared pkg uses constructor funcs (ErrNotFound(), ErrNoChange()) copying unexported templates
 - EventPublisher interface in events/publisher.go decouples app from EventBus
 - Event contracts in `internal/shared/events/contracts/` (shared types/topics, no cross-module imports)
-- Domain re-exports contracts via type aliases (e.g. `type UserCreatedEvent = contracts.UserCreatedEvent`)
+- Domain re-exports contracts via type aliases
 - Auth blacklist centralized in auth/blacklist.go with shared prefix constant
-- RBAC interceptor uses exact procedure path constants from generated code
-- Test stubs consolidated in testutil/stubs.go (StubHasher, NoopPublisher, CapturingPublisher, FailPublisher)
+- RBAC interceptor uses exact procedure path constants; fail-closed design
+- Test stubs consolidated in testutil/stubs.go + testutil/helpers.go (Ptr[T])
 
 ## Key Patterns
 - Domain entities use unexported fields + getters + `Reconstitute()` for persistence hydration
 - DomainError.Is() matches on Code field, not pointer identity
-- SubscriberFactory creates per-handler AMQP subscribers (each gets own queue via GenerateQueueNameTopicNameWithSuffix)
-- HandlerRegistration structs collected via Fx `group:"event_handlers"` tag, flattened in NewRouter
+- ErrNoChange signals no-op updates: app returns it, repo intercepts to skip SQL UPDATE + commit read-tx
+- Closure-based `Update(ctx, id, func(*Entity) error)` for transactional UoW in repos
+- SoftDelete uses single `UPDATE ... RETURNING` (no TOCTOU race)
+- Auth middleware on route groups; all RBAC via RBACInterceptor per procedure (no RequirePermission on group)
 - Cursor-based pagination with base64-encoded JSON cursors (keyset: created_at DESC, id DESC)
-- Auth middleware on route groups, not global; RBAC with PermUserRead/Write/Delete
-- Closure-based `Update(ctx, id, func(*User) error)` for transactional UoW in repos
-- CORS guard: AllowCredentials disabled when origins contain "*"
-- Audit idempotency: uses Watermill msg UUID as PK with ON CONFLICT DO NOTHING
-- Swagger CSP override per-route (not global) allowing unpkg.com CDN
-- Config URL validation via url.Parse checking Scheme+Host non-empty
+- Cursor validation: rejects zero time or nil UUID
+- Config String() uses strings.Builder (not positional fmt.Sprintf)
+- Exponential backoff in retry.Connect: `1<<uint(i)` seconds, capped at 30s
+- isPermanentSMTPError uses textproto.Error type assertion (not string matching)
+- OTel tracer/metrics: empty OTLPEndpoint returns no-op provider; shared resource in resource.go
+- Recovery middleware truncates panic value to 200 chars (PII protection)
+- Audit subscriber logs msg_id on unmarshal error (not raw payload)
+- Import alias: `sharederr` for shared/errors in repos/templates; `domainerr` still used in middleware
+- Password hashing: argon2id (not bcrypt), maxPasswordBytes=72, Verify silently returns false for oversized
+- Auth blacklist: fail-closed on Redis error (rejects token)
+- Rate limiter: fail-open on Redis error, IP-based (user-keying impossible before Auth)
+- Health endpoints (/healthz, /readyz) registered BEFORE middleware chain
+- Middleware order: OTel > Recovery > RequestID > RateLimit > Logger > BodyLimit > Gzip > Security > CORS > Timeout
+- Per-handler subscriber queues via SubscriberFactory (prevents round-robin message loss)
+- DLQ uses separate AMQP connection at startup for exchange/queue declaration
 
-## Remaining Issues (updated 2026-03-08 round 3)
-### CRITICAL -- None
-### HIGH (open)
-- H-1: DLQ routing key may be empty with fanout exchange -- dead-lettered msgs could be silently dropped. Need to verify Watermill AMQP adapter routing key behavior or set explicit x-dead-letter-routing-key per topic.
-- I-12: SoftDelete not transactional -- concurrent CreateUser can race (postgres/repository.go:178)
-- auth/ package ZERO unit tests
-### MEDIUM (open)
-- M-2: No-op update still hits DB (SELECT FOR UPDATE + UPDATE) before event suppression check
-- M-4: Production deploy has no migration step in CI/CD or docker-compose
-- M-14: 30s global timeout partial-write risk (documented with WARNING comment but not fixed)
-- Three near-identical audit handlers (DRY opportunity)
-- Swagger CDN no SRI hashes (pinned version mitigates)
-### LOW (open)
-- isPermanentSMTPError uses string matching instead of *textproto.Error
-- StubHasher.Verify always true; linear backoff in retry
-- Zero tests: auth, connectutil, events, retry, audit, notification
-- Subscriber leak on factory error during startup (minor, startup-only)
+## Remaining Issues (updated 2026-03-10 post-fix)
+### CRITICAL
+- C-1: Rate limiter user-keying is dead code (Auth runs after RateLimit in chain) -- WONTFIX (by design)
+### HIGH (all fixed 2026-03-10)
+- ~~H-DOC-1 thru H-DOC-6~~: FIXED — docs accuracy (architecture.md, CLAUDE.md, code-standards.md, rbac.md)
+- ~~H-SEC-1~~: FIXED — JWT time.Now() single call
+- ~~H-SEC-2~~: FIXED — CORS localhost production warning
+- ~~H-ERR-1~~: FIXED — errors.Is() for http.ErrServerClosed
+- ~~H-ARCH-1~~: FIXED — audit uses shared contracts
+- ~~H-DX-1~~: FIXED — removed dead RequirePermission/RequireRole
+- ~~H-CI-1~~: FIXED — govulncheck in CI
+- ~~H-CI-2~~: FIXED — 50% coverage threshold gate
+- ~~H-SCAF-1~~: FIXED — scaffold rollback on partial failure
+- H-INFRA-2: search.NewClient returns (nil, nil) -- ACCEPTED (documented + Enabled() helper)
+- H-MW-1: Global 30s ContextTimeout may cancel context mid-transaction — DOCUMENTED (warning comment)
+### MEDIUM (remaining)
+- M-2: No login/logout endpoint despite full auth infrastructure
+- M-7: Swagger discoverSpecs silently swallows filepath.Walk errors
+- M-9: No RabbitMQ health check in /readyz
+- M-10: Event contracts missing version field
+- M-14: File naming conflict: development-rules.md kebab-case needs Go exemption
+- M-NEW-15: No mapper_test template (user module has 115-line mapper_test.go)
+- M-NEW-17: No golden-file test for scaffold CLI
+- M-INFRA-3: CapturingPublisher not thread-safe (test-only, low risk)
+- M-INFRA-7: No test for GenerateRefreshToken
+- M-INFRA-10: No DB connection pool stats exposed to OTel
+- M-DOM-3: No ChangePassword method on User entity
+- M-CFG-3: DB MaxConnIdleTime hardcoded 30m, not configurable via env
+- M-DC-1: ES version mismatch: dev compose 8.13.0 vs testutil 8.17.0
+- M-TEST-4: NewTestRabbitMQ doesn't check RABBITMQ_URL env var (unlike Postgres/Redis)
+### LOW
+- Non-UUID strings as IDs in unit tests bypass parseUserID
+- Swagger UI CDN lacks SRI integrity hashes
+- DLQ declaration opens/closes separate AMQP connection at startup
+- code-standards.md test examples use testify but codebase uses stdlib testing
+- Scaffold does not validate plural against reserved words
+- EventBus.Publish topic param is untyped string (typo-prone)
 
-## Overall Score: 8.5/10 (as of 2026-03-08 round 3)
-- Up from 7.5 due to: I-9 fixed (subscriber fanout), I-8 fixed (email sanitization), I-10 fixed (Swagger CSP), Alpine/Redis/RabbitMQ hardened
-- Top priority: verify H-1 (DLQ routing key), then I-12 (SoftDelete race)
+## Test Coverage (2026-03-10, updated round 28)
+| Package | Coverage |
+|---------|----------|
+| user/app | 93.7% |
+| user/domain | 79.2% |
+| user/adapters/grpc | 65.7% |
+| shared/middleware | 55.0% |
+| shared/errors | 54.2% |
+| shared/auth | 50.7% |
+| shared/config | 45.6% |
+| audit | >0% (7 tests) |
+| notification | >0% (5 tests) |
+| shared/retry | 0% (needs unit tests) |
+| shared/connectutil | 0% (needs tests) |
 
-## Resolved Issues (this round)
-- I-9: Shared subscriber round-robin -> SubscriberFactory per-handler queues
-- I-8: Email CRLF injection -> mail.ParseAddress + sanitize()
-- I-10: CSP blocks Swagger -> per-route CSP override
-- I-11: No-op update event -> suppressed (DB still hit, tracked as M-2)
-- M-12: No URL validation -> validateURL() added
-- M-15: Alpine 3.19 EOL -> 3.21
-- M-16: Redis no persistence -> --appendonly yes
-- M-17: RabbitMQ management in prod -> rabbitmq:3-alpine
-- L-10: 429 as CodeInternal -> CodeResourceExhausted
-- semconv deprecated -> v1.27 DeploymentEnvironmentName
-- mailpit/golangci-lint unpinned -> pinned versions
-- Router context.Background() -> cancellable context with Fx lifecycle
-- Cron module removed (was empty scaffolding)
+## Review History (30 reports, 2026-03-10)
+See `review-history.md` for full report index.
+- Latest: Consolidated deep review (30) — 4 parallel reviewers
+- Report: `plans/reports/code-reviewer-260310-0847-consolidated-deep-review.md`
+- Sub-reports: architecture-dx-consistency, docs-accuracy-onboarding, shared-infra-security, scaffold-codegen-cicd
+- 57 issues total: 0C, 15H, 29M, 13L
+- Key themes: docs accuracy (6H), CI gaps (2H), scaffold gaps (2H), infra (5H)
+
+## Docs Accuracy Status (2026-03-10 post-fix)
+- error-codes.md: VERIFIED ACCURATE
+- authentication.md: VERIFIED ACCURATE
+- event-subscribers.md: MOSTLY ACCURATE
+- testing-strategy.md: MOSTLY ACCURATE
+- architecture.md: FIXED — correct middleware order + request flow
+- code-standards.md: FIXED — per-query mapper pattern + constraint name check added
+- rbac.md: FIXED — clarified only RBACInterceptor enforces permissions
+- CLAUDE.md: FIXED — 8 commands added, fixtures corrected, 9/9 docs listed
+
+## Overall Score: 9.0/10 (post-fix) | 15 HIGH issues resolved
 
 ## File Locations
 - Entry: `cmd/server/main.go`
@@ -75,8 +122,7 @@
 - Config: `internal/shared/config/config.go`
 - Audit: `internal/modules/audit/`
 - Notification: `internal/modules/notification/`
-- Search: `internal/modules/user/adapters/search/`
 - Testutil: `internal/shared/testutil/`
 - Errors: `internal/shared/errors/domain_error.go`
-- Docker: `Dockerfile`, `deploy/docker-compose.yml`, `deploy/docker-compose.dev.yml`
+- Scaffold: `cmd/scaffold/templates/`
 - CI: `.gitlab-ci.yml`

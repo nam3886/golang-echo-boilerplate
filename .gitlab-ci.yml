@@ -52,6 +52,18 @@ generated-check:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
 
+security-scan:
+  stage: quality
+  before_script:
+    - apk add --no-cache git curl
+  script:
+    - go install golang.org/x/vuln/cmd/govulncheck@latest
+    - govulncheck ./...
+  allow_failure: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
 # ─── Test ───────────────────────────────────────────────────────────────────
 
 unit-test:
@@ -59,6 +71,13 @@ unit-test:
   script:
     - go test -race -count=1 -coverprofile=coverage.out ./internal/...
     - go tool cover -func=coverage.out
+    - |
+      COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | tr -d '%')
+      echo "Total coverage: ${COVERAGE}%"
+      if [ "$(echo "$COVERAGE < 50" | bc -l)" -eq 1 ]; then
+        echo "ERROR: Coverage ${COVERAGE}% is below 50% threshold"
+        exit 1
+      fi
   coverage: '/total:\s+\(statements\)\s+(\d+\.\d+)%/'
   artifacts:
     paths:

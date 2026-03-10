@@ -456,10 +456,37 @@ func (r *PgUserRepository) Create(ctx context.Context, user *domain.User) error 
         return fmt.Errorf("inserting user: %w", err)
     }
     // Overwrite entity with DB-authoritative timestamps.
-    *user = *toDomain(row)
+    *user = *toDomainFromCreateRow(row)
     return nil
 }
 ```
+
+**Constraint error handling** — always check both error code AND constraint name for precise mapping:
+
+```go
+var pgErr *pgconn.PgError
+if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+    if pgErr.ConstraintName == "idx_users_email_active" {
+        return nil, domain.ErrEmailTaken()
+    }
+    return nil, sharederr.ErrAlreadyExists().WithMessage("duplicate entry")
+}
+```
+
+### Per-Query Mapper Pattern
+
+sqlc generates a unique Go struct per query (e.g., `GetUserByIDRow`, `ListUsersRow`, `CreateUserRow`) because each query may SELECT different columns. Each requires its own mapper:
+
+```go
+func toDomain(row sqlcgen.User) *domain.User           // full entity (e.g., GetByEmail with password)
+func toDomainFromGetRow(row sqlcgen.GetUserByIDRow)     // read-only, excludes sensitive fields
+func toDomainFromListRow(row sqlcgen.ListUsersRow)      // list queries
+func toDomainFromCreateRow(row sqlcgen.CreateUserRow)   // CREATE ... RETURNING
+func toDomainFromUpdateRow(row sqlcgen.UpdateUserRow)   // UPDATE ... RETURNING
+func toDomainFromSoftDeleteRow(row sqlcgen.SoftDeleteUserRow) // soft-delete
+```
+
+The scaffold generates a single `toDomain()` as a starting point. Add per-query variants as you customize your SQL queries to return different column sets.
 
 ### Connect RPC Handler
 

@@ -136,25 +136,45 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Track created files for rollback on partial failure.
+	var created []string
+	rollback := func() {
+		for _, p := range created {
+			_ = os.Remove(p)
+		}
+		// Remove empty directories left behind (best-effort, deepest first).
+		dirs := map[string]struct{}{}
+		for _, p := range created {
+			dirs[filepath.Dir(p)] = struct{}{}
+		}
+		for d := range dirs {
+			_ = os.Remove(d) // only removes if empty
+		}
+	}
+
 	// Execute and write each template.
 	for _, f := range files {
 		if err := os.MkdirAll(filepath.Dir(f.out), 0755); err != nil {
+			rollback()
 			fmt.Fprintf(os.Stderr, "error creating directory for %s: %v\n", f.out, err)
 			os.Exit(1)
 		}
 
 		out, err := os.OpenFile(f.out, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0644)
 		if err != nil {
+			rollback()
 			fmt.Fprintf(os.Stderr, "error creating %s: %v\n", f.out, err)
 			os.Exit(1)
 		}
 
 		if err := tmpl.ExecuteTemplate(out, f.tmpl, data); err != nil {
 			_ = out.Close()
+			rollback()
 			fmt.Fprintf(os.Stderr, "error executing template %s: %v\n", f.tmpl, err)
 			os.Exit(1)
 		}
 		_ = out.Close()
+		created = append(created, f.out)
 		fmt.Printf("  created: %s\n", f.out)
 	}
 

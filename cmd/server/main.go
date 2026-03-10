@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -86,7 +87,7 @@ func startServer(lc fx.Lifecycle, e *echo.Echo, cfg *config.Config, shutdowner f
 			addr := fmt.Sprintf(":%d", cfg.Port)
 			slog.Info("server starting", "addr", addr, "env", cfg.AppEnv)
 			go func() {
-				if err := e.Start(addr); err != nil && err != http.ErrServerClosed {
+				if err := e.Start(addr); err != nil && !errors.Is(err, http.ErrServerClosed) {
 					slog.Error("server error", "err", err)
 					_ = shutdowner.Shutdown(fx.ExitCode(1))
 				}

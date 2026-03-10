@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/gnha/gnha-services/internal/shared/config"
@@ -38,6 +40,15 @@ func SetupMiddleware(e *echo.Echo, cfg *config.Config, rdb *redis.Client) {
 	// 8. Security Headers
 	e.Use(SecurityHeaders(cfg))
 	// 9. CORS
+	// Warn if CORS allows localhost in production — likely misconfiguration.
+	if cfg.IsProduction() {
+		for _, o := range cfg.CORSOrigins {
+			if strings.Contains(o, "localhost") || strings.Contains(o, "127.0.0.1") {
+				slog.Warn("CORS_ORIGINS contains localhost in production — likely misconfiguration", "origins", cfg.CORSOrigins)
+				break
+			}
+		}
+	}
 	// Only enable credentials when origins are explicitly listed (not wildcard).
 	// Access-Control-Allow-Origin: * with AllowCredentials: true is rejected by browsers.
 	allowCreds := true

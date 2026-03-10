@@ -58,7 +58,12 @@ tasks:
       - gen/ts/**/*.ts
     cmds:
       - buf lint
-      - buf breaking --against '.git#branch=main' || true
+      - |
+        if git show main:proto/ >/dev/null 2>&1; then
+          buf breaking --against '.git#branch=main'
+        else
+          echo "No proto on main branch yet, skipping breaking change check"
+        fi
       - buf generate
 
   generate:sqlc:
@@ -74,6 +79,10 @@ tasks:
 
   generate:mocks:
     desc: Generate mocks via go generate
+    sources:
+      - internal/**/domain/repository.go
+    generates:
+      - internal/shared/mocks/*.go
     cmds:
       - go generate ./...
 

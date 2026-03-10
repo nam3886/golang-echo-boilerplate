@@ -14,35 +14,39 @@ Built-in permissions:
 - `user:delete` — delete users
 - `admin:*`     — wildcard; grants any permission check
 
-## Two Enforcement Layers
+## Enforcement Architecture
 
-### 1. Echo Middleware (route group level)
+RBAC is enforced **exclusively** at the Connect RPC interceptor level.
+The Echo route group applies only `Auth` (JWT validation); permission checks happen inside Connect.
 
-`RequirePermission(perms ...Permission)` — applied to an Echo route group.
-Checks that the authenticated user holds **all** listed permissions.
+### Echo Route Group: Auth Only
 
-`RequireRole(roles ...string)` — alternative role-based check (at least one role must match).
+`Auth(cfg, rdb)` — validates the JWT/API key and injects `AuthUser` into the request context.
+Returns 401 if the token is missing, expired, or invalid.
+
+`RequirePermission` and `RequireRole` exist in `internal/shared/middleware/rbac.go` as optional
+Echo middleware for non-Connect endpoints, but are **not** applied to the Connect RPC route groups.
 
 Source: `internal/shared/middleware/rbac.go`
 
-### 2. Connect RPC Interceptor (procedure level)
+### Connect RPC Interceptor: Permission Enforcement
 
 `RBACInterceptor()` — a `connect.UnaryInterceptorFunc` that maps exact procedure paths
 to required permissions via `procedurePermissions`.
 
 **ALL procedures** (read, write, delete) must be mapped here for registered services.
-Read procedures are mapped to `read` permissions even though the Echo group provides
-the same check — the interceptor enforces fail-closed safety by denying any unmapped procedure.
+Unmapped procedures under a registered service prefix are denied by default (fail-closed).
 
 Source: `internal/shared/middleware/rbac_interceptor.go`
 
 ## Permission Flow
 
 ```
-JWT token  →  auth middleware validates + injects AuthUser into context
+JWT token  →  Auth middleware validates + injects AuthUser into context
 AuthUser.Permissions ([]string from JWT "perms" claim)
-  →  RequirePermission / RBACInterceptor calls user.HasPermission(perm)
-     →  HasPermission iterates Permissions; returns true if exact match OR "admin:*"
+  →  RBACInterceptor looks up procedure → required permission
+     →  user.HasPermission(perm): true if exact match OR "admin:*"
+        → 403 PermissionDenied if false
 ```
 
 Source: `internal/shared/auth/context.go` — `AuthUser` and `HasPermission`.
@@ -61,9 +65,10 @@ Role alone is insufficient — the wildcard must appear in the permissions slice
    PermOrderDelete Permission = "order:delete"
    ```
 
-2. Protect the Echo route group with the read permission:
+2. Mount the service on an auth-protected Echo route group:
    ```go
    g := e.Group(path, appmw.Auth(cfg, rdb))
+   // Permission checks are handled by RBACInterceptor, not the group middleware.
    ```
 
 3. Register ALL procedures in `procedurePermissions` (fail-closed pattern)

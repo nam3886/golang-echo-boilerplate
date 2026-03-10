@@ -32,15 +32,16 @@ internal/
 
 ```
 HTTP Request
-    → Echo Router
-    → Middleware Chain (recovery, request-id, logger, body-limit, gzip, security, cors, timeout, rate-limit)
-    → Connect RPC Handler (grpc/handler.go)
-    → Auth Middleware (JWT/API key validation)
-    → RBAC Middleware (role check)
-    → App Handler (app/command.go or app/query.go)
-    → Repository Interface (domain/repository.go)
-    → Postgres Adapter (adapters/postgres/repository.go)
-    → Database (sqlc queries)
+  → Echo global middleware (OTel tracing, Recovery, RequestID, RateLimit, Logger,
+                            BodyLimit, Gzip, Security, CORS, Timeout, ErrorHandler)
+  → Echo route group middleware: Auth (JWT validation → AuthUser injected into context)
+  → Connect RPC handler
+  → Connect interceptors: RBACInterceptor (permission check) → protovalidate (proto validation)
+  → App handler (business logic)
+  → Repository interface → Postgres adapter (sqlc queries)
+  → Event publish (Watermill/RabbitMQ) — fire-and-forget after DB commit
+  → Audit + Notification subscribers (async, failures logged not propagated)
+  → Response to client
 ```
 
 ## Event Flow
@@ -72,23 +73,25 @@ Mutation Handler (Create/Update/Delete)
 
 ## Middleware Chain Order
 
-### Echo Middleware (HTTP Layer)
-1. Recovery — panic → 500 response
-2. Request ID — generate/propagate X-Request-ID
-3. Request Logger — structured slog with sanitized fields
-4. Body Limit — 10MB max
-5. Gzip — level 5 compression
-6. Security Headers — HSTS, CSP, X-Frame-Options
-7. CORS — configurable origins
-8. Context Timeout — 30s global timeout
-9. Rate Limit — 100 req/min per IP (Redis-backed)
-10. Auth + RBAC — applied at route group level (JWT/API key validation)
+### Echo Global Middleware (applied to every request)
+1. OTel HTTP tracing — creates span per request via `otelhttp`
+2. Recovery — panic → 500 response
+3. Request ID — generate/propagate X-Request-ID
+4. Rate Limit — 100 req/min per IP (Redis-backed); before body parsing to prevent DDoS
+5. Request Logger — structured slog with sanitized fields
+6. Body Limit — 10MB max
+7. Gzip — level 5 compression
+8. Security Headers — HSTS, CSP, X-Frame-Options
+9. CORS — configurable origins
+10. Context Timeout — configurable, default 30s
+11. Error Handler — centralized Connect/Domain → HTTP error mapping
 
-### Connect RPC Interceptors (RPC Layer)
-- **protovalidate** — Declarative request validation via `connectrpc.com/validate` interceptor
-  - Validates protobuf messages against buf/validate rules
-  - Returns 400 (INVALID_ARGUMENT) for validation failures
-  - Applied before handler execution
+### Echo Route Group Middleware (per service mount)
+- **Auth** — JWT validation; injects `AuthUser` into context; returns 401 if missing/invalid
+
+### Connect RPC Interceptors (per procedure)
+- **RBACInterceptor** — maps procedure path → required permission; fail-closed (denies unmapped procedures under registered services)
+- **protovalidate** — validates proto messages against buf/validate rules; returns INVALID_ARGUMENT on failure
 
 ## Key Design Decisions
 

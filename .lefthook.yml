@@ -5,13 +5,24 @@ pre-commit:
       glob: "*.go"
       exclude: "^gen/"
       run: golangci-lint run --fix --new-from-rev=HEAD ./...
-    generated:
+    proto-gen:
+      glob: "proto/**/*.proto"
       run: |
         buf generate
+        git diff --exit-code gen/proto gen/ts
+      fail_text: "Proto generated code is stale. Run 'task generate:proto' and commit."
+    sqlc-gen:
+      glob: "db/**/*.sql"
+      run: |
         sqlc generate
+        git diff --exit-code gen/sqlc
+      fail_text: "SQLC generated code is stale. Run 'task generate:sqlc' and commit."
+    mocks-gen:
+      glob: "internal/**/domain/repository.go"
+      run: |
         go generate ./...
-        git diff --exit-code gen/ internal/shared/mocks/
-      fail_text: "Generated code is stale. Run 'task generate' and commit."
+        git diff --exit-code internal/shared/mocks/
+      fail_text: "Mocks are stale. Run 'task generate:mocks' and commit."
 
 pre-push:
   commands:

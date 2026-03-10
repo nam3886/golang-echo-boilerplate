@@ -24,13 +24,14 @@ const jwtAudience = "gnha-services"
 
 // GenerateAccessToken creates a signed JWT access token.
 func GenerateAccessToken(cfg *config.Config, userID, role string, permissions []string) (string, error) {
+	now := time.Now()
 	claims := TokenClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    cfg.AppName,
 			Subject:   userID,
 			Audience:  jwt.ClaimStrings{jwtAudience},
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(cfg.JWTAccessTTL)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(now.Add(cfg.JWTAccessTTL)),
+			IssuedAt:  jwt.NewNumericDate(now),
 			ID:        uuid.NewString(),
 		},
 		UserID:      userID,

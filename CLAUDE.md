@@ -17,8 +17,10 @@ This project uses **go-task** (`task`) as the task runner (NOT Make).
 | Command | Purpose |
 |---------|---------|
 | `task dev:setup` | Bootstrap: install tools, start infra, migrate, seed |
+| `task dev:tools` | Install all dev tools (air, sqlc, buf, goose, mockgen, lefthook) |
 | `task dev` | Hot-reload server (air) on :8080 |
 | `task dev:deps` | Start Postgres/Redis/RabbitMQ/ES/Mailpit containers |
+| `task dev:stop` | Stop infrastructure containers |
 | `task generate` | Run all codegen (proto + sqlc + mocks) |
 | `task generate:proto` | buf lint + buf generate (proto → Go/TS/OpenAPI) |
 | `task generate:sqlc` | sqlc generate (SQL → Go) |
@@ -26,12 +28,18 @@ This project uses **go-task** (`task`) as the task runner (NOT Make).
 | `task lint` | golangci-lint run ./... |
 | `task test` | Unit tests with race detector + coverage |
 | `task test:integration` | Integration tests (requires Docker for testcontainers) |
+| `task test:coverage` | Run unit tests + generate HTML coverage report |
 | `task check` | lint + test combined |
 | `task build` | Production binary → bin/server |
 | `task migrate:up` | Run pending goose migrations |
 | `task migrate:down` | Rollback last migration |
+| `task migrate:status` | Show current migration status |
 | `task migrate:create -- <name>` | Create new SQL migration |
 | `task seed` | Populate test data |
+| `task db:reset` | Drop + recreate dev DB, run migrations, seed |
+| `task docker:build` | Build Docker image |
+| `task docker:run` | Run Docker image with .env |
+| `task clean` | Remove build artifacts |
 | `task module:create name=<name>` | Scaffold a full CRUD module |
 
 ### Running a Single Test
@@ -71,7 +79,8 @@ module.go        # fx.Module wiring (providers + invokers)
 ### Request Flow
 
 ```
-HTTP → Echo middleware chain → Connect RPC handler → protovalidate interceptor
+HTTP → Echo global middleware → Echo route group Auth middleware
+  → Connect RPC handler → RBACInterceptor → protovalidate interceptor
   → App handler (business logic) → Repository interface → Postgres adapter (sqlc)
   → Event publish (Watermill/RabbitMQ) → Audit + Notification subscribers
 ```
@@ -102,8 +111,9 @@ After changing repository interfaces: `task generate:mocks`
 
 - **Unit tests** (`*_test.go` beside source): gomock for repos, stub structs for deps (hasher, publisher)
 - **Integration tests** (`//go:build integration`): testcontainers for real Postgres/Redis/RabbitMQ
-- **Test fixtures**: `testutil.DefaultUserFixture()`, `AdminUserFixture()`, `ViewerUserFixture()`
-- **Container helpers**: `testutil.NewTestPostgres(t)`, `NewTestRedis(t)`, `RunMigrations(t, pool)`
+- **Test stubs**: `testutil.StubHasher{}`, `testutil.NoopPublisher{}`, `testutil.CapturingPublisher{}`, `testutil.FailPublisher{}`
+- **Container helpers**: `testutil.NewTestPostgres(t)`, `testutil.NewTestRedis(t)`, `testutil.RunMigrations(t, pool)`
+- **Utilities**: `testutil.Ptr[T](v)` — generic helper for pointer literals in test data
 - Generated code in `gen/` is committed to the repo
 
 ## Error Handling
@@ -136,3 +146,6 @@ Optional: `ELASTICSEARCH_URL` (empty disables search), `OTEL_EXPORTER_OTLP_ENDPO
 - `docs/testing-strategy.md` — test organization, mocks, testcontainers
 - `docs/adding-a-module.md` — step-by-step module creation + scaffold command
 - `docs/error-codes.md` — error code → HTTP status mapping
+- `docs/authentication.md` — JWT/API key auth, token generation, context helpers
+- `docs/rbac.md` — RBAC permissions, interceptor architecture, adding new permissions
+- `docs/event-subscribers.md` — Watermill event bus, subscriber patterns, audit/notification
