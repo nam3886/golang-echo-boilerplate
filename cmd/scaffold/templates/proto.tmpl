@@ -51,7 +51,7 @@ message List{{.NamePluralTitle}}Response {
 
 message Update{{.NameTitle}}Request {
   string id = 1 [(buf.validate.field).string.uuid = true];
-  optional string name = 2;
+  optional string name = 2 [(buf.validate.field).string = {min_len: 1, max_len: 255}];
 }
 
 message Update{{.NameTitle}}Response {

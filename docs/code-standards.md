@@ -680,7 +680,8 @@ func TestCreateUserHandler_Handle_Success(t *testing.T) {
         Return(nil).
         Times(1)
 
-    handler := app.NewCreateUserHandler(repo, &testutil.StubHasher{}, &testutil.NoopPublisher{})
+    bus := events.NewEventBus(&testutil.NoopPublisher{})
+    handler := app.NewCreateUserHandler(repo, &testutil.StubHasher{}, bus)
 
     // Act
     user, err := handler.Handle(context.Background(), app.CreateUserCmd{
