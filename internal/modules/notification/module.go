@@ -22,5 +22,8 @@ var Module = fx.Module("notification",
 func provideHandlers(h *Handler) []events.HandlerRegistration {
 	return []events.HandlerRegistration{
 		{Name: "notify.user_created", Topic: contracts.TopicUserCreated, HandlerFunc: h.HandleUserCreated},
+		// Add more handlers as needed:
+		// {Name: "notify.user_updated", Topic: contracts.TopicUserUpdated, HandlerFunc: h.HandleUserUpdated},
+		// {Name: "notify.user_deleted", Topic: contracts.TopicUserDeleted, HandlerFunc: h.HandleUserDeleted},
 	}
 }

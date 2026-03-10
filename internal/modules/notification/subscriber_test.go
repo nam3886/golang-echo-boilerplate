@@ -23,7 +23,7 @@ func newTestHandler(senderErr error) *Handler {
 }
 
 func newMsg(payload string) *message.Message {
-	msg := message.NewMessage("test-uuid", []byte(payload))
+	msg := message.NewMessage("550e8400-e29b-41d4-a716-446655440000", []byte(payload))
 	msg.SetContext(context.Background())
 	return msg
 }

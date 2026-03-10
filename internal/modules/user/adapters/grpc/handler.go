@@ -71,14 +71,14 @@ func (h *UserServiceHandler) ListUsers(ctx context.Context, req *connect.Request
 		items = append(items, toProto(u))
 	}
 
-	var totalPages int32
+	var totalPages int64
 	if req.Msg.PageSize > 0 {
-		totalPages = int32((int64(result.Total) + int64(req.Msg.PageSize) - 1) / int64(req.Msg.PageSize))
+		totalPages = (int64(result.Total) + int64(req.Msg.PageSize) - 1) / int64(req.Msg.PageSize)
 	}
 
 	return connect.NewResponse(&userv1.ListUsersResponse{
 		Items:      items,
-		Total:      int32(result.Total),
+		Total:      int64(result.Total),
 		Page:       req.Msg.Page,
 		PageSize:   req.Msg.PageSize,
 		TotalPages: totalPages,

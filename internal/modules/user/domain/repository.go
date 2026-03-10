@@ -4,7 +4,8 @@ import "context"
 
 //go:generate mockgen -source=repository.go -destination=../../../shared/mocks/mock_user_repository.go -package=mocks
 
-// ListResult holds the paginated result from a List query.
+// ListResult holds paginated query results.
+// Users is always non-nil; empty slice for no results.
 type ListResult struct {
 	Users []*User
 	Total int

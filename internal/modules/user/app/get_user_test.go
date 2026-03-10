@@ -46,6 +46,14 @@ func TestGetUserHandler_NotFound(t *testing.T) {
 	}
 }
 
+func TestGetUserHandler_EmptyID_ReturnsError(t *testing.T) {
+	h := NewGetUserHandler(nil)
+	_, err := h.Handle(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for empty ID")
+	}
+}
+
 func TestGetUserHandler_RepoError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockRepo := mocks.NewMockUserRepository(ctrl)

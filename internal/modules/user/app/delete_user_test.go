@@ -24,6 +24,15 @@ func deletedUserFixture() *domain.User {
 	)
 }
 
+func TestDeleteUserHandler_EmptyID_ReturnsError(t *testing.T) {
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	h := NewDeleteUserHandler(nil, bus)
+	err := h.Handle(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for empty ID")
+	}
+}
+
 func TestDeleteUserHandler_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockRepo := mocks.NewMockUserRepository(ctrl)
