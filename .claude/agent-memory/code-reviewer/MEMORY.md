@@ -30,7 +30,7 @@
 - OTel tracer/metrics: empty OTLPEndpoint returns no-op provider; shared resource in resource.go
 - Recovery middleware truncates panic value to 200 chars (PII protection)
 - Audit subscriber logs msg_id on unmarshal error (not raw payload)
-- Import alias: `sharederr` for shared/errors in repos/templates; `domainerr` still used in middleware
+- Import alias: `sharederr` for shared/errors everywhere (domainerr fully eliminated)
 - Password hashing: argon2id (not bcrypt), maxPasswordBytes=72, Verify silently returns false for oversized
 - Auth blacklist: fail-closed on Redis error (rejects token)
 - Rate limiter: fail-open on Redis error, IP-based (user-keying impossible before Auth)
@@ -40,7 +40,10 @@
 - DLQ uses separate AMQP connection at startup for exchange/queue declaration
 - Event flow: EventBus.Publish -> AMQP fanout -> per-handler queues (SubscriberFactory) -> Watermill router -> handlers
 - Watermill router middleware: otelExtract > Recoverer > Retry(3x, 1s initial, 2x multiplier, 10s max, 0.5 randomization)
-- Subscribers use msg.Context() for DB/ES/SMTP operations (context propagation)
+- Subscribers use msg.Context() for DB/ES/SMTP operations (context propagation); audit slog calls miss this
+- Notification uses html/template (auto-escapes HTML, prevents XSS in emails)
+- SMTP sender sanitizes CRLF in all header values, uses mime.QEncoding for subject
+- Notification only handles user.created (welcome email); no updated/deleted handlers (intentional MVP)
 - Audit handler: idempotent via msg UUID as PK + ON CONFLICT DO NOTHING
 - Notification handler: permanent SMTP 5xx errors acked (not retried), transient errors returned for retry
 - Fx shutdown order: router.Close() (stops consuming) -> publisher.Close() (correct order via reverse invoke)
@@ -90,6 +93,18 @@
 - M-TEST-5: Integration test setupRepo() creates new testcontainer per test function (slow)
 - M-TEST-6: Blacklist integration test uses time.Sleep(2s) for TTL expiry (flaky)
 - M-ENV-1: No production .env example showing Redis password requirement
+- M-R8-1: Audit tests have no DB-error-path coverage (all pass nil execErr)
+- M-R8-2: Audit subscriber slog calls lack context (no OTel trace correlation)
+- M-R8-3: Audit/notification tests use non-UUID msg ID ("test-uuid"), idempotency untested
+- M-R8-6: No template-rendering-failure test in notification
+### MEDIUM (round 8b — proto/SQL/deploy)
+- H-R8b-1: OpenAPI spec empty — openapiv2 plugin needs google.api.http annotations (Connect uses different routes)
+- M-R8b-2: SQL RETURNING clauses include unused deleted_at in Create/Update
+- M-R8b-4: Swagger static path relative — breaks in Docker (dev-only, low impact)
+- M-R8b-5: Dockerfile goose install after COPY invalidates layer cache
+- M-R8b-7: Redis healthcheck env var expansion fragile in production compose
+- M-R8b-8: Seed cmd requires full config.Load() but only uses Postgres
+- M-R8b-10: No updated_at trigger (app-layer only, explicit but fragile)
 ### LOW
 - Non-UUID strings as IDs in unit tests bypass parseUserID
 - Swagger UI CDN lacks SRI integrity hashes
@@ -113,11 +128,18 @@
 | shared/retry | 0% (needs unit tests) |
 | shared/connectutil | 0% (needs tests) |
 
-## Review History (35 reports, 2026-03-10)
+## Review History (37 reports, 2026-03-10)
 See `review-history.md` for full report index.
-- Latest: HIGH fix verification (5 issues from round 7)
-- Report: `plans/reports/code-reviewer-260310-1130-high-issues-fix-verification.md`
-- All 5 HIGH fixes verified correct, 1 new M (double allocation in pwd preservation)
+- Latest: Round 8b — proto/SQL/deploy/swagger/seed/go.mod
+- Report: `plans/reports/code-reviewer-260310-round8-proto-sql-deploy.md`
+- 1 HIGH (empty OpenAPI spec), 6 MEDIUM, 4 LOW. H-R8-2/M-R8-1 verified OK.
+
+## Key Verified Facts (round 8b)
+- Repo Update() handles 23505 uniqueness violation at line 177 -> ErrEmailTaken
+- Protovalidate skips unset optional fields by default (connectrpc/validate v0.6.0)
+- Swagger disabled in production (cfg.AppEnv == "production" guard)
+- Production compose does NOT expose infra ports (correct)
+- sqlc nullable timestamptz correctly falls back to pgtype.Timestamptz
 
 ## Docs Accuracy Status (2026-03-10 fresh review 31)
 - error-codes.md: VERIFIED ACCURATE

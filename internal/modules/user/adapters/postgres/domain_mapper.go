@@ -62,31 +62,31 @@ func toDomainFromListRow(row sqlcgen.ListUsersRow) *domain.User {
 	)
 }
 
-// toDomainFromUpdateRow converts an UpdateUserRow (no password) to a domain entity.
-func toDomainFromUpdateRow(row sqlcgen.UpdateUserRow) *domain.User {
+// toDomainFromUpdateRow converts an UpdateUserRow to a domain entity.
+// Password is preserved via the pwd parameter since RETURNING excludes it.
+func toDomainFromUpdateRow(row sqlcgen.UpdateUserRow, pwd string) *domain.User {
 	var deletedAt *time.Time
 	if row.DeletedAt.Valid {
 		deletedAt = &row.DeletedAt.Time
 	}
 	return domain.Reconstitute(
 		domain.UserID(row.ID.String()),
-		row.Email, row.Name, "",
+		row.Email, row.Name, pwd,
 		domain.Role(row.Role),
 		row.CreatedAt, row.UpdatedAt, deletedAt,
 	)
 }
 
-// toDomainFromCreateRow converts a CreateUserRow (no password) to a domain entity.
-// Password is "" since the RETURNING clause intentionally excludes it;
-// the caller already has the plaintext/hashed value in the original entity.
-func toDomainFromCreateRow(row sqlcgen.CreateUserRow) *domain.User {
+// toDomainFromCreateRow converts a CreateUserRow to a domain entity.
+// Password is preserved via the pwd parameter since RETURNING excludes it.
+func toDomainFromCreateRow(row sqlcgen.CreateUserRow, pwd string) *domain.User {
 	var deletedAt *time.Time
 	if row.DeletedAt.Valid {
 		deletedAt = &row.DeletedAt.Time
 	}
 	return domain.Reconstitute(
 		domain.UserID(row.ID.String()),
-		row.Email, row.Name, "",
+		row.Email, row.Name, pwd,
 		domain.Role(row.Role),
 		row.CreatedAt, row.UpdatedAt, deletedAt,
 	)

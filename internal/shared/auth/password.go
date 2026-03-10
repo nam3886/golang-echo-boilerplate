@@ -41,10 +41,10 @@ func NewPasswordHasher() PasswordHasher {
 
 // Hash creates an argon2id hash of the password.
 func (h *argon2Hasher) Hash(password string) (string, error) {
-	if len([]byte(password)) < minPasswordBytes {
+	if len(password) < minPasswordBytes {
 		return "", fmt.Errorf("password must be at least %d bytes", minPasswordBytes)
 	}
-	if len([]byte(password)) > maxPasswordBytes {
+	if len(password) > maxPasswordBytes {
 		return "", fmt.Errorf("password exceeds maximum length of %d bytes", maxPasswordBytes)
 	}
 
@@ -65,7 +65,7 @@ func (h *argon2Hasher) Hash(password string) (string, error) {
 // Verify checks a password against an encoded argon2id hash.
 func (h *argon2Hasher) Verify(password, encoded string) (bool, error) {
 	// Reject oversized passwords to prevent CPU-intensive hashing (DoS prevention).
-	if len([]byte(password)) > maxPasswordBytes {
+	if len(password) > maxPasswordBytes {
 		return false, nil
 	}
 

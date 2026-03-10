@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"math/rand/v2"
+	"strconv"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
 )
@@ -46,7 +47,7 @@ func slidingWindowCount(ctx context.Context, rdb *redis.Client, key string, wind
 
 	// Member combines nanosecond timestamp with a random suffix to prevent
 	// collision when two requests arrive within the same nanosecond tick.
-	member := fmt.Sprintf("%d:%s", now.UnixNano(), uuid.NewString()[:8])
+	member := strconv.FormatInt(now.UnixNano(), 10) + ":" + strconv.FormatUint(uint64(rand.Uint32()), 16) //nolint:gosec // collision avoidance, not security
 
 	pipe := rdb.Pipeline()
 	pipe.ZRemRangeByScore(ctx, key, "0", fmt.Sprintf("%d", windowStart.UnixMilli()))
