@@ -94,6 +94,9 @@ func (r *Pg{{.NameTitle}}Repository) Create(ctx context.Context, entity *domain.
 		return fmt.Errorf("inserting {{.Name}}: %w", err)
 	}
 	// Overwrite entity with DB-authoritative timestamps (created_at, updated_at).
+	// WARNING: If this entity has sensitive fields (e.g. hashed password) not included
+	// in the RETURNING clause, preserve them before overwriting. See the user module's
+	// toDomainFromCreateRow(row, entity.SensitiveField()) pattern as reference.
 	*entity = *toDomain(row)
 	return nil
 }
@@ -139,6 +142,9 @@ func (r *Pg{{.NameTitle}}Repository) Update(ctx context.Context, id domain.{{.Na
 	}
 
 	// Overwrite entity with DB-generated timestamps (e.g. updated_at = NOW()).
+	// WARNING: If this entity has sensitive fields (e.g. hashed password) not included
+	// in the RETURNING clause, preserve them before overwriting. See the user module's
+	// toDomainFromUpdateRow(row, entity.SensitiveField()) pattern as reference.
 	*entity = *toDomain(updatedRow)
 
 	return tx.Commit(ctx)

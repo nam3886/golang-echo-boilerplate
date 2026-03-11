@@ -41,12 +41,23 @@ func Reconstitute(id {{.NameID}}, name string, createdAt, updatedAt time.Time, d
 	}
 }
 
-// Getters
-func (e *{{.NameTitle}}) ID() {{.NameID}}       { return e.id }
-func (e *{{.NameTitle}}) Name() string          { return e.name }
-func (e *{{.NameTitle}}) CreatedAt() time.Time  { return e.createdAt }
-func (e *{{.NameTitle}}) UpdatedAt() time.Time  { return e.updatedAt }
+// ID returns the {{.Name}} identifier.
+func (e *{{.NameTitle}}) ID() {{.NameID}} { return e.id }
+
+// Name returns the {{.Name}} name.
+func (e *{{.NameTitle}}) Name() string { return e.name }
+
+// CreatedAt returns when the {{.Name}} was created.
+func (e *{{.NameTitle}}) CreatedAt() time.Time { return e.createdAt }
+
+// UpdatedAt returns when the {{.Name}} was last updated.
+func (e *{{.NameTitle}}) UpdatedAt() time.Time { return e.updatedAt }
+
+// DeletedAt returns the soft-delete timestamp, or nil if not deleted.
 func (e *{{.NameTitle}}) DeletedAt() *time.Time { return e.deletedAt }
+
+// IsDeleted reports whether the {{.Name}} has been soft-deleted.
+func (e *{{.NameTitle}}) IsDeleted() bool { return e.deletedAt != nil }
 
 // ChangeName updates the name. No-op if unchanged.
 func (e *{{.NameTitle}}) ChangeName(name string) error {

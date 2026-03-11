@@ -38,6 +38,7 @@ func (h *Delete{{.NameTitle}}Handler) Handle(ctx context.Context, id string) err
 	}
 
 	if err := h.bus.Publish(ctx, domain.Topic{{.NameTitle}}Deleted, domain.{{.NameTitle}}DeletedEvent{
+		Version:         1,
 		{{.NameTitle}}ID: id,
 		ActorID:         auth.ActorIDFromContext(ctx),
 		IPAddress:       netutil.GetClientIP(ctx),

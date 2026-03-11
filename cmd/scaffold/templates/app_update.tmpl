@@ -42,16 +42,16 @@ func (h *Update{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Update{{.N
 		return entity, nil
 	}
 	var updated *domain.{{.NameTitle}}
-	var mutated bool
+	var changedFields []string
 	err := h.repo.Update(ctx, domain.{{.NameID}}(cmd.ID), func(entity *domain.{{.NameTitle}}) error {
 		if cmd.Name != nil && *cmd.Name != entity.Name() {
 			if err := entity.ChangeName(*cmd.Name); err != nil {
 				return err
 			}
-			mutated = true
+			changedFields = append(changedFields, "name")
 		}
 		updated = entity
-		if !mutated {
+		if len(changedFields) == 0 {
 			return sharederr.ErrNoChange()
 		}
 		return nil
@@ -61,14 +61,16 @@ func (h *Update{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Update{{.N
 	}
 
 	// Skip event if nothing was actually changed.
-	if !mutated {
+	if len(changedFields) == 0 {
 		return updated, nil
 	}
 
 	if err := h.bus.Publish(ctx, domain.Topic{{.NameTitle}}Updated, domain.{{.NameTitle}}UpdatedEvent{
+		Version:         1,
 		{{.NameTitle}}ID: cmd.ID,
 		Name:            updated.Name(),
 		ActorID:         auth.ActorIDFromContext(ctx),
+		ChangedFields:   changedFields,
 		IPAddress:       netutil.GetClientIP(ctx),
 		At:              updated.UpdatedAt(),
 	}); err != nil {
