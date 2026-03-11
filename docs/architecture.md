@@ -18,15 +18,22 @@ internal/
     observability/      # OpenTelemetry tracing + metrics
     testutil/           # Test helpers (testcontainers)
   modules/
-    user/               # User domain
+    user/               # User domain (Tier 1: full hexagonal)
       domain/           # Entity, repository interface, domain errors
       app/              # Command/query handlers (use cases)
       adapters/
         postgres/       # sqlc-generated repository implementation
         grpc/           # Connect RPC handler + routes
-    audit/              # Audit trail event subscriber
-    notification/       # Email notification event subscriber
+    audit/              # Audit trail (Tier 2: event subscriber only)
+    notification/       # Email notification (Tier 2: event subscriber only)
 ```
+
+**Tier 1 modules** (`user`, any new CRUD domain) own a full hexagonal stack: domain entity,
+repository interface, app handlers, Postgres adapter, and Connect RPC routes.
+
+**Tier 2 modules** (`audit`, `notification`) have no proto, no DB schema, and no gRPC routes.
+They consist of a single event handler file and a `module.go` that registers handlers via the
+`event_handlers` fx group. They react to domain events published by Tier 1 modules.
 
 ## Request Flow
 

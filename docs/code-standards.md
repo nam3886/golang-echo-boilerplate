@@ -71,6 +71,7 @@ type Role string
 const (
     RoleAdmin  Role = "admin"
     RoleMember Role = "member"
+    RoleViewer Role = "viewer"
 )
 
 // Interfaces: PascalCase ending with "er" or "able"
@@ -576,28 +577,32 @@ All domain events follow a consistent structure with ActorID for audit trails:
 ```go
 // UserCreatedEvent is published when a user is created
 type UserCreatedEvent struct {
-    UserID    string    `json:"user_id"`   // Resource ID
-    ActorID   string    `json:"actor_id"`  // User who initiated action
+    Version   int       `json:"version"`              // Schema version, currently 1
+    UserID    string    `json:"user_id"`              // Resource ID
+    ActorID   string    `json:"actor_id"`             // User who initiated action
     Email     string    `json:"email"`
     Name      string    `json:"name"`
     Role      string    `json:"role"`
     IPAddress string    `json:"ip_address,omitempty"` // Client IP for audit trail
-    At        time.Time `json:"at"`        // Event timestamp
+    At        time.Time `json:"at"`                   // Event timestamp
 }
 
 // UserUpdatedEvent is published when a user is updated
 type UserUpdatedEvent struct {
-    UserID    string    `json:"user_id"`
-    ActorID   string    `json:"actor_id"`
-    Name      string    `json:"name"`
-    Email     string    `json:"email"`
-    Role      string    `json:"role"`
-    IPAddress string    `json:"ip_address,omitempty"`
-    At        time.Time `json:"at"`
+    Version       int      `json:"version"`
+    UserID        string   `json:"user_id"`
+    ActorID       string   `json:"actor_id"`
+    Name          string   `json:"name"`
+    Email         string   `json:"email"`
+    Role          string   `json:"role"`
+    ChangedFields []string `json:"changed_fields,omitempty"` // Fields that changed
+    IPAddress     string   `json:"ip_address,omitempty"`
+    At            time.Time `json:"at"`
 }
 
 // UserDeletedEvent is published when a user is soft-deleted
 type UserDeletedEvent struct {
+    Version   int       `json:"version"`
     UserID    string    `json:"user_id"`
     ActorID   string    `json:"actor_id"`
     IPAddress string    `json:"ip_address,omitempty"`

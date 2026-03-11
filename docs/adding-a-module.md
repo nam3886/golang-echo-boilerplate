@@ -143,10 +143,10 @@ message ListProductsRequest {
 }
 message ListProductsResponse {
   repeated Product items = 1;
-  int32 total = 2;
+  int64 total = 2;
   int32 page = 3;
   int32 page_size = 4;
-  int32 total_pages = 5;
+  int64 total_pages = 5;
 }
 ```
 

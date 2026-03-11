@@ -47,6 +47,13 @@ func provideMyHandlers(h *MyHandler) []events.HandlerRegistration {
 
 Source: `internal/shared/events/subscriber.go`
 
+## Logging Convention
+
+Use `slog.ErrorContext(ctx, "...", "handler", h.Name, "err", err)` inside handler methods so
+structured logs carry the request context (trace ID, request ID). Use `slog.WarnContext` for
+recoverable issues (e.g., schema mismatches that are acked). Never use `log.Printf` or
+bare `fmt.Println` in subscriber code.
+
 ## Reference Implementation
 
 The audit subscriber is the canonical example.

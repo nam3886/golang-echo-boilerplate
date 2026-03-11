@@ -77,23 +77,42 @@ Source: `internal/shared/auth/context.go`
 Run `task seed` to populate the database with test users:
 
 ```
-user@example.com (password: SecurePass123!)
-admin@example.com (password: SecurePass123!)
+admin@example.com  / Admin@123456  (role: admin)
+member@example.com / Member@123456 (role: member)
+viewer@example.com / Viewer@123456 (role: viewer)
 ```
 
 ### Using Swagger UI
 
 Navigate to `http://localhost:8080/swagger/` (after starting the dev server with `task dev`). Use the "Authorize" button to enter a Bearer token and test endpoints interactively.
 
-### Example cURL with Bearer Token
+### Login/Logout Not Included — Building Blocks Only
+
+This boilerplate provides JWT infrastructure as building blocks. There are **no `/login` or `/logout` endpoints** built in — these are intentionally left for application-specific implementation.
+
+Provided building blocks:
+- `auth.GenerateAccessToken(cfg, userID, role, permissions)` — mint a signed JWT
+- `auth.GenerateRefreshToken()` — generate a random refresh token string
+- `auth.BlacklistToken(ctx, rdb, jti, expiry)` — revoke a token on logout
+- `middleware.Auth(cfg, rdb)` — validate + blacklist-check on every protected route
+
+### Example: Generate a Token Programmatically for Testing
+
+```go
+import (
+    "github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
+    "github.com/gnha/golang-echo-boilerplate/internal/shared/config"
+)
+
+// cfg loaded from environment (JWT_SECRET, APP_NAME, etc.)
+token, err := auth.GenerateAccessToken(cfg, userID, "admin", []string{"user:read", "user:write"})
+```
+
+Then use the token in cURL:
 
 ```bash
-# Get token from auth endpoint (if implemented)
-TOKEN=$(curl -s http://localhost:8080/api/user/v1/auth \
+curl http://localhost:8080/api/user/v1/UserService/GetUser \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"SecurePass123!"}' | jq -r '.token')
-
-# Use token in subsequent requests
-curl http://localhost:8080/api/user/v1/profile \
-  -H "Authorization: Bearer $TOKEN"
+  -d '{"id":"<user-uuid>"}'
 ```
