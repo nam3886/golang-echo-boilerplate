@@ -28,14 +28,14 @@ func NewHandler(sender Sender) *Handler {
 func (h *Handler) HandleUserCreated(msg *message.Message) error {
 	var event contracts.UserCreatedEvent
 	if err := json.Unmarshal(msg.Payload, &event); err != nil {
-		slog.Error("notification: failed to unmarshal event", "err", err,
+		slog.ErrorContext(msg.Context(), "notification: failed to unmarshal event", "err", err,
 			"msg_id", msg.UUID)
 		return nil // ack — schema mismatch is permanent, retrying won't help
 	}
 
 	var buf bytes.Buffer
 	if err := h.tmpl.Execute(&buf, event); err != nil {
-		slog.Error("notification: failed to render template", "err", err)
+		slog.ErrorContext(msg.Context(), "notification: failed to render template", "err", err)
 		return err
 	}
 
