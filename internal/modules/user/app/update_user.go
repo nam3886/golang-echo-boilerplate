@@ -31,9 +31,12 @@ func NewUpdateUserHandler(repo domain.UserRepository, bus events.EventPublisher)
 }
 
 // Handle applies partial updates to a user within a transaction.
+// If no fields are provided (all nil), it returns the current user state
+// without acquiring a FOR UPDATE lock. This is a deliberate optimization:
+// the caller (gRPC handler) may send updates with no actual changes.
 func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*domain.User, error) {
 	if cmd.ID == "" {
-		return nil, sharederr.New(sharederr.CodeInvalidArgument, "user ID is required")
+		return nil, domain.ErrUserIDRequired()
 	}
 	// Skip DB lock entirely when no fields are provided.
 	if cmd.Name == nil && cmd.Role == nil && cmd.Email == nil {
@@ -49,6 +52,7 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*dom
 	var updated *domain.User
 	var changedFields []string
 	err := h.repo.Update(ctx, domain.UserID(cmd.ID), func(user *domain.User) error {
+		changedFields = nil // reset on retry
 		// Pre-check avoids false-positive mutation tracking.
 		// Entity methods also validate, but we need to know IF a change happened
 		// to skip unnecessary DB writes and event publishing.

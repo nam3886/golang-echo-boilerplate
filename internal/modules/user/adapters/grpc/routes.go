@@ -12,11 +12,22 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// userProcedurePerms maps each UserService procedure to its required permission.
+// Defined here (in the user module's grpc adapter) so rbac_interceptor.go has no
+// cross-module import while still enforcing per-procedure RBAC.
+var userProcedurePerms = map[string]appmw.Permission{
+	userv1connect.UserServiceGetUserProcedure:    appmw.PermUserRead,
+	userv1connect.UserServiceListUsersProcedure:  appmw.PermUserRead,
+	userv1connect.UserServiceCreateUserProcedure: appmw.PermUserWrite,
+	userv1connect.UserServiceUpdateUserProcedure: appmw.PermUserWrite,
+	userv1connect.UserServiceDeleteUserProcedure: appmw.PermUserDelete,
+}
+
 // RegisterRoutes mounts the Connect RPC UserService handler on Echo with auth.
 func RegisterRoutes(e *echo.Echo, handler *UserServiceHandler, cfg *config.Config, rdb *redis.Client) {
 	path, h := userv1connect.NewUserServiceHandler(handler,
 		connect.WithInterceptors(
-			appmw.RBACInterceptor(),
+			appmw.RBACInterceptor(userProcedurePerms),
 			validate.NewInterceptor(),
 		),
 	)

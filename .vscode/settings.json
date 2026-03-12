@@ -1,0 +1,20 @@
+{
+  "go.gopath": "/Users/namnguyen/.gvm/pkgsets/go1.26.0/global",
+  "go.goroot": "/Users/namnguyen/.gvm/gos/go1.26.0",
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "*.go": "$(capture)_test.go, $(capture)_gen.go, $(capture)_*.go",
+    "*.proto": "$(capture)*.pb.go, $(capture)*.pb.validate.go",
+    "*.sql": "$(capture).sql.go",
+    "go.mod": "go.sum",
+    "*.env": "$(capture).env.*",
+    "Dockerfile": "Dockerfile.*,.dockerignore",
+    "Taskfile.yml": ".air.toml,.golangci.yml,.lefthook.yml",
+    "README.md": "README*,CHANGELOG*,LICENSE",
+    "buf.yaml": "buf.lock,buf.gen.yaml",
+    "sqlc.yaml": ".sqlc*",
+    "docker-compose.yml": "docker-compose.*.yml",
+    ".gitlab-ci.yml": ".gitlab-ci.*.yml"
+  }
+}

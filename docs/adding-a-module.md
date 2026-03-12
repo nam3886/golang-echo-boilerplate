@@ -29,7 +29,7 @@ Then:
 6. (Auto-generated) Verify event contracts in `internal/shared/events/contracts/{name}_events.go`
 7. (Auto-generated) Verify event re-exports in `internal/modules/{name}/domain/events.go`
 8. (Auto-injected) Verify RBAC permissions in `rbac.go` and `rbac_interceptor.go`
-9. Register module in `cmd/server/main.go` (auto-injected by scaffold)
+9. (Auto-injected) Verify module registration in `cmd/server/main.go`
 10. Run `task migrate:up && task check`
 
 ## Module Structure Tiers

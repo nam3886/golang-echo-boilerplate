@@ -28,10 +28,11 @@ func NewUpdate{{.NameTitle}}Handler(repo domain.{{.NameTitle}}Repository, bus ev
 	return &Update{{.NameTitle}}Handler{repo: repo, bus: bus}
 }
 
-// Handle applies partial updates to a {{.Name}} within a transaction.
+// Handle applies partial updates to a {{.NameTitle}} within a transaction.
+// If no fields are provided (all nil), returns current state without acquiring lock.
 func (h *Update{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Update{{.NameTitle}}Cmd) (*domain.{{.NameTitle}}, error) {
 	if cmd.ID == "" {
-		return nil, sharederr.New(sharederr.CodeInvalidArgument, "{{.Name}} ID is required")
+		return nil, sharederr.New(sharederr.CodeInvalidArgument, "{{.Name}}.id_required", "{{.Name}} ID is required")
 	}
 	// Skip DB lock entirely when no fields are provided.
 	if cmd.Name == nil {
@@ -44,6 +45,7 @@ func (h *Update{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Update{{.N
 	var updated *domain.{{.NameTitle}}
 	var changedFields []string
 	err := h.repo.Update(ctx, domain.{{.NameID}}(cmd.ID), func(entity *domain.{{.NameTitle}}) error {
+		changedFields = nil
 		if cmd.Name != nil && *cmd.Name != entity.Name() {
 			if err := entity.ChangeName(*cmd.Name); err != nil {
 				return err

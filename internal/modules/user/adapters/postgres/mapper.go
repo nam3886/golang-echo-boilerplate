@@ -13,7 +13,7 @@ import (
 func parseUserID(id domain.UserID) (uuid.UUID, error) {
 	uid, err := uuid.Parse(string(id))
 	if err != nil {
-		return uuid.UUID{}, sharederr.New(sharederr.CodeInvalidArgument, "invalid user ID format")
+		return uuid.UUID{}, sharederr.New(sharederr.CodeInvalidArgument, "user.invalid_id", "invalid user ID format")
 	}
 	return uid, nil
 }
@@ -48,8 +48,8 @@ func toDomainFromGetRow(row sqlcgen.GetUserByIDRow) *domain.User {
 	)
 }
 
-// toDomainFromListRow converts a ListUsersRow (no password) to a domain entity.
-func toDomainFromListRow(row sqlcgen.ListUsersRow) *domain.User {
+// toDomainFromListWithTotalRow converts a ListUsersWithTotalRow (no password) to a domain entity.
+func toDomainFromListWithTotalRow(row sqlcgen.ListUsersWithTotalRow) *domain.User {
 	var deletedAt *time.Time
 	if row.DeletedAt.Valid {
 		deletedAt = &row.DeletedAt.Time

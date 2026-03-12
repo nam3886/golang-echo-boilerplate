@@ -68,14 +68,21 @@ func (h *{{.NameTitle}}ServiceHandler) List{{.NamePluralTitle}}(ctx context.Cont
 		items = append(items, toProto(item))
 	}
 
-	totalPages := result.TotalPages(int(req.Msg.PageSize))
+	effectivePageSize := int(req.Msg.PageSize)
+	if effectivePageSize <= 0 {
+		effectivePageSize = 20
+	}
+	if effectivePageSize > 100 {
+		effectivePageSize = 100
+	}
+	totalPages := result.TotalPages(effectivePageSize)
 
 	return connect.NewResponse(&{{.Name}}v1.List{{.NamePluralTitle}}Response{
 		Items:      items,
 		Total:      int64(result.Total),
 		Page:       req.Msg.Page,
 		PageSize:   req.Msg.PageSize,
-		TotalPages: totalPages,
+		TotalPages: int64(totalPages),
 	}), nil
 }
 

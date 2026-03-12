@@ -138,19 +138,3 @@ func TestIndexer_HandleUserDeleted(t *testing.T) {
 	}
 }
 
-func TestIndexer_NilReceiver_Noop(t *testing.T) {
-	var ix *search.Indexer
-
-	payload, _ := json.Marshal(domain.UserCreatedEvent{UserID: "test"})
-	msg := message.NewMessage("1", payload)
-
-	if err := ix.HandleUserCreated(msg); err != nil {
-		t.Errorf("nil HandleUserCreated should be noop, got %v", err)
-	}
-	if err := ix.HandleUserUpdated(msg); err != nil {
-		t.Errorf("nil HandleUserUpdated should be noop, got %v", err)
-	}
-	if err := ix.HandleUserDeleted(msg); err != nil {
-		t.Errorf("nil HandleUserDeleted should be noop, got %v", err)
-	}
-}

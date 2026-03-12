@@ -2,9 +2,10 @@ package domain
 
 import "github.com/gnha/golang-echo-boilerplate/internal/shared/events/contracts"
 
-// Re-export event topics from shared contracts so existing user module code
-// compiles unchanged. External modules (audit, notification) should import
-// from contracts directly to avoid cross-module coupling.
+// Re-export event topics and types from shared contracts so user module code
+// can import from its own domain package. This is the canonical import path
+// within the user module. Other modules (audit, notification) MUST import
+// from contracts/ directly — never from another module's domain/.
 const (
 	TopicUserCreated = contracts.TopicUserCreated
 	TopicUserUpdated = contracts.TopicUserUpdated

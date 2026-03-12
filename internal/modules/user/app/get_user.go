@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
-	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
 )
 
 // GetUserHandler handles fetching a single user.
@@ -21,7 +20,7 @@ func NewGetUserHandler(repo domain.UserRepository) *GetUserHandler {
 // Handle returns a user by ID.
 func (h *GetUserHandler) Handle(ctx context.Context, id string) (*domain.User, error) {
 	if id == "" {
-		return nil, sharederr.New(sharederr.CodeInvalidArgument, "user ID is required")
+		return nil, domain.ErrUserIDRequired()
 	}
 	user, err := h.repo.GetByID(ctx, domain.UserID(id))
 	if err != nil {

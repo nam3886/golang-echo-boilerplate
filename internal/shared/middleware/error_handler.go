@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"errors"
-	"log/slog"
 	"net/http"
 
 	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
@@ -45,8 +44,8 @@ func ErrorHandler(err error, c echo.Context) {
 		return
 	}
 
-	// Unexpected error — log and return generic 500
-	slog.Error("unhandled error", "err", err, "path", c.Request().URL.Path)
+	// Non-domain/non-Echo errors are already logged by connectutil.DomainErrorToConnect.
+	// No additional logging needed here — just return generic 500.
 	_ = c.JSON(http.StatusInternalServerError, ErrorResponse{
 		Code:    sharederr.CodeInternal.String(),
 		Message: "internal error",

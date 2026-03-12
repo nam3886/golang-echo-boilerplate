@@ -192,7 +192,11 @@ func TestHandler_DeleteUser_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockRepo := mocks.NewMockUserRepository(ctrl)
 
-	deleted := makeUser("id-del", "gone@example.com", "Gone User", domain.RoleMember)
+	now := time.Now()
+	deleted := domain.Reconstitute(
+		domain.UserID("id-del"), "gone@example.com", "Gone User", "hashed_pwd", domain.RoleMember,
+		now, now, &now, // deletedAt set so IsDeleted() == true
+	)
 	mockRepo.EXPECT().
 		SoftDelete(gomock.Any(), domain.UserID("id-del")).
 		Return(deleted, nil)

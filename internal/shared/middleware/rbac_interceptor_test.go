@@ -24,9 +24,19 @@ func newRequestWithProcedure(procedure string) *connect.Request[struct{}] {
 	return req
 }
 
+// testProcedurePerms mirrors the user module's permissions for interceptor tests.
+// Defined here to keep tests self-contained (no cross-module import).
+var testProcedurePerms = map[string]Permission{
+	"/user.v1.UserService/GetUser":    PermUserRead,
+	"/user.v1.UserService/ListUsers":  PermUserRead,
+	"/user.v1.UserService/CreateUser": PermUserWrite,
+	"/user.v1.UserService/UpdateUser": PermUserWrite,
+	"/user.v1.UserService/DeleteUser": PermUserDelete,
+}
+
 // callInterceptor exercises the RBACInterceptor with the given context and procedure.
 func callInterceptor(ctx context.Context, procedure string) error {
-	interceptor := RBACInterceptor()
+	interceptor := RBACInterceptor(testProcedurePerms)
 	handler := interceptor(func(_ context.Context, _ connect.AnyRequest) (connect.AnyResponse, error) {
 		return connect.NewResponse(&struct{}{}), nil
 	})
@@ -67,9 +77,9 @@ func TestPermissionForProcedure_Mapping(t *testing.T) {
 		{"malformed", ""},
 	}
 	for _, tc := range cases {
-		got := procedurePermissions[tc.procedure]
+		got := testProcedurePerms[tc.procedure]
 		if got != tc.want {
-			t.Errorf("procedurePermissions[%q] = %q, want %q", tc.procedure, got, tc.want)
+			t.Errorf("testProcedurePerms[%q] = %q, want %q", tc.procedure, got, tc.want)
 		}
 	}
 }

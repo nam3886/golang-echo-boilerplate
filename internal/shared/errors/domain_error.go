@@ -24,6 +24,7 @@ const (
 // DomainError is the base error type for all domain-level errors.
 type DomainError struct {
 	Code    ErrorCode `json:"code"`
+	Key     string    `json:"key,omitempty"`
 	Message string    `json:"message"`
 	Err     error     `json:"-"`
 }
@@ -32,14 +33,16 @@ func (c ErrorCode) String() string   { return string(c) }
 func (e *DomainError) Error() string { return e.Message }
 func (e *DomainError) Unwrap() error { return e.Err }
 
-// Is matches by error category (ErrorCode), not by specific error identity.
-// This means errors.Is(ErrUserNotFound(), ErrOrderNotFound()) returns true
-// because both have CodeNotFound. This is intentional for HTTP status mapping.
-// For identity-specific matching, use errors.As and check the Message field.
+// Is matches by Code+Key when both errors have a Key set, otherwise by Code alone.
+// Key-based matching enables precise sentinel matching (e.g. errors.Is(err, ErrNotFound()))
+// while Code-only matching remains available for HTTP status mapping when Key is absent.
 func (e *DomainError) Is(target error) bool {
 	var t *DomainError
 	if !errors.As(target, &t) {
 		return false
+	}
+	if e.Key != "" && t.Key != "" {
+		return e.Code == t.Code && e.Key == t.Key
 	}
 	return e.Code == t.Code
 }
@@ -54,12 +57,12 @@ func (e *DomainError) HTTPStatus() int {
 
 // Sentinel error templates — unexported to prevent external mutation.
 var (
-	errNotFound      = DomainError{Code: CodeNotFound, Message: "not found"}
-	errAlreadyExists = DomainError{Code: CodeAlreadyExists, Message: "already exists"}
-	errForbidden     = DomainError{Code: CodePermissionDenied, Message: "forbidden"}
-	errUnauthorized  = DomainError{Code: CodeUnauthenticated, Message: "unauthorized"}
-	errInternal      = DomainError{Code: CodeInternal, Message: "internal error"}
-	errNoChange      = DomainError{Code: CodeFailedPrecondition, Message: "no change"}
+	errNotFound      = DomainError{Code: CodeNotFound, Key: "not_found", Message: "not found"}
+	errAlreadyExists = DomainError{Code: CodeAlreadyExists, Key: "already_exists", Message: "already exists"}
+	errForbidden     = DomainError{Code: CodePermissionDenied, Key: "forbidden", Message: "forbidden"}
+	errUnauthorized  = DomainError{Code: CodeUnauthenticated, Key: "unauthorized", Message: "unauthorized"}
+	errInternal      = DomainError{Code: CodeInternal, Key: "internal", Message: "internal error"}
+	errNoChange      = DomainError{Code: CodeFailedPrecondition, Key: "no_change", Message: "no change"}
 )
 
 // ErrNotFound returns a fresh not-found sentinel error.
@@ -81,14 +84,14 @@ func ErrInternal() *DomainError { e := errInternal; return &e }
 // The repository should skip the SQL UPDATE when it receives this.
 func ErrNoChange() *DomainError { e := errNoChange; return &e }
 
-// New creates a new DomainError with given code and message.
-func New(code ErrorCode, message string) *DomainError {
-	return &DomainError{Code: code, Message: message}
+// New creates a new DomainError with given code, key, and message.
+func New(code ErrorCode, key, message string) *DomainError {
+	return &DomainError{Code: code, Key: key, Message: message}
 }
 
 // Wrap creates a new DomainError wrapping an underlying error.
-func Wrap(code ErrorCode, message string, err error) *DomainError {
-	return &DomainError{Code: code, Message: message, Err: err}
+func Wrap(code ErrorCode, key, message string, err error) *DomainError {
+	return &DomainError{Code: code, Key: key, Message: message, Err: err}
 }
 
 var codeToHTTP = map[ErrorCode]int{

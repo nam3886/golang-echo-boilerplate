@@ -53,12 +53,12 @@ func (r *PgUserRepository) GetByEmail(ctx context.Context, email string) (*domai
 	return toDomain(row), nil
 }
 
-// List returns a paginated list of users using offset pagination.
+// List returns a paginated list of users using a window function for total count.
 func (r *PgUserRepository) List(ctx context.Context, page, pageSize int) (domain.ListResult, error) {
 	q := sqlcgen.New(r.pool)
 
 	offset := (page - 1) * pageSize
-	rows, err := q.ListUsers(ctx, sqlcgen.ListUsersParams{
+	rows, err := q.ListUsersWithTotal(ctx, sqlcgen.ListUsersWithTotalParams{
 		Limit:  int32(pageSize),
 		Offset: int32(offset),
 	})
@@ -66,14 +66,11 @@ func (r *PgUserRepository) List(ctx context.Context, page, pageSize int) (domain
 		return domain.ListResult{}, fmt.Errorf("listing users: %w", err)
 	}
 
-	total, err := q.CountUsers(ctx)
-	if err != nil {
-		return domain.ListResult{}, fmt.Errorf("counting users: %w", err)
-	}
-
+	var total int64
 	users := make([]*domain.User, 0, len(rows))
 	for _, row := range rows {
-		users = append(users, toDomainFromListRow(row))
+		total = row.TotalCount
+		users = append(users, toDomainFromListWithTotalRow(row))
 	}
 
 	return domain.ListResult{
@@ -149,7 +146,7 @@ func (r *PgUserRepository) Update(ctx context.Context, id domain.UserID, fn func
 	})
 	if err != nil {
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "idx_users_email_active" {
 			return domain.ErrEmailTaken()
 		}
 		return fmt.Errorf("updating user: %w", err)

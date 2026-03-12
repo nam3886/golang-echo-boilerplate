@@ -29,9 +29,9 @@ func TestDomainErrorToConnect_KnownCodes(t *testing.T) {
 		{"unauthorized", sharederr.ErrUnauthorized(), connect.CodeUnauthenticated},
 		{"internal", sharederr.ErrInternal(), connect.CodeInternal},
 		{"no change", sharederr.ErrNoChange(), connect.CodeFailedPrecondition},
-		{"invalid argument", sharederr.New(sharederr.CodeInvalidArgument, "bad input"), connect.CodeInvalidArgument},
-		{"unavailable", sharederr.New(sharederr.CodeUnavailable, "down"), connect.CodeUnavailable},
-		{"resource exhausted", sharederr.New(sharederr.CodeResourceExhausted, "limit"), connect.CodeResourceExhausted},
+		{"invalid argument", sharederr.New(sharederr.CodeInvalidArgument, "", "bad input"), connect.CodeInvalidArgument},
+		{"unavailable", sharederr.New(sharederr.CodeUnavailable, "", "down"), connect.CodeUnavailable},
+		{"resource exhausted", sharederr.New(sharederr.CodeResourceExhausted, "", "limit"), connect.CodeResourceExhausted},
 	}
 
 	for _, tc := range cases {

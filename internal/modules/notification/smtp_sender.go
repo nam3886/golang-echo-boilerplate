@@ -7,6 +7,7 @@ import (
 	"net/mail"
 	"net/smtp"
 	"strings"
+	"time"
 
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/config"
 )
@@ -58,11 +59,14 @@ func (s *SMTPSender) Send(ctx context.Context, to, subject, body string) error {
 		auth = smtp.PlainAuth("", s.user, s.password, s.host)
 	}
 
-	// Wrap smtp.SendMail in a goroutine to respect context cancellation.
-	// net/smtp has no native context support, so on context cancel this goroutine
-	// leaks until TCP timeout (~30s). The buffered channel prevents goroutine
-	// blocking if the context expires before the result is read. The leak is
-	// bounded by TCP timeout and acceptable without a custom SMTP client.
+	// Hard 30s deadline guards against SMTP servers that accept the connection
+	// but never respond. The goroutine may leak until TCP timeout after the
+	// deadline fires, but the leak is bounded and acceptable without a custom
+	// SMTP client that supports context cancellation natively.
+	const smtpHardTimeout = 30 * time.Second
+	smtpCtx, smtpCancel := context.WithTimeout(ctx, smtpHardTimeout)
+	defer smtpCancel()
+
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- smtp.SendMail(addr, auth, sanitize(s.from), []string{sanitize(to)}, []byte(msg))
@@ -74,7 +78,7 @@ func (s *SMTPSender) Send(ctx context.Context, to, subject, body string) error {
 			return fmt.Errorf("sending email to %s: %w", to, err)
 		}
 		return nil
-	case <-ctx.Done():
-		return fmt.Errorf("sending email to %s: %w", to, ctx.Err())
+	case <-smtpCtx.Done():
+		return fmt.Errorf("sending email to %s: %w", to, smtpCtx.Err())
 	}
 }

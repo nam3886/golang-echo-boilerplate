@@ -8,7 +8,6 @@ import (
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/events"
-	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/netutil"
 )
 
@@ -26,18 +25,17 @@ func NewDeleteUserHandler(repo domain.UserRepository, bus events.EventPublisher)
 // Handle soft-deletes a user by ID.
 func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
 	if id == "" {
-		return sharederr.New(sharederr.CodeInvalidArgument, "user ID is required")
+		return domain.ErrUserIDRequired()
 	}
 	user, err := h.repo.SoftDelete(ctx, domain.UserID(id))
 	if err != nil {
 		return fmt.Errorf("deleting user %s: %w", id, err)
 	}
 
-	// Use DB-authoritative deletion timestamp; fall back to UpdatedAt if nil (defensive).
-	deletedAt := user.UpdatedAt()
-	if user.IsDeleted() {
-		deletedAt = *user.DeletedAt()
+	if !user.IsDeleted() {
+		return fmt.Errorf("soft delete returned non-deleted user %s: adapter bug", id)
 	}
+	deletedAt := *user.DeletedAt()
 
 	if err := h.bus.Publish(ctx, domain.TopicUserDeleted, domain.UserDeletedEvent{
 		Version:   1,

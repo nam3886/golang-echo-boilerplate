@@ -56,7 +56,7 @@ HTTP Request
 ```
 Mutation Handler (Create/Update/Delete)
     → Persistence (repo.Create/Update/SoftDelete)
-    → Extract ActorID from auth.UserFromContext(ctx)
+    → Extract ActorID from auth.ActorIDFromContext(ctx)
     → EventBus.Publish(topic, payload)
     → Watermill Router
     → RabbitMQ Exchange

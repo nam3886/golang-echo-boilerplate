@@ -1,18 +1,14 @@
 # Project Documentation Management
 
-### Key Documentation
+### Documentation Maintenance
+- **Project Changelog** (`./docs/project-changelog.md`): Detailed record of all significant changes, features, and fixes
+- **Code Standards** (`./docs/code-standards.md`): Coding conventions, patterns, and architecture standards
 - **Architecture** (`./docs/architecture.md`): Hexagonal architecture details, layer responsibilities
-- **Code Standards** (`./docs/code-standards.md`): Naming, patterns, domain/app/adapter conventions
-- **Testing Strategy** (`./docs/testing-strategy.md`): Test organization, mocks, testcontainers
-- **Adding a Module** (`./docs/adding-a-module.md`): Step-by-step module creation + scaffold command
-- **Error Codes** (`./docs/error-codes.md`): Error code to HTTP status mapping
 
 ### Automatic Updates Required
-- **After Feature Implementation**: Update roadmap progress status and changelog entries
-- **After Major Milestones**: Review and adjust roadmap phases, update success metrics
+- **After Feature Implementation**: Update changelog entries and code standards if needed
 - **After Bug Fixes**: Document fixes in changelog with severity and impact
 - **After Security Updates**: Record security improvements and version updates
-- **Weekly Reviews**: Update progress percentages and milestone statuses
 
 ### Documentation Triggers
 The `project-manager` agent MUST update these documents when:

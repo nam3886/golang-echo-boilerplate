@@ -81,8 +81,7 @@ func NewRouter(params RouterParams) (*message.Router, error) {
 		topics = append(topics, h.Topic)
 	}
 	if err := DeclareDLQQueues(params.Config.RabbitURL, uniqueTopics(topics)); err != nil {
-		slog.Error("failed to declare DLQ queues; dead-lettered messages may be dropped",
-			"err", err)
+		return nil, fmt.Errorf("declaring DLQ queues: %w", err)
 	}
 
 	return router, nil

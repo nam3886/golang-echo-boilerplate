@@ -31,7 +31,7 @@ func DomainErrorToConnect(err error) error {
 		if !ok {
 			code = connect.CodeInternal
 		}
-		return connect.NewError(code, fmt.Errorf("%s", domErr.Message))
+		return connect.NewError(code, domErr)
 	}
 	slog.Error("unhandled internal error", "err", err)
 	return connect.NewError(connect.CodeInternal, fmt.Errorf("internal error"))

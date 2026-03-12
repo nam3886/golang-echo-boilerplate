@@ -13,17 +13,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const countUsers = `-- name: CountUsers :one
-SELECT count(*) FROM users WHERE deleted_at IS NULL
-`
-
-func (q *Queries) CountUsers(ctx context.Context) (int64, error) {
-	row := q.db.QueryRow(ctx, countUsers)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (id, email, name, password, role)
 VALUES ($1, $2, $3, $4, $5)
@@ -140,37 +129,40 @@ func (q *Queries) GetUserByIDForUpdate(ctx context.Context, id uuid.UUID) (User,
 	return i, err
 }
 
-const listUsers = `-- name: ListUsers :many
-SELECT id, email, name, role, created_at, updated_at, deleted_at FROM users
+const listUsersWithTotal = `-- name: ListUsersWithTotal :many
+SELECT id, email, name, role, created_at, updated_at, deleted_at,
+       count(*) OVER() AS total_count
+FROM users
 WHERE deleted_at IS NULL
 ORDER BY created_at DESC, id DESC
 LIMIT $1 OFFSET $2
 `
 
-type ListUsersParams struct {
+type ListUsersWithTotalParams struct {
 	Limit  int32 `json:"limit"`
 	Offset int32 `json:"offset"`
 }
 
-type ListUsersRow struct {
-	ID        uuid.UUID          `json:"id"`
-	Email     string             `json:"email"`
-	Name      string             `json:"name"`
-	Role      string             `json:"role"`
-	CreatedAt time.Time          `json:"created_at"`
-	UpdatedAt time.Time          `json:"updated_at"`
-	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
+type ListUsersWithTotalRow struct {
+	ID         uuid.UUID          `json:"id"`
+	Email      string             `json:"email"`
+	Name       string             `json:"name"`
+	Role       string             `json:"role"`
+	CreatedAt  time.Time          `json:"created_at"`
+	UpdatedAt  time.Time          `json:"updated_at"`
+	DeletedAt  pgtype.Timestamptz `json:"deleted_at"`
+	TotalCount int64              `json:"total_count"`
 }
 
-func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]ListUsersRow, error) {
-	rows, err := q.db.Query(ctx, listUsers, arg.Limit, arg.Offset)
+func (q *Queries) ListUsersWithTotal(ctx context.Context, arg ListUsersWithTotalParams) ([]ListUsersWithTotalRow, error) {
+	rows, err := q.db.Query(ctx, listUsersWithTotal, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ListUsersRow{}
+	items := []ListUsersWithTotalRow{}
 	for rows.Next() {
-		var i ListUsersRow
+		var i ListUsersWithTotalRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Email,
@@ -179,6 +171,7 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]ListUse
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.TotalCount,
 		); err != nil {
 			return nil, err
 		}

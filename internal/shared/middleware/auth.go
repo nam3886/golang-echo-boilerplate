@@ -25,7 +25,9 @@ func Auth(cfg *config.Config, rdb *redis.Client) echo.MiddlewareFunc {
 				return sharederr.ErrUnauthorized()
 			}
 
-			// Check token blacklist (logout). Fail closed: any Redis error rejects the token.
+			// Blacklist (logout) check — FAIL CLOSED: any Redis error rejects the token.
+			// Rationale: an unverified token must not be accepted. Security trumps availability.
+			// See rate_limit.go for the contrasting fail-open policy used there.
 			ctx := c.Request().Context()
 			blacklisted, err := auth.IsBlacklisted(ctx, rdb, claims.ID)
 			if err != nil {

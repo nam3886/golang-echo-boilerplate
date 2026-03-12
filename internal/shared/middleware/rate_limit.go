@@ -1,5 +1,13 @@
 package middleware
 
+// Redis Failure Mode Policy:
+//
+// Rate limiter: FAIL OPEN — allows request through on Redis error.
+// Rationale: rate limiting is best-effort; a Redis outage must not take down the service.
+//
+// Blacklist (auth.go): FAIL CLOSED — rejects request on Redis error.
+// Rationale: an unverified token must not be accepted. Security trumps availability.
+
 import (
 	"context"
 	"fmt"
@@ -11,6 +19,21 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
 )
+
+// slidingWindowLua atomically removes expired entries, adds the current request,
+// counts the window members, and refreshes the TTL — all in a single round-trip.
+var slidingWindowLua = redis.NewScript(`
+local key = KEYS[1]
+local window_start = ARGV[1]
+local score = ARGV[2]
+local member = ARGV[3]
+local ttl = ARGV[4]
+redis.call('ZREMRANGEBYSCORE', key, '0', window_start)
+redis.call('ZADD', key, score, member)
+local count = redis.call('ZCARD', key)
+redis.call('EXPIRE', key, ttl)
+return count
+`)
 
 // RateLimit applies a Redis sliding window rate limiter.
 // On Redis failure the limiter fails open (allows the request) to prevent
@@ -45,20 +68,18 @@ func slidingWindowCount(ctx context.Context, rdb *redis.Client, key string, wind
 	now := time.Now()
 	windowStart := now.Add(-window)
 
-	// Member combines nanosecond timestamp with a random suffix to prevent
-	// collision when two requests arrive within the same nanosecond tick.
+	// Member combines millisecond timestamp with a random suffix to prevent
+	// collision when two requests arrive within the same millisecond tick.
 	member := strconv.FormatInt(now.UnixNano(), 10) + ":" + strconv.FormatUint(uint64(rand.Uint32()), 16) //nolint:gosec // collision avoidance, not security
 
-	// Score: milliseconds for window range queries.
-	// Member: nanoseconds for uniqueness (multiple requests per ms).
-	pipe := rdb.Pipeline()
-	pipe.ZRemRangeByScore(ctx, key, "0", fmt.Sprintf("%d", windowStart.UnixMilli()))
-	pipe.ZAdd(ctx, key, redis.Z{Score: float64(now.UnixMilli()), Member: member})
-	countCmd := pipe.ZCard(ctx, key)
-	pipe.Expire(ctx, key, window)
-
-	if _, err := pipe.Exec(ctx); err != nil {
+	count, err := slidingWindowLua.Run(ctx, rdb, []string{key},
+		fmt.Sprintf("%d", windowStart.UnixMilli()),
+		float64(now.UnixMilli()),
+		member,
+		int(window.Seconds()),
+	).Int64()
+	if err != nil {
 		return 0, err
 	}
-	return countCmd.Val(), nil
+	return count, nil
 }

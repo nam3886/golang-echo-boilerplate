@@ -11,6 +11,14 @@ type ListResult struct {
 	Total               int
 }
 
+// TotalPages computes the total number of pages for the given page size.
+func (r ListResult) TotalPages(pageSize int) int {
+	if pageSize <= 0 {
+		return 0
+	}
+	return (r.Total + pageSize - 1) / pageSize
+}
+
 // {{.NameTitle}}Repository is the port for {{.Name}} persistence.
 // TODO: Add domain-specific lookup methods as needed (e.g. GetByEmail, GetBySlug).
 // These enable uniqueness pre-checks and alternative access patterns beyond ID.

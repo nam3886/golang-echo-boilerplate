@@ -143,14 +143,15 @@ func main() {
 		for _, p := range created {
 			_ = os.Remove(p)
 		}
-		// Remove empty directories left behind (best-effort, deepest first).
-		dirs := map[string]struct{}{}
-		for _, p := range created {
-			dirs[filepath.Dir(p)] = struct{}{}
+		// Remove module root directory tree (the bulk of scaffold output).
+		moduleRoot := filepath.Join("internal", "modules", data.Name)
+		if _, err := os.Stat(moduleRoot); err == nil {
+			_ = os.RemoveAll(moduleRoot)
 		}
-		for d := range dirs {
-			_ = os.Remove(d) // only removes if empty
-		}
+		// Individual files in db/, proto/ already handled by os.Remove above.
+		// Clean up newly created proto dir best-effort.
+		protoDir := filepath.Join("proto", data.Name)
+		_ = os.RemoveAll(protoDir)
 	}
 
 	// Execute and write each template.

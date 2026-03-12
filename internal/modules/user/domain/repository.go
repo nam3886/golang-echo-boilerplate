@@ -12,11 +12,11 @@ type ListResult struct {
 }
 
 // TotalPages computes the total number of pages for the given page size.
-func (r ListResult) TotalPages(pageSize int) int64 {
+func (r ListResult) TotalPages(pageSize int) int {
 	if pageSize <= 0 {
 		return 0
 	}
-	return (int64(r.Total) + int64(pageSize) - 1) / int64(pageSize)
+	return (r.Total + pageSize - 1) / pageSize
 }
 
 // UserRepository is the port for user persistence.

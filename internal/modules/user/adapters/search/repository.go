@@ -114,7 +114,7 @@ func (r *Repository) EnsureIndex(ctx context.Context) error {
 	defer func() { _ = res.Body.Close() }()
 
 	if !res.IsError() {
-		slog.Info("search: index already exists", "index", r.indexName)
+		slog.InfoContext(ctx, "search: index already exists", "index", r.indexName)
 		return nil
 	}
 
@@ -132,6 +132,6 @@ func (r *Repository) EnsureIndex(ctx context.Context) error {
 		return fmt.Errorf("search: create index returned %s", res.Status())
 	}
 
-	slog.Info("search: created index", "index", r.indexName)
+	slog.InfoContext(ctx, "search: created index", "index", r.indexName)
 	return nil
 }

@@ -9,14 +9,13 @@ FROM users WHERE email = $1 AND deleted_at IS NULL;
 SELECT id, email, name, password, role, created_at, updated_at, deleted_at
 FROM users WHERE id = $1 AND deleted_at IS NULL FOR UPDATE;
 
--- name: ListUsers :many
-SELECT id, email, name, role, created_at, updated_at, deleted_at FROM users
+-- name: ListUsersWithTotal :many
+SELECT id, email, name, role, created_at, updated_at, deleted_at,
+       count(*) OVER() AS total_count
+FROM users
 WHERE deleted_at IS NULL
 ORDER BY created_at DESC, id DESC
 LIMIT $1 OFFSET $2;
-
--- name: CountUsers :one
-SELECT count(*) FROM users WHERE deleted_at IS NULL;
 
 -- name: CreateUser :one
 INSERT INTO users (id, email, name, password, role)

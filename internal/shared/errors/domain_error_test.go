@@ -8,7 +8,7 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	err := New(CodeNotFound, "user not found")
+	err := New(CodeNotFound, "not_found", "user not found")
 	if err.Code != CodeNotFound {
 		t.Errorf("expected code %s, got %s", CodeNotFound, err.Code)
 	}
@@ -21,27 +21,41 @@ func TestNew(t *testing.T) {
 }
 
 func TestError(t *testing.T) {
-	err := New(CodeNotFound, "not found")
+	err := New(CodeNotFound, "not_found", "not found")
 	if err.Error() != "not found" {
 		t.Errorf("expected 'not found', got %s", err.Error())
 	}
 }
 
 func TestIs_MatchesByCode(t *testing.T) {
-	err1 := New(CodeNotFound, "user not found")
-	err2 := New(CodeNotFound, "resource not found")
+	// No key → backward compat: match by code only.
+	err1 := New(CodeNotFound, "", "user not found")
+	err2 := New(CodeNotFound, "", "resource not found")
 
 	if !err1.Is(err2) {
-		t.Error("Is should match by error code, not pointer identity")
+		t.Error("Is should match by error code when both have no key")
 	}
 	if !err2.Is(err1) {
 		t.Error("Is should be symmetric")
 	}
 }
 
+func TestIs_MatchesByCodeAndKey(t *testing.T) {
+	err1 := New(CodeNotFound, "user.not_found", "user not found")
+	err2 := New(CodeNotFound, "user.not_found", "user not found")
+	err3 := New(CodeNotFound, "resource.not_found", "resource not found")
+
+	if !err1.Is(err2) {
+		t.Error("Is should match when both code and key match")
+	}
+	if err1.Is(err3) {
+		t.Error("Is should not match when keys differ")
+	}
+}
+
 func TestIs_DifferentCode(t *testing.T) {
-	err1 := New(CodeNotFound, "not found")
-	err2 := New(CodeAlreadyExists, "already exists")
+	err1 := New(CodeNotFound, "", "not found")
+	err2 := New(CodeAlreadyExists, "", "already exists")
 
 	if err1.Is(err2) {
 		t.Error("Is should return false for different error codes")
@@ -49,7 +63,7 @@ func TestIs_DifferentCode(t *testing.T) {
 }
 
 func TestIs_NonDomainError(t *testing.T) {
-	err1 := New(CodeNotFound, "not found")
+	err1 := New(CodeNotFound, "", "not found")
 	err2 := fmt.Errorf("some other error")
 
 	if err1.Is(err2) {
@@ -59,7 +73,7 @@ func TestIs_NonDomainError(t *testing.T) {
 
 func TestWrap_PreservesUnderlying(t *testing.T) {
 	underlying := fmt.Errorf("db connection lost")
-	err := Wrap(CodeInternal, "database failure", underlying)
+	err := Wrap(CodeInternal, "internal", "database failure", underlying)
 
 	if err.Err != underlying {
 		t.Errorf("expected underlying error to be preserved")
@@ -70,7 +84,7 @@ func TestWrap_PreservesUnderlying(t *testing.T) {
 }
 
 func TestUnwrap_Nil(t *testing.T) {
-	err := New(CodeNotFound, "not found")
+	err := New(CodeNotFound, "", "not found")
 	if err.Unwrap() != nil {
 		t.Errorf("Unwrap should return nil for non-wrapped errors")
 	}
@@ -93,7 +107,7 @@ func TestHTTPStatus_KnownCodes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(string(tt.code), func(t *testing.T) {
-			err := New(tt.code, "test")
+			err := New(tt.code, "", "test")
 			if status := err.HTTPStatus(); status != tt.expected {
 				t.Errorf("expected status %d, got %d", tt.expected, status)
 			}
@@ -116,13 +130,13 @@ func TestErrNotFound_FreshPointer(t *testing.T) {
 		t.Error("ErrNotFound should return fresh pointers, not shared state")
 	}
 	if !err1.Is(err2) {
-		t.Error("but pointers should match by error code")
+		t.Error("but pointers should match by error code and key")
 	}
 }
 
 func TestErrorsIs_WithWrapping(t *testing.T) {
 	underlying := fmt.Errorf("db error")
-	err := Wrap(CodeNotFound, "user not found", underlying)
+	err := Wrap(CodeNotFound, "not_found", "user not found", underlying)
 
 	if !errors.Is(err, ErrNotFound()) {
 		t.Error("errors.Is should work through wrapping via custom Is method")

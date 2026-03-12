@@ -649,10 +649,12 @@ aliases in `domain/events.go` for internal convenience. External subscribers
 
 ```go
 // internal/modules/user/domain/events.go
+import "github.com/gnha/golang-echo-boilerplate/internal/shared/events/contracts"
+
 const (
-    TopicUserCreated = "user.created"
-    TopicUserUpdated = "user.updated"
-    TopicUserDeleted = "user.deleted"
+    TopicUserCreated = contracts.TopicUserCreated
+    TopicUserUpdated = contracts.TopicUserUpdated
+    TopicUserDeleted = contracts.TopicUserDeleted
 )
 ```
 
