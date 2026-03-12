@@ -17,6 +17,11 @@ func ErrNameRequired() *sharederr.DomainError {
 	return sharederr.New(sharederr.CodeInvalidArgument, "name is required")
 }
 
+// ErrNameTooLong indicates the name exceeds the maximum allowed length.
+func ErrNameTooLong() *sharederr.DomainError {
+	return sharederr.New(sharederr.CodeInvalidArgument, "name must be 255 characters or less")
+}
+
 // ErrInvalidRole indicates the role value is not recognized.
 func ErrInvalidRole() *sharederr.DomainError {
 	return sharederr.New(sharederr.CodeInvalidArgument, "invalid role")
@@ -25,11 +30,6 @@ func ErrInvalidRole() *sharederr.DomainError {
 // ErrPasswordRequired indicates the hashed password is missing.
 func ErrPasswordRequired() *sharederr.DomainError {
 	return sharederr.New(sharederr.CodeInvalidArgument, "hashed password is required")
-}
-
-// ErrInvalidArgument indicates a generic invalid argument.
-func ErrInvalidArgument() *sharederr.DomainError {
-	return sharederr.New(sharederr.CodeInvalidArgument, "invalid argument")
 }
 
 // ErrUserNotFound indicates the requested user does not exist.

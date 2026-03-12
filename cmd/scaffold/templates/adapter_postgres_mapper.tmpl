@@ -29,7 +29,7 @@ func parse{{.NameTitle}}ID(id domain.{{.NameID}}) (uuid.UUID, error) {
 // Also: if Create/Update RETURNING excludes fields, preserve them before overwriting
 // the entity pointer (see repo.Create pattern with password preservation).
 //
-// Reference: internal/modules/user/adapters/postgres/domain_mapper.go
+// Reference: internal/modules/user/adapters/postgres/mapper.go
 func toDomain(row sqlcgen.{{.NameTitle}}) *domain.{{.NameTitle}} {
 	var deletedAt *time.Time
 	if row.DeletedAt.Valid {

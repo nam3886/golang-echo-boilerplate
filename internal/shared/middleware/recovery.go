@@ -34,9 +34,15 @@ func Recovery() echo.MiddlewareFunc {
 					if len(panicStr) > 200 {
 						panicStr = panicStr[:200] + "...[truncated]"
 					}
+					// Cap stack trace to prevent log ingestion issues with very deep stacks.
+					const maxStackLog = 4096
+					stackStr := string(buf)
+					if len(stackStr) > maxStackLog {
+						stackStr = stackStr[:maxStackLog] + "\n...[stack truncated]"
+					}
 					slog.Error("panic recovered",
 						"error", panicStr,
-						"stack", string(buf),
+						"stack", stackStr,
 						"path", c.Request().URL.Path,
 					)
 					if !c.Response().Committed {

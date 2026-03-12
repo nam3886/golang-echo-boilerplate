@@ -50,6 +50,9 @@ func NewUser(email, name, hashedPassword string, role Role) (*User, error) {
 	if name == "" {
 		return nil, ErrNameRequired()
 	}
+	if len(name) > 255 {
+		return nil, ErrNameTooLong()
+	}
 	if !role.IsValid() {
 		return nil, ErrInvalidRole()
 	}
@@ -81,19 +84,19 @@ func Reconstitute(id UserID, email, name, password string, role Role, createdAt,
 }
 
 // ID returns the user identifier.
-func (u *User) ID() UserID           { return u.id }
+func (u *User) ID() UserID { return u.id }
 
 // Email returns the user email address.
-func (u *User) Email() string        { return u.email }
+func (u *User) Email() string { return u.email }
 
 // Name returns the user display name.
-func (u *User) Name() string         { return u.name }
+func (u *User) Name() string { return u.name }
 
 // Password returns the hashed password.
-func (u *User) Password() string     { return u.password }
+func (u *User) Password() string { return u.password }
 
 // Role returns the user role.
-func (u *User) Role() Role           { return u.role }
+func (u *User) Role() Role { return u.role }
 
 // CreatedAt returns when the user was created.
 func (u *User) CreatedAt() time.Time { return u.createdAt }
@@ -112,6 +115,9 @@ func (u *User) IsDeleted() bool { return u.deletedAt != nil }
 func (u *User) ChangeName(name string) error {
 	if name == "" {
 		return ErrNameRequired()
+	}
+	if len(name) > 255 {
+		return ErrNameTooLong()
 	}
 	if name == u.name {
 		return nil // no-op

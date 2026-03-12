@@ -7,6 +7,12 @@ import (
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
 )
 
+const (
+	maxPage         = 10000
+	defaultPageSize = 20
+	maxPageSize     = 100
+)
+
 // List{{.NamePluralTitle}}Handler handles listing {{.NamePlural}} with offset pagination.
 type List{{.NamePluralTitle}}Handler struct {
 	repo domain.{{.NameTitle}}Repository
@@ -22,11 +28,14 @@ func (h *List{{.NamePluralTitle}}Handler) Handle(ctx context.Context, page, page
 	if page <= 0 {
 		page = 1
 	}
-	if pageSize <= 0 {
-		pageSize = 20
+	if page > maxPage {
+		page = maxPage
 	}
-	if pageSize > 100 {
-		pageSize = 100
+	if pageSize <= 0 {
+		pageSize = defaultPageSize
+	}
+	if pageSize > maxPageSize {
+		pageSize = maxPageSize
 	}
 
 	result, err := h.repo.List(ctx, page, pageSize)

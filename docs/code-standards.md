@@ -180,6 +180,18 @@ return nil, domain.ErrEmailTaken()
 if errors.Is(err, sharederr.ErrNotFound()) { }
 ```
 
+### Domain vs App-Layer Errors
+
+- **Domain errors** (`domain/errors.go`): Business rule violations. Use named constructor
+  functions like `ErrInvalidEmail()`, `ErrNameRequired()`. These represent domain invariant
+  failures.
+- **App-layer errors** (inline in handlers): Input/plumbing validation. Use
+  `sharederr.New(sharederr.CodeInvalidArgument, "user ID is required")` for app-level
+  checks that don't belong to the domain model (e.g., empty ID, missing required command fields).
+
+Both produce `DomainError` and map to HTTP status codes identically. The distinction is
+organizational: domain errors live with the entity, app errors live with the handler.
+
 ## Domain Layer (domain/)
 
 ### Entity Definition
@@ -200,11 +212,19 @@ type User struct {
 
 // Constructor validates inputs and enforces invariants
 func NewUser(email, name, hashedPassword string, role Role) (*User, error) {
-    if email == "" {
+    addr, err := mail.ParseAddress(email)
+    if err != nil {
         return nil, ErrInvalidEmail()
+    }
+    email = addr.Address
+    if name == "" {
+        return nil, ErrNameRequired()
     }
     if !role.IsValid() {
         return nil, ErrInvalidRole()
+    }
+    if hashedPassword == "" {
+        return nil, ErrPasswordRequired()
     }
     // ...
 }
@@ -294,6 +314,7 @@ func (h *CreateUserHandler) Handle(ctx context.Context, cmd CreateUserCmd) (*dom
 
     // Events (after successful persistence)
     if err := h.bus.Publish(ctx, domain.TopicUserCreated, domain.UserCreatedEvent{
+        Version:   1,
         UserID:    string(user.ID()),
         ActorID:   auth.ActorIDFromContext(ctx),
         Email:     user.Email(),
@@ -321,9 +342,12 @@ type GetUserHandler struct {
 }
 
 func (h *GetUserHandler) Handle(ctx context.Context, id string) (*domain.User, error) {
+    if id == "" {
+        return nil, sharederr.New(sharederr.CodeInvalidArgument, "user ID is required")
+    }
     user, err := h.repo.GetByID(ctx, domain.UserID(id))
     if err != nil {
-        return nil, err
+        return nil, fmt.Errorf("getting user %s: %w", id, err)
     }
     return user, nil
 }
@@ -331,18 +355,18 @@ func (h *GetUserHandler) Handle(ctx context.Context, id string) (*domain.User, e
 
 ### Update Pattern with ErrNoChange
 
-When a handler attempts to mutate an entity, track mutations with a flag. If no mutations occur, return `sharederr.ErrNoChange()` inside the repo's update closure. The repo catches `ErrNoChange`, commits a read-only transaction, and returns `nil`. The handler checks `!mutated` and skips event publishing:
+When a handler attempts to mutate an entity, track changed fields in a slice. If no mutations occur, return `sharederr.ErrNoChange()` inside the repo's update closure. The repo catches `ErrNoChange`, commits a read-only transaction, and returns `nil`. The handler checks `len(changedFields) == 0` and skips event publishing:
 
 ```go
-var mutated bool
+var changedFields []string
 err := h.repo.Update(ctx, id, func(user *domain.User) error {
-    if newVal != oldVal && newVal != "" {
-        if err := user.ChangeField(newVal); err != nil {
+    if cmd.Name != nil && *cmd.Name != user.Name() {
+        if err := user.ChangeName(*cmd.Name); err != nil {
             return err
         }
-        mutated = true
+        changedFields = append(changedFields, "name")
     }
-    if !mutated {
+    if len(changedFields) == 0 {
         return sharederr.ErrNoChange()
     }
     return nil
@@ -350,10 +374,10 @@ err := h.repo.Update(ctx, id, func(user *domain.User) error {
 if err != nil {
     return nil, err
 }
-if !mutated {
+if len(changedFields) == 0 {
     return user, nil  // No event published
 }
-// Publish event here
+// Publish event here (include changedFields in event payload)
 ```
 
 ### Update & Delete Handlers
@@ -369,38 +393,40 @@ type UpdateUserHandler struct {
 
 func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*domain.User, error) {
     var updated *domain.User
-    var mutated bool
+    var changedFields []string
     err := h.repo.Update(ctx, domain.UserID(cmd.ID), func(user *domain.User) error {
         if cmd.Name != nil && *cmd.Name != user.Name() {
             if err := user.ChangeName(*cmd.Name); err != nil {
                 return err
             }
-            mutated = true
+            changedFields = append(changedFields, "name")
         }
         updated = user
-        if !mutated {
+        if len(changedFields) == 0 {
             return sharederr.ErrNoChange()
         }
         return nil
     })
-    // err==nil && !mutated: repo committed read-only tx (ErrNoChange), no SQL UPDATE issued.
+    // err==nil && len(changedFields)==0: repo committed read-only tx (ErrNoChange), no SQL UPDATE issued.
     if err != nil {
         return nil, err
     }
 
-    if !mutated {
+    if len(changedFields) == 0 {
         return updated, nil
     }
 
     // Publish event with ActorID from context
     if err := h.bus.Publish(ctx, domain.TopicUserUpdated, domain.UserUpdatedEvent{
-        UserID:    string(updated.ID()),
-        ActorID:   auth.ActorIDFromContext(ctx),
-        Name:      updated.Name(),
-        Email:     updated.Email(),
-        Role:      string(updated.Role()),
-        IPAddress: netutil.GetClientIP(ctx),
-        At:        updated.UpdatedAt(),
+        Version:       1,
+        UserID:        string(updated.ID()),
+        ActorID:       auth.ActorIDFromContext(ctx),
+        Name:          updated.Name(),
+        Email:         updated.Email(),
+        Role:          string(updated.Role()),
+        ChangedFields: changedFields,
+        IPAddress:     netutil.GetClientIP(ctx),
+        At:            updated.UpdatedAt(),
     }); err != nil {
         slog.ErrorContext(ctx, "failed to publish user.updated event",
             "user_id", string(updated.ID()), "err", err)
@@ -416,6 +442,9 @@ type DeleteUserHandler struct {
 }
 
 func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
+    if id == "" {
+        return sharederr.New(sharederr.CodeInvalidArgument, "user ID is required")
+    }
     user, err := h.repo.SoftDelete(ctx, domain.UserID(id))
     if err != nil {
         return fmt.Errorf("deleting user %s: %w", id, err)
@@ -423,11 +452,12 @@ func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
 
     // Use DB-authoritative deletion timestamp; fall back to UpdatedAt if nil (defensive).
     deletedAt := user.UpdatedAt()
-    if user.DeletedAt() != nil {
+    if user.IsDeleted() {
         deletedAt = *user.DeletedAt()
     }
 
     if err := h.bus.Publish(ctx, domain.TopicUserDeleted, domain.UserDeletedEvent{
+        Version:   1,
         UserID:    id,
         ActorID:   auth.ActorIDFromContext(ctx),
         IPAddress: netutil.GetClientIP(ctx),
@@ -484,7 +514,7 @@ func (r *PgUserRepository) Create(ctx context.Context, user *domain.User) error 
         return fmt.Errorf("inserting user: %w", err)
     }
     // Overwrite entity with DB-authoritative timestamps.
-    *user = *toDomainFromCreateRow(row)
+    *user = *toDomainFromCreateRow(row, user.Password())
     return nil
 }
 ```
@@ -497,7 +527,7 @@ if errors.As(err, &pgErr) && pgErr.Code == "23505" {
     if pgErr.ConstraintName == "idx_users_email_active" {
         return domain.ErrEmailTaken()
     }
-    return sharederr.ErrAlreadyExists().WithMessage("duplicate entry")
+    return sharederr.New(sharederr.CodeAlreadyExists, "duplicate entry")
 }
 ```
 

@@ -18,10 +18,7 @@ func NewRedisClient(cfg *config.Config) (*redis.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parsing redis URL: %w", err)
 	}
-	poolSize := 10 * runtime.NumCPU()
-	if poolSize > 100 {
-		poolSize = 100
-	}
+	poolSize := min(10*runtime.NumCPU(), 100)
 	opt.PoolSize = poolSize
 	opt.MinIdleConns = 5
 
@@ -30,11 +27,8 @@ func NewRedisClient(cfg *config.Config) (*redis.Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	_, err = retry.Connect(ctx, "redis", 10, func() (struct{}, error) {
-		if pingErr := rdb.Ping(ctx).Err(); pingErr != nil {
-			return struct{}{}, pingErr
-		}
-		return struct{}{}, nil
+	err = retry.Do(ctx, "redis", 10, func() error {
+		return rdb.Ping(ctx).Err()
 	})
 	if err != nil {
 		_ = rdb.Close() // prevent goroutine/connection leak

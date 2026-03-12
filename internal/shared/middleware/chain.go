@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"log/slog"
+	"slices"
 	"strings"
 	"time"
 
@@ -22,6 +23,12 @@ func SetupMiddleware(e *echo.Echo, cfg *config.Config, rdb *redis.Client) {
 	// IMPORTANT: Configure trusted proxy for accurate client IP (rate limiting, audit).
 	// Behind a reverse proxy, set: e.IPExtractor = echo.ExtractIPFromXFFHeader()
 	// Without this, X-Forwarded-For can be spoofed to bypass rate limiting.
+
+	// Warn if production uses default IP extraction (spoofable via X-Forwarded-For).
+	if cfg.IsProduction() && e.IPExtractor == nil {
+		slog.Warn("rate limiter uses default IPExtractor in production; " +
+			"configure e.IPExtractor for accurate client IP behind reverse proxy")
+	}
 
 	// 1. OTel HTTP tracing (wraps handler to create spans per request)
 	e.Use(echo.WrapMiddleware(otelhttp.NewMiddleware(cfg.AppName)))
@@ -51,13 +58,7 @@ func SetupMiddleware(e *echo.Echo, cfg *config.Config, rdb *redis.Client) {
 	}
 	// Only enable credentials when origins are explicitly listed (not wildcard).
 	// Access-Control-Allow-Origin: * with AllowCredentials: true is rejected by browsers.
-	allowCreds := true
-	for _, o := range cfg.CORSOrigins {
-		if o == "*" {
-			allowCreds = false
-			break
-		}
-	}
+	allowCreds := !slices.Contains(cfg.CORSOrigins, "*")
 	e.Use(echomw.CORSWithConfig(echomw.CORSConfig{
 		AllowOrigins: cfg.CORSOrigins,
 		AllowMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},

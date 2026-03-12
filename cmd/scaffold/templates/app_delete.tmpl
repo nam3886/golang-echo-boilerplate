@@ -2,11 +2,13 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
 	"{{.GoModule}}/internal/shared/auth"
 	"{{.GoModule}}/internal/shared/events"
+	sharederr "{{.GoModule}}/internal/shared/errors"
 	"{{.GoModule}}/internal/shared/netutil"
 )
 
@@ -24,16 +26,16 @@ func NewDelete{{.NameTitle}}Handler(repo domain.{{.NameTitle}}Repository, bus ev
 // Handle soft-deletes a {{.Name}} by ID.
 func (h *Delete{{.NameTitle}}Handler) Handle(ctx context.Context, id string) error {
 	if id == "" {
-		return domain.ErrInvalidArgument()
+		return sharederr.New(sharederr.CodeInvalidArgument, "{{.Name}} ID is required")
 	}
 	entity, err := h.repo.SoftDelete(ctx, domain.{{.NameID}}(id))
 	if err != nil {
-		return err
+		return fmt.Errorf("deleting {{.Name}} %s: %w", id, err)
 	}
 
 	// Use DB-authoritative deletion timestamp; fall back to UpdatedAt if nil (defensive).
 	deletedAt := entity.UpdatedAt()
-	if entity.DeletedAt() != nil {
+	if entity.IsDeleted() {
 		deletedAt = *entity.DeletedAt()
 	}
 

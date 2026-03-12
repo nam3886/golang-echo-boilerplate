@@ -1,8 +1,14 @@
+// NOTE: errors.Is() on DomainError matches by category (ErrorCode), not identity.
+// For example, errors.Is(ErrInvalidEmail(), ErrNameRequired()) returns true
+// because both use CodeInvalidArgument. Use testutil.AssertDomainError() when
+// testing that a specific error message is returned.
 package domain
 
 import (
-	"errors"
 	"testing"
+	"time"
+
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/testutil"
 )
 
 func TestNewUser_Success(t *testing.T) {
@@ -32,9 +38,7 @@ func TestNewUser_InvalidEmail(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for empty email")
 	}
-	if !errors.Is(err, ErrInvalidEmail()) {
-		t.Errorf("expected ErrInvalidEmail, got %v", err)
-	}
+	testutil.AssertDomainError(t, err, "invalid email format")
 }
 
 func TestNewUser_InvalidName(t *testing.T) {
@@ -42,9 +46,26 @@ func TestNewUser_InvalidName(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for empty name")
 	}
-	if !errors.Is(err, ErrNameRequired()) {
-		t.Errorf("expected ErrNameRequired, got %v", err)
+	testutil.AssertDomainError(t, err, "name is required")
+}
+
+func TestNewUser_NameTooLong(t *testing.T) {
+	longName := string(make([]byte, 256))
+	_, err := NewUser("test@example.com", longName, "hashed_pwd", RoleMember)
+	if err == nil {
+		t.Fatal("expected error for name exceeding 255 chars")
 	}
+	testutil.AssertDomainError(t, err, "name must be 255 characters or less")
+}
+
+func TestUser_ChangeName_TooLong(t *testing.T) {
+	user, _ := NewUser("test@example.com", "Test", "hashed_pwd", RoleMember)
+	longName := string(make([]byte, 256))
+	err := user.ChangeName(longName)
+	if err == nil {
+		t.Fatal("expected error for name exceeding 255 chars")
+	}
+	testutil.AssertDomainError(t, err, "name must be 255 characters or less")
 }
 
 func TestNewUser_InvalidRole(t *testing.T) {
@@ -52,9 +73,7 @@ func TestNewUser_InvalidRole(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for invalid role")
 	}
-	if !errors.Is(err, ErrInvalidRole()) {
-		t.Errorf("expected ErrInvalidRole, got %v", err)
-	}
+	testutil.AssertDomainError(t, err, "invalid role")
 }
 
 func TestUser_ChangeName(t *testing.T) {
@@ -78,8 +97,18 @@ func TestUser_ChangeName_Empty(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for empty name")
 	}
-	if !errors.Is(err, ErrNameRequired()) {
-		t.Errorf("expected ErrNameRequired, got %v", err)
+	testutil.AssertDomainError(t, err, "name is required")
+}
+
+func TestUser_ChangeName_NoOp(t *testing.T) {
+	user, _ := NewUser("test@example.com", "Same", "hashed_pwd", RoleMember)
+	old := user.UpdatedAt()
+	time.Sleep(time.Millisecond) // ensure clock moves
+	if err := user.ChangeName("Same"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if user.UpdatedAt() != old {
+		t.Error("no-op ChangeName should not update timestamp")
 	}
 }
 
@@ -99,8 +128,18 @@ func TestUser_ChangeRole_Invalid(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for invalid role")
 	}
-	if !errors.Is(err, ErrInvalidRole()) {
-		t.Errorf("expected ErrInvalidRole, got %v", err)
+	testutil.AssertDomainError(t, err, "invalid role")
+}
+
+func TestUser_ChangeRole_NoOp(t *testing.T) {
+	user, _ := NewUser("test@example.com", "Test", "hashed_pwd", RoleMember)
+	old := user.UpdatedAt()
+	time.Sleep(time.Millisecond)
+	if err := user.ChangeRole(RoleMember); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if user.UpdatedAt() != old {
+		t.Error("no-op ChangeRole should not update timestamp")
 	}
 }
 
@@ -120,8 +159,18 @@ func TestUser_ChangeEmail_Invalid(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for invalid email")
 	}
-	if !errors.Is(err, ErrInvalidEmail()) {
-		t.Errorf("expected ErrInvalidEmail, got %v", err)
+	testutil.AssertDomainError(t, err, "invalid email format")
+}
+
+func TestUser_ChangeEmail_NoOp(t *testing.T) {
+	user, _ := NewUser("test@example.com", "Test", "hashed_pwd", RoleMember)
+	old := user.UpdatedAt()
+	time.Sleep(time.Millisecond)
+	if err := user.ChangeEmail("test@example.com"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if user.UpdatedAt() != old {
+		t.Error("no-op ChangeEmail should not update timestamp")
 	}
 }
 

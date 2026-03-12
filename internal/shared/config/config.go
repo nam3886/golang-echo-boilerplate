@@ -132,7 +132,7 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "SMTPHost:%s ", c.SMTPHost)
 	fmt.Fprintf(&b, "SMTPPort:%d ", c.SMTPPort)
 	fmt.Fprintf(&b, "SMTPFrom:%s ", c.SMTPFrom)
-	fmt.Fprintf(&b, "SMTPUser:%s ", c.SMTPUser)
+	fmt.Fprintf(&b, "SMTPUser:%s ", mask(c.SMTPUser))
 	fmt.Fprintf(&b, "SMTPPassword:%s ", mask(c.SMTPPassword))
 	fmt.Fprintf(&b, "SMTPFromAlias:%s ", c.SMTPFromAlias)
 	fmt.Fprintf(&b, "ElasticsearchURL:%s ", c.ElasticsearchURL)

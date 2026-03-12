@@ -7,6 +7,12 @@ import (
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
 )
 
+const (
+	maxPage         = 10000
+	defaultPageSize = 20
+	maxPageSize     = 100
+)
+
 // ListUsersHandler handles listing users with offset pagination.
 type ListUsersHandler struct {
 	repo domain.UserRepository
@@ -22,11 +28,14 @@ func (h *ListUsersHandler) Handle(ctx context.Context, page, pageSize int) (doma
 	if page <= 0 {
 		page = 1
 	}
-	if pageSize <= 0 {
-		pageSize = 20
+	if page > maxPage {
+		page = maxPage
 	}
-	if pageSize > 100 {
-		pageSize = 100
+	if pageSize <= 0 {
+		pageSize = defaultPageSize
+	}
+	if pageSize > maxPageSize {
+		pageSize = maxPageSize
 	}
 
 	result, err := h.repo.List(ctx, page, pageSize)

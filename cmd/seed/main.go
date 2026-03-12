@@ -42,6 +42,11 @@ func main() {
 	}
 	defer pool.Close()
 
+	if err := pool.Ping(ctx); err != nil {
+		slog.Error("cannot reach database", "err", err, "hint", "is 'task dev:deps' running?")
+		os.Exit(1)
+	}
+
 	repo := postgres.NewPgUserRepository(pool)
 	hasher := auth.NewPasswordHasher()
 

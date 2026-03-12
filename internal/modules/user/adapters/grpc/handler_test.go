@@ -187,3 +187,65 @@ func TestHandler_UpdateUser_PartialFields(t *testing.T) {
 		t.Errorf("expected email unchanged=user@example.com, got %s", resp.Msg.User.Email)
 	}
 }
+
+func TestHandler_DeleteUser_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMockUserRepository(ctrl)
+
+	deleted := makeUser("id-del", "gone@example.com", "Gone User", domain.RoleMember)
+	mockRepo.EXPECT().
+		SoftDelete(gomock.Any(), domain.UserID("id-del")).
+		Return(deleted, nil)
+
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	create := app.NewCreateUserHandler(mockRepo, &testutil.StubHasher{}, bus)
+	get := app.NewGetUserHandler(mockRepo)
+	list := app.NewListUsersHandler(mockRepo)
+	update := app.NewUpdateUserHandler(mockRepo, bus)
+	del := app.NewDeleteUserHandler(mockRepo, bus)
+
+	h := buildHandler(create, get, list, update, del)
+
+	resp, err := h.DeleteUser(context.Background(), connect.NewRequest(&userv1.DeleteUserRequest{
+		Id: "id-del",
+	}))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if resp == nil {
+		t.Fatal("expected non-nil response")
+	}
+}
+
+func TestHandler_DeleteUser_NotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMockUserRepository(ctrl)
+
+	mockRepo.EXPECT().
+		SoftDelete(gomock.Any(), domain.UserID("no-such-id")).
+		Return(nil, sharederr.ErrNotFound())
+
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	create := app.NewCreateUserHandler(mockRepo, &testutil.StubHasher{}, bus)
+	get := app.NewGetUserHandler(mockRepo)
+	list := app.NewListUsersHandler(mockRepo)
+	update := app.NewUpdateUserHandler(mockRepo, bus)
+	del := app.NewDeleteUserHandler(mockRepo, bus)
+
+	h := buildHandler(create, get, list, update, del)
+
+	_, err := h.DeleteUser(context.Background(), connect.NewRequest(&userv1.DeleteUserRequest{
+		Id: "no-such-id",
+	}))
+	if err == nil {
+		t.Fatal("expected connect error, got nil")
+	}
+
+	var ce *connect.Error
+	if !errors.As(err, &ce) {
+		t.Fatalf("expected *connect.Error, got %T", err)
+	}
+	if ce.Code() != connect.CodeNotFound {
+		t.Errorf("expected CodeNotFound, got %v", ce.Code())
+	}
+}

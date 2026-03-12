@@ -75,13 +75,13 @@ func NewRouter(params RouterParams) (*message.Router, error) {
 	}
 
 	// Declare DLQ queues for all registered topics.
-	// DLQs are a safety net — failure to declare is non-fatal (warn only).
+	// DLQs are a safety net — failure to declare is an error requiring attention.
 	topics := make([]string, 0, len(params.Handlers))
 	for _, h := range params.Handlers {
 		topics = append(topics, h.Topic)
 	}
 	if err := DeclareDLQQueues(params.Config.RabbitURL, uniqueTopics(topics)); err != nil {
-		slog.Warn("failed to declare DLQ queues; dead-lettered messages may be dropped",
+		slog.Error("failed to declare DLQ queues; dead-lettered messages may be dropped",
 			"err", err)
 	}
 

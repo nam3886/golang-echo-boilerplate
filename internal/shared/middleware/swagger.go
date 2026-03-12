@@ -10,6 +10,8 @@ import (
 
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/config"
 	"github.com/labstack/echo/v4"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // Pin swagger-ui-dist to a specific version for supply-chain safety.
@@ -64,16 +66,31 @@ func discoverSpecs(dir string) []string {
 }
 
 // buildSwaggerHTML generates an HTML page with Swagger UI listing all discovered specs.
+// Uses the SwaggerUI urls array to support multi-spec dropdown when more than one spec exists.
 func buildSwaggerHTML(specs []string) string {
 	if len(specs) == 0 {
 		return `<!DOCTYPE html><html><body><p>No OpenAPI specs found in gen/openapi/</p></body></html>`
 	}
+
+	// Build urls array for multi-spec support
+	var urlEntries []string
+	for _, spec := range specs {
+		// Extract a human-readable name from the path.
+		// e.g., "/swagger/spec/user/v1/user.swagger.json" -> "User V1 User"
+		name := spec
+		name = strings.TrimPrefix(name, "/swagger/spec/")
+		name = strings.TrimSuffix(name, ".swagger.json")
+		name = strings.ReplaceAll(name, "/", " ")
+		name = cases.Title(language.English).String(name)
+		urlEntries = append(urlEntries, `{url:"`+html.EscapeString(spec)+`",name:"`+html.EscapeString(name)+`"}`)
+	}
+
 	return `<!DOCTYPE html>
 <html><head><title>API Docs</title>
 <link rel="stylesheet" href="` + swaggerCSSURL + `">
 </head><body>
 <div id="swagger-ui"></div>
 <script src="` + swaggerJSURL + `"></script>
-<script>SwaggerUIBundle({url:"` + html.EscapeString(specs[0]) + `",dom_id:"#swagger-ui"})</script>
+<script>SwaggerUIBundle({urls:[` + strings.Join(urlEntries, ",") + `],dom_id:"#swagger-ui"})</script>
 </body></html>`
 }

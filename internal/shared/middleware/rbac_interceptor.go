@@ -6,6 +6,7 @@ package middleware
 
 import (
 	"context"
+	"sort"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -44,6 +45,7 @@ func buildServicePrefixes(perms map[string]Permission) []string {
 	for p := range seen {
 		prefixes = append(prefixes, p)
 	}
+	sort.Strings(prefixes) // deterministic order for debug logging
 	return prefixes
 }
 

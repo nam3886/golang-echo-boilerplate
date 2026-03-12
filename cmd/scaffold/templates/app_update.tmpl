@@ -31,7 +31,7 @@ func NewUpdate{{.NameTitle}}Handler(repo domain.{{.NameTitle}}Repository, bus ev
 // Handle applies partial updates to a {{.Name}} within a transaction.
 func (h *Update{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Update{{.NameTitle}}Cmd) (*domain.{{.NameTitle}}, error) {
 	if cmd.ID == "" {
-		return nil, domain.ErrInvalidArgument()
+		return nil, sharederr.New(sharederr.CodeInvalidArgument, "{{.Name}} ID is required")
 	}
 	// Skip DB lock entirely when no fields are provided.
 	if cmd.Name == nil {

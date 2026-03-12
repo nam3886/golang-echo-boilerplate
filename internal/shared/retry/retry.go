@@ -34,3 +34,12 @@ func Connect[T any](ctx context.Context, name string, maxRetries int, fn func() 
 	var zero T
 	return zero, fmt.Errorf("%s connection failed after %d retries: %w", name, maxRetries, err)
 }
+
+// Do retries a void operation with exponential backoff.
+// Convenience wrapper around Connect for operations that return no value.
+func Do(ctx context.Context, name string, maxRetries int, fn func() error) error {
+	_, err := Connect(ctx, name, maxRetries, func() (struct{}, error) {
+		return struct{}{}, fn()
+	})
+	return err
+}

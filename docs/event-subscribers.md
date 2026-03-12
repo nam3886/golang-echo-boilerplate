@@ -20,6 +20,16 @@ External modules must import from `contracts` directly — never from another mo
 
 Topic constants: `TopicUserCreated`, `TopicUserUpdated`, `TopicUserDeleted`.
 
+### Import Convention
+
+- **Within the owning module** (e.g., search indexer inside `user/adapters/search/`):
+  Import from `domain/events.go` — acceptable because the adapter is part of the same module.
+- **Cross-module subscribers** (e.g., audit, notification):
+  Import from `internal/shared/events/contracts/` — required by the no-cross-module-imports rule.
+
+The `domain/events.go` file re-exports contracts via type aliases for ergonomic internal use.
+External subscribers must always use `contracts` to avoid coupling between modules.
+
 ## How to Subscribe
 
 Implement `message.NoPublishHandlerFunc` — unmarshal the payload, process, return `nil` to ack or

@@ -117,7 +117,7 @@ All containers auto-cleanup via `t.Cleanup`.
 | `NewTestPostgres(t)` | `testutil` | postgres:16-alpine | Auto via `t.Cleanup` |
 | `NewTestRedis(t)` | `testutil` | redis:7-alpine | Auto via `t.Cleanup` |
 | `NewTestRabbitMQ(t)` | `testutil` | rabbitmq:3-management-alpine | Auto via `t.Cleanup` |
-| `NewTestElasticsearch(t)` | `testutil` | elasticsearch:8-alpine | Auto via `t.Cleanup` |
+| `NewTestElasticsearch(t)` | `testutil` | elasticsearch:8.17.0 | Auto via `t.Cleanup` |
 
 ### Helpers (Utilities)
 
@@ -142,7 +142,7 @@ task check             # Lint + unit tests (pre-merge gate)
 | `unit-test` | test | MR + main | `-race -count=1 -coverprofile` |
 | `integration-test` | test | main + tags | Real Postgres/Redis/RabbitMQ services |
 
-Coverage extracted via regex in GitLab CI.
+Coverage extracted via regex in CI pipeline (GitHub Actions or equivalent).
 
 ## Git Hooks
 

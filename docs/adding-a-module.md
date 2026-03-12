@@ -70,7 +70,8 @@ Use for infrastructure-adjacent modules that react to domain events (no direct u
 **Structure:**
 ```
 internal/modules/audit/
-├── handler.go           # Event handler implementation
+├── subscriber.go        # Event subscriber implementation
+├── subscriber_test.go   # Subscriber tests
 └── module.go            # fx Module with event handler registration
 ```
 
@@ -533,6 +534,7 @@ const (
 
 // ProductCreatedEvent is published when a product is created.
 type ProductCreatedEvent struct {
+    Version   int       `json:"version"`
     ProductID string    `json:"product_id"`
     ActorID   string    `json:"actor_id"`
     Name      string    `json:"name"`
@@ -542,15 +544,18 @@ type ProductCreatedEvent struct {
 
 // ProductUpdatedEvent is published when a product is updated.
 type ProductUpdatedEvent struct {
-    ProductID string    `json:"product_id"`
-    ActorID   string    `json:"actor_id"`
-    Name      string    `json:"name"`
-    IPAddress string    `json:"ip_address,omitempty"`
-    At        time.Time `json:"at"`
+    Version       int       `json:"version"`
+    ProductID     string    `json:"product_id"`
+    ActorID       string    `json:"actor_id"`
+    Name          string    `json:"name"`
+    ChangedFields []string  `json:"changed_fields"`
+    IPAddress     string    `json:"ip_address,omitempty"`
+    At            time.Time `json:"at"`
 }
 
 // ProductDeletedEvent is published when a product is soft-deleted.
 type ProductDeletedEvent struct {
+    Version   int       `json:"version"`
     ProductID string    `json:"product_id"`
     ActorID   string    `json:"actor_id"`
     IPAddress string    `json:"ip_address,omitempty"`

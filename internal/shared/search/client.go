@@ -20,7 +20,7 @@ type Client struct {
 
 // NewClient creates an Elasticsearch client. Returns (nil, nil) when
 // ElasticsearchURL is empty, disabling the search subsystem.
-// IMPORTANT: All consumers MUST nil-check the returned *Client before use.
+// All consumers MUST nil-check the returned *Client before use.
 func NewClient(cfg *config.Config) (*Client, error) {
 	if cfg.ElasticsearchURL == "" {
 		slog.Info("elasticsearch disabled (ELASTICSEARCH_URL empty)")
@@ -54,12 +54,6 @@ func NewClient(cfg *config.Config) (*Client, error) {
 	}
 	slog.Info("elasticsearch connected", "url", cfg.ElasticsearchURL)
 	return client, nil
-}
-
-// Enabled returns true if the search client is configured and connected.
-// Use this instead of nil-checking the *Client pointer directly.
-func Enabled(c *Client) bool {
-	return c != nil
 }
 
 // IndexName returns the fully qualified index name with prefix.

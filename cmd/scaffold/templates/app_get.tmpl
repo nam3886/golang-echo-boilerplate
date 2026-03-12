@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
+	sharederr "{{.GoModule}}/internal/shared/errors"
 )
 
 // Get{{.NameTitle}}Handler handles fetching a single {{.Name}}.
@@ -20,7 +21,7 @@ func NewGet{{.NameTitle}}Handler(repo domain.{{.NameTitle}}Repository) *Get{{.Na
 // Handle returns a {{.Name}} by ID.
 func (h *Get{{.NameTitle}}Handler) Handle(ctx context.Context, id string) (*domain.{{.NameTitle}}, error) {
 	if id == "" {
-		return nil, domain.ErrInvalidArgument()
+		return nil, sharederr.New(sharederr.CodeInvalidArgument, "{{.Name}} ID is required")
 	}
 	result, err := h.repo.GetByID(ctx, domain.{{.NameID}}(id))
 	if err != nil {
