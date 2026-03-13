@@ -240,3 +240,30 @@ func TestPgUserRepository_Create_ViewerRole(t *testing.T) {
 		t.Errorf("expected role %q, got %q", domain.RoleViewer, got.Role())
 	}
 }
+
+func TestPgUserRepository_Update_DuplicateEmail(t *testing.T) {
+	repo := setupRepo(t)
+	ctx := context.Background()
+
+	userA := createTestUser(t, "userA-dup@example.com")
+	if err := repo.Create(ctx, userA); err != nil {
+		t.Fatalf("Create userA: %v", err)
+	}
+
+	userB := createTestUser(t, "userB-dup@example.com")
+	if err := repo.Create(ctx, userB); err != nil {
+		t.Fatalf("Create userB: %v", err)
+	}
+
+	// Attempt to change userB's email to userA's — must return ErrEmailTaken.
+	emailA := userA.Email()
+	err := repo.Update(ctx, userB.ID(), func(u *domain.User) error {
+		return u.ChangeEmail(emailA)
+	})
+	if err == nil {
+		t.Fatal("expected ErrEmailTaken, got nil")
+	}
+	if !errors.Is(err, domain.ErrEmailTaken()) {
+		t.Errorf("expected ErrEmailTaken, got: %v", err)
+	}
+}

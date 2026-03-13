@@ -21,11 +21,30 @@ func (r ListResult) TotalPages(pageSize int) int {
 
 // UserRepository is the port for user persistence.
 type UserRepository interface {
+	// GetByID returns the active (non-deleted) user with the given ID.
+	// Returns ErrUserNotFound if no matching active user exists.
 	GetByID(ctx context.Context, id UserID) (*User, error)
+
+	// GetByEmail returns the active user matching the given email address.
+	// Returns ErrUserNotFound if no matching active user exists.
 	GetByEmail(ctx context.Context, email string) (*User, error)
+
+	// List returns a paginated slice of active users ordered by created_at DESC.
+	// page is 1-based; pageSize must be > 0.
 	List(ctx context.Context, page, pageSize int) (ListResult, error)
+
+	// Create persists a new user. Returns ErrEmailTaken if the email already exists
+	// among active users (enforced by the DB unique index idx_users_email_active).
 	Create(ctx context.Context, user *User) error
-	// Update MUST return nil error when fn returns ErrNoChange (no fields modified).
+
+	// Update fetches the user by id under a FOR UPDATE lock, calls fn with the
+	// current state, then persists the result. The fn callback may mutate the user
+	// or return sharederr.ErrNoChange() to skip the SQL UPDATE.
+	// MUST return nil when fn returns ErrNoChange (no fields modified).
 	Update(ctx context.Context, id UserID, fn func(*User) error) error
+
+	// SoftDelete marks the user as deleted by setting deleted_at.
+	// Returns the deleted user snapshot. Returns ErrUserNotFound if no active user
+	// exists with the given ID (already deleted users are not found).
 	SoftDelete(ctx context.Context, id UserID) (*User, error)
 }

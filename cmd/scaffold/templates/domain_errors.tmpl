@@ -17,3 +17,14 @@ func ErrNameRequired() *sharederr.DomainError {
 	return sharederr.New(sharederr.CodeInvalidArgument, "{{.Name}}.name_required", "name is required")
 }
 
+// Err{{.NameTitle}}AlreadyExists indicates a unique constraint violation (e.g., duplicate name).
+func Err{{.NameTitle}}AlreadyExists() *sharederr.DomainError {
+	return sharederr.New(sharederr.CodeAlreadyExists, "{{.Name}}.already_exists", "{{.Name}} already exists")
+}
+
+// ErrInvalid{{.NameTitle}}State indicates the entity is in an invalid state for the requested operation.
+// Example: attempting to mutate a soft-deleted entity.
+func ErrInvalid{{.NameTitle}}State() *sharederr.DomainError {
+	return sharederr.New(sharederr.CodeInvalidArgument, "{{.Name}}.invalid_state", "{{.Name}} is in an invalid state")
+}
+

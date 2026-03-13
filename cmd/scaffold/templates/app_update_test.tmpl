@@ -94,6 +94,25 @@ func TestUpdate{{.NameTitle}}Handler_EventPublishFailure(t *testing.T) {
 	}
 }
 
+func TestUpdate{{.NameTitle}}Handler_NotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMock{{.NameTitle}}Repository(ctrl)
+
+	mockRepo.EXPECT().
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(domain.Err{{.NameTitle}}NotFound())
+
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	handler := NewUpdate{{.NameTitle}}Handler(mockRepo, bus)
+	_, err := handler.Handle(context.Background(), Update{{.NameTitle}}Cmd{
+		ID:   "nonexistent-id",
+		Name: testutil.Ptr("New Name"),
+	})
+	if err == nil {
+		t.Fatal("expected not-found error")
+	}
+}
+
 func TestUpdate{{.NameTitle}}Handler_EmptyName(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockRepo := mocks.NewMock{{.NameTitle}}Repository(ctrl)

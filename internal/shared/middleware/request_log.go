@@ -26,7 +26,7 @@ func RequestLogger() echo.MiddlewareFunc {
 				"method", req.Method,
 				"path", req.URL.Path,
 				"status", res.Status,
-				"latency_ms", latency.Milliseconds(),
+				"duration_ms", latency.Milliseconds(),
 				"bytes", res.Size,
 				"ip", c.RealIP(),
 			}

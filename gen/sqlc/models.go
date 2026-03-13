@@ -22,6 +22,7 @@ type AuditLog struct {
 	Changes    json.RawMessage `json:"changes"`
 	IpAddress  *netip.Addr     `json:"ip_address"`
 	CreatedAt  time.Time       `json:"created_at"`
+	Status     string          `json:"status"`
 }
 
 type User struct {

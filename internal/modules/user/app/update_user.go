@@ -128,6 +128,7 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (_ *d
 		At:            updated.UpdatedAt(),
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to publish user.updated event",
+			"module", "user", "operation", "update",
 			"user_id", cmd.ID, "err", err)
 	}
 

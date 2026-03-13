@@ -47,7 +47,7 @@ func NewTracerProvider(cfg *config.Config, version config.AppVersion) (*sdktrace
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter),
 		sdktrace.WithResource(newOTelResource(cfg, version)),
-		sdktrace.WithSampler(sdktrace.TraceIDRatioBased(cfg.OTLPSampleRate)),
+		sdktrace.WithSampler(chooseSampler(cfg)),
 	)
 
 	otel.SetTracerProvider(tp)
@@ -60,4 +60,13 @@ func NewTracerProvider(cfg *config.Config, version config.AppVersion) (*sdktrace
 	}))
 
 	return tp, nil
+}
+
+// chooseSampler returns AlwaysSample in development for full trace visibility
+// and TraceIDRatioBased in production/staging for cost control.
+func chooseSampler(cfg *config.Config) sdktrace.Sampler {
+	if cfg.IsDevelopment() {
+		return sdktrace.AlwaysSample()
+	}
+	return sdktrace.TraceIDRatioBased(cfg.OTLPSampleRate)
 }

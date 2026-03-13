@@ -63,6 +63,7 @@ func (h *DeleteUserHandler) Handle(ctx context.Context, id string) (err error) {
 		At:        deletedAt,
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to publish user.deleted event",
+			"module", "user", "operation", "delete",
 			"user_id", id, "err", err)
 	}
 

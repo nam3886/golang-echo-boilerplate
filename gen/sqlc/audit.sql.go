@@ -14,8 +14,8 @@ import (
 )
 
 const createAuditLog = `-- name: CreateAuditLog :exec
-INSERT INTO audit_logs (id, entity_type, entity_id, action, actor_id, changes, ip_address)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO audit_logs (id, entity_type, entity_id, action, actor_id, changes, ip_address, status)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 ON CONFLICT (id) DO NOTHING
 `
 
@@ -27,6 +27,7 @@ type CreateAuditLogParams struct {
 	ActorID    uuid.UUID       `json:"actor_id"`
 	Changes    json.RawMessage `json:"changes"`
 	IpAddress  *netip.Addr     `json:"ip_address"`
+	Status     string          `json:"status"`
 }
 
 func (q *Queries) CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) error {
@@ -38,6 +39,7 @@ func (q *Queries) CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) 
 		arg.ActorID,
 		arg.Changes,
 		arg.IpAddress,
+		arg.Status,
 	)
 	return err
 }

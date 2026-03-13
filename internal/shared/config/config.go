@@ -59,6 +59,10 @@ type Config struct {
 	// HTTP
 	RequestTimeout time.Duration `env:"REQUEST_TIMEOUT" envDefault:"30s"`
 
+	// Rate limiting
+	RateLimitRPM    int           `env:"RATE_LIMIT_RPM" envDefault:"100"`
+	RateLimitWindow time.Duration `env:"RATE_LIMIT_WINDOW" envDefault:"1m"`
+
 	// CORS
 	CORSOrigins []string `env:"CORS_ORIGINS" envSeparator:"," envDefault:"http://localhost:3000"`
 }
@@ -141,6 +145,8 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "SMTPFromAlias:%s ", c.SMTPFromAlias)
 	fmt.Fprintf(&b, "ElasticsearchURL:%s ", c.ElasticsearchURL)
 	fmt.Fprintf(&b, "ElasticsearchIndexPrefix:%s ", c.ElasticsearchIndexPrefix)
+	fmt.Fprintf(&b, "RateLimitRPM:%d ", c.RateLimitRPM)
+	fmt.Fprintf(&b, "RateLimitWindow:%s ", c.RateLimitWindow)
 	fmt.Fprintf(&b, "CORSOrigins:%v", c.CORSOrigins)
 	b.WriteByte('}')
 	return b.String()

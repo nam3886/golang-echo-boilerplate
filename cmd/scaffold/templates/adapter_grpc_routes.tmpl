@@ -12,9 +12,16 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// TODO: After scaffolding, complete these manual steps before the code will compile:
+//  1. Add the following constants to internal/shared/middleware/rbac.go:
+//       Perm{{.NameTitle}}Read   Permission = "{{.Name}}:read"
+//       Perm{{.NameTitle}}Write  Permission = "{{.Name}}:write"
+//       Perm{{.NameTitle}}Delete Permission = "{{.Name}}:delete"
+//  2. Add these permissions to the rolePermissions map in rbac.go for each applicable role.
+//  3. Run: go test ./internal/shared/middleware/... -run TestRBAC
+
 // {{.Name}}ProcedurePerms maps each {{.NameTitle}}Service procedure to its required permission.
 // All procedures MUST be listed here — unmapped procedures under this service are denied (fail-closed).
-// After scaffolding: add Perm{{.NameTitle}}* constants to internal/shared/middleware/rbac.go.
 var {{.Name}}ProcedurePerms = map[string]appmw.Permission{
 	{{.Name}}v1connect.{{.NameTitle}}ServiceGet{{.NameTitle}}Procedure:    appmw.Perm{{.NameTitle}}Read,
 	{{.Name}}v1connect.{{.NameTitle}}ServiceList{{.NamePluralTitle}}Procedure:  appmw.Perm{{.NameTitle}}Read,

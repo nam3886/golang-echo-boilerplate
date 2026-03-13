@@ -92,6 +92,7 @@ func (h *CreateUserHandler) Handle(ctx context.Context, cmd CreateUserCmd) (_ *d
 		At:        user.CreatedAt(),
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to publish user.created event",
+			"module", "user", "operation", "create",
 			"user_id", string(user.ID()), "err", err)
 	}
 

@@ -4,7 +4,6 @@ import (
 	"log/slog"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/config"
 	"github.com/labstack/echo/v4"
@@ -30,14 +29,21 @@ func SetupMiddleware(e *echo.Echo, cfg *config.Config, rdb *redis.Client) {
 			"configure e.IPExtractor = echo.ExtractIPFromXFFHeader() for accurate client IP behind reverse proxy")
 	}
 
+	// 0. HTTPS redirect — production only. Use e.Pre() so the redirect fires before
+	// routing. Not enabled in dev/staging to avoid breaking local HTTP connections.
+	if cfg.IsProduction() {
+		e.Pre(echomw.HTTPSRedirect())
+	}
+
 	// 1. OTel HTTP tracing (wraps handler to create spans per request)
 	e.Use(echo.WrapMiddleware(otelhttp.NewMiddleware(cfg.AppName)))
 	// 2. Recovery
 	e.Use(Recovery())
 	// 3. Request ID
 	e.Use(RequestID())
-	// 4. Rate Limiting (100 req/min) — before body parsing to prevent resource-exhaustion DDoS.
-	e.Use(RateLimit(rdb, 100, time.Minute))
+	// 4. Rate Limiting — before body parsing to prevent resource-exhaustion DDoS.
+	// Configurable via RATE_LIMIT_RPM and RATE_LIMIT_WINDOW env vars (default: 100 req/min).
+	e.Use(RateLimit(rdb, cfg.RateLimitRPM, cfg.RateLimitWindow))
 	// 5. Request Logger (with sanitization)
 	e.Use(RequestLogger())
 	// 6. Body Limit

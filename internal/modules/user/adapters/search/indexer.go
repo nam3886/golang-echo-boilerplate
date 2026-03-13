@@ -37,7 +37,7 @@ func (ix *Indexer) HandleUserCreated(msg *message.Message) error {
 
 	var ev domain.UserCreatedEvent
 	if err := json.Unmarshal(msg.Payload, &ev); err != nil {
-		slog.ErrorContext(msg.Context(), "search: failed to unmarshal user.created event", "err", err)
+		slog.ErrorContext(msg.Context(), "search: failed to unmarshal user.created event", "module", "search", "err", err)
 		return nil // ack — schema mismatch won't be fixed by retrying
 	}
 
@@ -62,13 +62,13 @@ func (ix *Indexer) HandleUserCreated(msg *message.Message) error {
 		ix.client.ES.Index.WithContext(msg.Context()),
 	)
 	if err != nil {
-		slog.ErrorContext(msg.Context(), "search: failed to index user", "user_id", ev.UserID, "err", err)
+		slog.ErrorContext(msg.Context(), "search: failed to index user", "module", "search", "user_id", ev.UserID, "err", err)
 		return fmt.Errorf("search: index user: %w", err)
 	}
 	defer func() { _ = res.Body.Close() }()
 
 	if res.IsError() {
-		slog.ErrorContext(msg.Context(), "search: ES index error", "user_id", ev.UserID, "status", res.Status())
+		slog.ErrorContext(msg.Context(), "search: ES index error", "module", "search", "user_id", ev.UserID, "status", res.Status())
 		return fmt.Errorf("search: index user returned %s", res.Status())
 	}
 
@@ -84,7 +84,7 @@ func (ix *Indexer) HandleUserUpdated(msg *message.Message) error {
 
 	var ev domain.UserUpdatedEvent
 	if err := json.Unmarshal(msg.Payload, &ev); err != nil {
-		slog.ErrorContext(msg.Context(), "search: failed to unmarshal user.updated event", "err", err)
+		slog.ErrorContext(msg.Context(), "search: failed to unmarshal user.updated event", "module", "search", "err", err)
 		return nil
 	}
 
@@ -109,13 +109,13 @@ func (ix *Indexer) HandleUserUpdated(msg *message.Message) error {
 		ix.client.ES.Update.WithContext(msg.Context()),
 	)
 	if err != nil {
-		slog.ErrorContext(msg.Context(), "search: failed to update user", "user_id", ev.UserID, "err", err)
+		slog.ErrorContext(msg.Context(), "search: failed to update user", "module", "search", "user_id", ev.UserID, "err", err)
 		return fmt.Errorf("search: update user: %w", err)
 	}
 	defer func() { _ = res.Body.Close() }()
 
 	if res.IsError() {
-		slog.ErrorContext(msg.Context(), "search: ES update error", "user_id", ev.UserID, "status", res.Status())
+		slog.ErrorContext(msg.Context(), "search: ES update error", "module", "search", "user_id", ev.UserID, "status", res.Status())
 		return fmt.Errorf("search: update user returned %s", res.Status())
 	}
 
@@ -131,7 +131,7 @@ func (ix *Indexer) HandleUserDeleted(msg *message.Message) error {
 
 	var ev domain.UserDeletedEvent
 	if err := json.Unmarshal(msg.Payload, &ev); err != nil {
-		slog.ErrorContext(msg.Context(), "search: failed to unmarshal user.deleted event", "err", err)
+		slog.ErrorContext(msg.Context(), "search: failed to unmarshal user.deleted event", "module", "search", "err", err)
 		return nil
 	}
 
@@ -141,13 +141,13 @@ func (ix *Indexer) HandleUserDeleted(msg *message.Message) error {
 		ix.client.ES.Delete.WithContext(msg.Context()),
 	)
 	if err != nil {
-		slog.ErrorContext(msg.Context(), "search: failed to delete user", "user_id", ev.UserID, "err", err)
+		slog.ErrorContext(msg.Context(), "search: failed to delete user", "module", "search", "user_id", ev.UserID, "err", err)
 		return fmt.Errorf("search: delete user: %w", err)
 	}
 	defer func() { _ = res.Body.Close() }()
 
 	if res.IsError() && res.StatusCode != 404 {
-		slog.ErrorContext(msg.Context(), "search: ES delete error", "user_id", ev.UserID, "status", res.Status())
+		slog.ErrorContext(msg.Context(), "search: ES delete error", "module", "search", "user_id", ev.UserID, "status", res.Status())
 		return fmt.Errorf("search: delete user returned %s", res.Status())
 	}
 

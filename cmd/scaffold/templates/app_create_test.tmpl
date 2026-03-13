@@ -76,6 +76,25 @@ func TestCreate{{.NameTitle}}Handler_RepoError(t *testing.T) {
 	}
 }
 
+func TestCreate{{.NameTitle}}Handler_AlreadyExists(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMock{{.NameTitle}}Repository(ctrl)
+
+	mockRepo.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		Return(domain.Err{{.NameTitle}}AlreadyExists())
+
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	handler := NewCreate{{.NameTitle}}Handler(mockRepo, bus)
+
+	_, err := handler.Handle(context.Background(), Create{{.NameTitle}}Cmd{
+		Name: "Duplicate Name",
+	})
+	if err == nil {
+		t.Fatal("expected error for duplicate name")
+	}
+}
+
 func TestCreate{{.NameTitle}}Handler_EventPublishFailure_DoesNotFail(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockRepo := mocks.NewMock{{.NameTitle}}Repository(ctrl)
