@@ -31,11 +31,14 @@ Source: `internal/shared/middleware/rbac_interceptor.go`
 
 ### Connect RPC Interceptor: Permission Enforcement
 
-`RBACInterceptor()` — a `connect.UnaryInterceptorFunc` that maps exact procedure paths
-to required permissions via `procedurePermissions`.
+`RBACInterceptor(procedurePerms map[string]Permission)` — a `connect.UnaryInterceptorFunc`
+that maps exact procedure paths to required permissions.
 
-**ALL procedures** (read, write, delete) must be mapped here for registered services.
-Unmapped procedures under a registered service prefix are denied by default (fail-closed).
+Each module defines its own `procedurePerms` map in `adapters/grpc/routes.go` and passes
+it to `RBACInterceptor`. There is no global shared map — each service owns its permissions.
+
+**ALL procedures** (read, write, delete) must be mapped. Unmapped procedures under a
+registered service prefix are denied by default (fail-closed).
 
 Source: `internal/shared/middleware/rbac_interceptor.go`
 
@@ -71,19 +74,31 @@ Role alone is insufficient — the wildcard must appear in the permissions slice
    // Permission checks are handled by RBACInterceptor, not the group middleware.
    ```
 
-3. Register ALL procedures in `procedurePermissions` (fail-closed pattern)
-   (`internal/shared/middleware/rbac_interceptor.go`):
+3. Define a per-module procedure map and pass it to `RBACInterceptor` in
+   `internal/modules/order/adapters/grpc/routes.go`:
    ```go
-   orderv1connect.OrderServiceGetOrderProcedure:    PermOrderRead,
-   orderv1connect.OrderServiceListOrdersProcedure:  PermOrderRead,
-   orderv1connect.OrderServiceCreateOrderProcedure: PermOrderWrite,
-   orderv1connect.OrderServiceUpdateOrderProcedure: PermOrderWrite,
-   orderv1connect.OrderServiceDeleteOrderProcedure: PermOrderDelete,
+   var orderProcedurePerms = map[string]appmw.Permission{
+       orderv1connect.OrderServiceGetOrderProcedure:    appmw.PermOrderRead,
+       orderv1connect.OrderServiceListOrdersProcedure:  appmw.PermOrderRead,
+       orderv1connect.OrderServiceCreateOrderProcedure: appmw.PermOrderWrite,
+       orderv1connect.OrderServiceUpdateOrderProcedure: appmw.PermOrderWrite,
+       orderv1connect.OrderServiceDeleteOrderProcedure: appmw.PermOrderDelete,
+   }
+
+   func RegisterRoutes(e *echo.Echo, handler *OrderServiceHandler, cfg *config.Config, rdb *redis.Client) {
+       path, h := orderv1connect.NewOrderServiceHandler(handler,
+           connect.WithInterceptors(
+               appmw.RBACInterceptor(orderProcedurePerms),
+               validate.NewInterceptor(),
+           ),
+       )
+       g := e.Group(path, appmw.Auth(cfg, rdb))
+       g.Any("*", echo.WrapHandler(http.StripPrefix(path, h)))
+   }
    ```
 
 4. Include the permission strings when issuing tokens
    (`auth.GenerateAccessToken`).
 
-> **Note:** The `task module:create` scaffold automatically injects permission
-> constants into `rbac.go` and procedure mappings into `rbac_interceptor.go`.
-> After scaffolding, verify the generated entries are correct.
+> **Note:** `task module:create` generates `routes.go` with the procedure map pre-filled.
+> After scaffolding, verify the generated `Perm{Name}*` constants exist in `rbac.go`.

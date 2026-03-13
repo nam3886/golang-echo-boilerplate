@@ -52,6 +52,7 @@ func ValidateAccessToken(cfg *config.Config, tokenStr string) (*TokenClaims, err
 	},
 		jwt.WithIssuer(cfg.AppName),
 		jwt.WithAudience(jwtAudience),
+		jwt.WithExpirationRequired(),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("parsing token: %w", err)

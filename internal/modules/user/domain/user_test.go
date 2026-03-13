@@ -1,7 +1,8 @@
-// NOTE: errors.Is() on DomainError matches by category (ErrorCode), not identity.
-// For example, errors.Is(ErrInvalidEmail(), ErrNameRequired()) returns true
-// because both use CodeInvalidArgument. Use testutil.AssertDomainError() when
-// testing that a specific error message is returned.
+// NOTE: errors.Is() on DomainError matches by Code+Key when both errors carry a Key.
+// For example, errors.Is(ErrInvalidEmail(), ErrNameRequired()) returns FALSE because
+// both have distinct Keys ("user.invalid_email" vs "user.name_required").
+// Code-only matching (returns true for same code, any key) only applies when the target
+// has no Key set. Use testutil.AssertDomainError() to assert specific error types in tests.
 package domain
 
 import (

@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
@@ -26,9 +27,15 @@ func NewDeleteUserHandler(repo domain.UserRepository, bus events.EventPublisher)
 }
 
 // Handle soft-deletes a user by ID.
-func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
+func (h *DeleteUserHandler) Handle(ctx context.Context, id string) (err error) {
 	ctx, span := otel.Tracer("user").Start(ctx, "DeleteUserHandler.Handle")
-	defer span.End()
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		}
+		span.End()
+	}()
 
 	if id == "" {
 		return domain.ErrUserIDRequired()

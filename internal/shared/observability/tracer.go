@@ -16,7 +16,10 @@ import (
 // When OTLPEndpoint is empty, returns a no-op provider to avoid silent connection failures.
 func NewTracerProvider(cfg *config.Config, version config.AppVersion) (*sdktrace.TracerProvider, error) {
 	if cfg.OTLPEndpoint == "" {
-		tp := sdktrace.NewTracerProvider()
+		// No OTLP endpoint configured: traces are created but immediately discarded.
+		// Set OTEL_EXPORTER_OTLP_ENDPOINT to export traces in production.
+		slog.Warn("tracing disabled: OTEL_EXPORTER_OTLP_ENDPOINT not set, spans will be dropped")
+		tp := sdktrace.NewTracerProvider(sdktrace.WithSampler(sdktrace.NeverSample()))
 		otel.SetTracerProvider(tp)
 		otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
 			propagation.TraceContext{},

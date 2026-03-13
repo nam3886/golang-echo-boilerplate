@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
 )
@@ -26,9 +27,15 @@ func NewListUsersHandler(repo domain.UserRepository) *ListUsersHandler {
 }
 
 // Handle returns a paginated list of users.
-func (h *ListUsersHandler) Handle(ctx context.Context, page, pageSize int) (domain.ListResult, error) {
+func (h *ListUsersHandler) Handle(ctx context.Context, page, pageSize int) (_ domain.ListResult, err error) {
 	ctx, span := otel.Tracer("user").Start(ctx, "ListUsersHandler.Handle")
-	defer span.End()
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		}
+		span.End()
+	}()
 
 	if page <= 0 {
 		page = 1

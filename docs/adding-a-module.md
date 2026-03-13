@@ -438,14 +438,25 @@ import (
     "github.com/redis/go-redis/v9"
 )
 
+// productProcedurePerms maps each ProductService procedure to its required permission.
+// All procedures MUST be listed — unmapped procedures are denied (fail-closed).
+var productProcedurePerms = map[string]appmw.Permission{
+    productv1connect.ProductServiceGetProductProcedure:    appmw.PermProductRead,
+    productv1connect.ProductServiceListProductsProcedure:  appmw.PermProductRead,
+    productv1connect.ProductServiceCreateProductProcedure: appmw.PermProductWrite,
+    productv1connect.ProductServiceUpdateProductProcedure: appmw.PermProductWrite,
+    productv1connect.ProductServiceDeleteProductProcedure: appmw.PermProductDelete,
+}
+
 func RegisterRoutes(e *echo.Echo, handler *ProductServiceHandler, cfg *config.Config, rdb *redis.Client) {
     path, h := productv1connect.NewProductServiceHandler(handler,
         connect.WithInterceptors(
-            appmw.RBACInterceptor(),
+            appmw.RBACInterceptor(productProcedurePerms),
             validate.NewInterceptor(),
         ),
     )
-    // Mount Connect handler under auth. RBAC is enforced via RBACInterceptor per procedure.
+    // Mount Connect handler under auth. All permission checks are handled
+    // by RBACInterceptor per procedure (fail-closed).
     g := e.Group(path, appmw.Auth(cfg, rdb))
     g.Any("*", echo.WrapHandler(http.StripPrefix(path, h)))
 }
@@ -462,23 +473,18 @@ To enable role-based access control for your new module:
    PermProductDelete Permission = "product:delete"
    ```
 
-2. **Register all procedures** in `internal/shared/middleware/rbac_interceptor.go`:
+2. **Define the procedure map and pass it to `RBACInterceptor`** in `adapters/grpc/routes.go`
+   (the scaffold generates this for you — verify the `Perm*` constants are defined in step 1):
    ```go
-   // In procedurePermissions map:
-   productv1connect.ProductServiceGetProductProcedure:    PermProductRead,
-   productv1connect.ProductServiceListProductsProcedure:  PermProductRead,
-   productv1connect.ProductServiceCreateProductProcedure: PermProductWrite,
-   productv1connect.ProductServiceUpdateProductProcedure: PermProductWrite,
-   productv1connect.ProductServiceDeleteProductProcedure: PermProductDelete,
+   var productProcedurePerms = map[string]appmw.Permission{
+       productv1connect.ProductServiceGetProductProcedure:    appmw.PermProductRead,
+       // ... all procedures
+   }
+   appmw.RBACInterceptor(productProcedurePerms)
    ```
 
-   **Important:** ALL procedures must be listed (fail-closed). Read procedures are mapped
-   even though the Echo group guard already checks them — the interceptor ensures
-   unmapped procedures are denied by default.
-
-3. The scaffold automatically:
-   - Adds `RBACInterceptor()` to Connect handler setup (already in routes.go)
-   - Injects procedure permission mappings in the scaffold comment `// ADD_PROCEDURE_PERMISSION_HERE`
+   **Important:** ALL procedures must be listed (fail-closed). Unmapped procedures under
+   a registered service prefix are denied by default.
 
 ### module.go — fx Module
 

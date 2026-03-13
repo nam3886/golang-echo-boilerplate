@@ -90,7 +90,8 @@ func TestUpdateUserHandler_RoleOnlyUpdate(t *testing.T) {
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewUpdateUserHandler(mockRepo, bus)
 
-	user, err := handler.Handle(context.Background(), UpdateUserCmd{
+	// Role changes require an admin caller.
+	user, err := handler.Handle(adminCtx(), UpdateUserCmd{
 		ID:   "00000000-0000-0000-0000-000000000001",
 		Role: testutil.Ptr("admin"),
 	})

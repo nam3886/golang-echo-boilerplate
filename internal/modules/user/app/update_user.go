@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
@@ -37,9 +38,15 @@ func NewUpdateUserHandler(repo domain.UserRepository, bus events.EventPublisher)
 // If no fields are provided (all nil), it returns the current user state
 // without acquiring a FOR UPDATE lock. This is a deliberate optimization:
 // the caller (gRPC handler) may send updates with no actual changes.
-func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*domain.User, error) {
+func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (_ *domain.User, err error) {
 	ctx, span := otel.Tracer("user").Start(ctx, "UpdateUserHandler.Handle")
-	defer span.End()
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		}
+		span.End()
+	}()
 
 	if cmd.ID == "" {
 		return nil, domain.ErrUserIDRequired()
@@ -47,6 +54,11 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*dom
 
 	caller := auth.UserFromContext(ctx)
 	if caller != nil && caller.UserID != cmd.ID && !caller.HasPermission("user:write") {
+		return nil, sharederr.ErrForbidden()
+	}
+	// Only admins can change any user's role (including self-promotion).
+	// Without this guard, a member could self-promote by sending role="admin".
+	if cmd.Role != nil && (caller == nil || !caller.HasPermission("admin:*")) {
 		return nil, sharederr.ErrForbidden()
 	}
 	// Skip DB lock entirely when no fields are provided.
@@ -62,7 +74,7 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*dom
 	// serializes concurrent updates to the same user row.
 	var updated *domain.User
 	var changedFields []string
-	err := h.repo.Update(ctx, domain.UserID(cmd.ID), func(user *domain.User) error {
+	err = h.repo.Update(ctx, domain.UserID(cmd.ID), func(user *domain.User) error {
 		changedFields = nil // reset on retry
 		// Pre-check avoids false-positive mutation tracking.
 		// Entity methods also validate, but we need to know IF a change happened

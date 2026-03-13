@@ -8,12 +8,22 @@ import (
 	"time"
 
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
 	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/events"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/mocks"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/testutil"
 	"go.uber.org/mock/gomock"
 )
+
+// adminCtx returns a context with an admin caller injected.
+func adminCtx() context.Context {
+	return auth.WithUser(context.Background(), &auth.TokenClaims{
+		UserID:      "00000000-0000-0000-0000-000000000099",
+		Role:        "admin",
+		Permissions: []string{"admin:*"},
+	})
+}
 
 func TestCreateUserHandler_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -166,7 +176,8 @@ func TestCreateUserHandler_PublishesEventOnSuccess(t *testing.T) {
 	bus := events.NewEventBus(recorder)
 	handler := NewCreateUserHandler(mockRepo, &testutil.StubHasher{}, bus)
 
-	user, err := handler.Handle(context.Background(), CreateUserCmd{
+	// Creating an admin-role user requires an admin caller in context.
+	user, err := handler.Handle(adminCtx(), CreateUserCmd{
 		Email:    "user@example.com",
 		Name:     "User",
 		Password: "secret123",

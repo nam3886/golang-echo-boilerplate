@@ -7,30 +7,21 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	sqlcgen "github.com/gnha/golang-echo-boilerplate/gen/sqlc"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 )
 
-// stubDBTX is a no-op DBTX for unit tests.
-type stubDBTX struct {
-	execErr error
+// stubAuditWriter stubs the auditWriter interface at the correct layer.
+// Stubbing pgx.DBTX instead would cause a nil-pointer panic: sqlc calls
+// QueryRow().Scan() and a nil pgx.Row panics on Scan.
+type stubAuditWriter struct {
+	err error
 }
 
-func (s *stubDBTX) Exec(ctx context.Context, sql string, args ...interface{}) (pgconn.CommandTag, error) {
-	return pgconn.CommandTag{}, s.execErr
-}
-
-func (s *stubDBTX) Query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error) {
-	return nil, nil
-}
-
-func (s *stubDBTX) QueryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row {
-	return nil
+func (s *stubAuditWriter) CreateAuditLog(_ context.Context, _ sqlcgen.CreateAuditLogParams) error {
+	return s.err
 }
 
 func newTestHandler(execErr error) *Handler {
-	db := &stubDBTX{execErr: execErr}
-	return NewHandler(sqlcgen.New(db))
+	return NewHandler(&stubAuditWriter{err: execErr})
 }
 
 func newMsg(payload string) *message.Message {

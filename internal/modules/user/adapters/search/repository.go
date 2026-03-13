@@ -129,6 +129,13 @@ func (r *Repository) EnsureIndex(ctx context.Context) error {
 	defer func() { _ = res.Body.Close() }()
 
 	if res.IsError() {
+		// 400 resource_already_exists_exception means a concurrent startup beat us — treat as success.
+		// This is the only safe way to handle the TOCTOU window between Exists and Create
+		// on rolling deploys where multiple instances start simultaneously.
+		if res.StatusCode == 400 {
+			slog.InfoContext(ctx, "search: index already exists (concurrent creation)", "index", r.indexName)
+			return nil
+		}
 		return fmt.Errorf("search: create index returned %s", res.Status())
 	}
 

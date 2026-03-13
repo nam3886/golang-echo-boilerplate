@@ -132,9 +132,11 @@ func (r *PgUserRepository) Update(ctx context.Context, id domain.UserID, fn func
 
 	user := toDomain(row)
 	if err := fn(user); err != nil {
-		// No mutations — skip SQL UPDATE and commit the read-lock transaction.
+		// No mutations — let deferred Rollback release the FOR UPDATE lock.
+		// Do NOT Commit: committing a no-op update holds the row lock through an
+		// unnecessary round-trip and obscures intent.
 		if errors.Is(err, sharederr.ErrNoChange()) {
-			return tx.Commit(ctx)
+			return nil
 		}
 		return err
 	}

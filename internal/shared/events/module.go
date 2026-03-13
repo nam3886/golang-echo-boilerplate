@@ -29,11 +29,11 @@ var Module = fx.Module("events",
 // double-close panic because Fx shutdown hook ordering is non-deterministic.
 func registerAMQPShutdown(lc fx.Lifecycle, pub message.Publisher) {
 	lc.Append(fx.Hook{
-		OnStop: func(_ context.Context) error {
+		OnStop: func(ctx context.Context) error {
 			if err := pub.Close(); err != nil {
-				slog.Warn("amqp publisher close error", "err", err)
+				slog.WarnContext(ctx, "amqp publisher close error", "err", err)
 			} else {
-				slog.Info("amqp publisher closed")
+				slog.InfoContext(ctx, "amqp publisher closed")
 			}
 			return nil
 		},

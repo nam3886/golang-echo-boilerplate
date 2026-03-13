@@ -7,6 +7,7 @@ import (
 	"log/slog"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
@@ -37,9 +38,23 @@ func NewCreateUserHandler(repo domain.UserRepository, hasher auth.PasswordHasher
 }
 
 // Handle creates a new user after checking email uniqueness.
-func (h *CreateUserHandler) Handle(ctx context.Context, cmd CreateUserCmd) (*domain.User, error) {
+func (h *CreateUserHandler) Handle(ctx context.Context, cmd CreateUserCmd) (_ *domain.User, err error) {
 	ctx, span := otel.Tracer("user").Start(ctx, "CreateUserHandler.Handle")
-	defer span.End()
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		}
+		span.End()
+	}()
+
+	// Only admins can create admin accounts.
+	if domain.Role(cmd.Role) == domain.RoleAdmin {
+		caller := auth.UserFromContext(ctx)
+		if caller == nil || !caller.HasPermission("admin:*") {
+			return nil, sharederr.ErrForbidden()
+		}
+	}
 
 	// Fast-path: check email availability before expensive password hashing.
 	// The DB unique constraint (idx_users_email_active) is the authoritative guard against races.

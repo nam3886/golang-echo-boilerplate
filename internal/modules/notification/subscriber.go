@@ -35,8 +35,11 @@ func (h *Handler) HandleUserCreated(msg *message.Message) error {
 
 	var buf bytes.Buffer
 	if err := h.tmpl.Execute(&buf, event); err != nil {
-		slog.ErrorContext(msg.Context(), "notification: failed to render template", "err", err)
-		return err
+		// Template failure is permanent (bad template, not transient infra) — ack to avoid
+		// infinite retry loop. Fix the template and redeploy to reprocess.
+		slog.ErrorContext(msg.Context(), "notification: failed to render template, acking to avoid retry loop",
+			"err", err, "msg_id", msg.UUID)
+		return nil
 	}
 
 	ctx := msg.Context()
