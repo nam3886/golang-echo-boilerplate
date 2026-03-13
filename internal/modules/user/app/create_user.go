@@ -26,6 +26,7 @@ type CreateUserCmd struct {
 }
 
 // CreateUserHandler handles user creation.
+// Required: repo, hasher, bus
 type CreateUserHandler struct {
 	repo   domain.UserRepository
 	hasher auth.PasswordHasher
@@ -92,8 +93,9 @@ func (h *CreateUserHandler) Handle(ctx context.Context, cmd CreateUserCmd) (_ *d
 		At:        user.CreatedAt(),
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to publish user.created event",
-			"module", "user", "operation", "create",
-			"user_id", string(user.ID()), "err", err)
+			"module", "user", "operation", "CreateUserHandler",
+			"user_id", string(user.ID()), "error_code", "event_publish_failed",
+			"retryable", true, "err", err)
 	}
 
 	return user, nil

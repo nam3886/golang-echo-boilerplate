@@ -19,6 +19,7 @@ type Create{{.NameTitle}}Cmd struct {
 }
 
 // Create{{.NameTitle}}Handler handles {{.Name}} creation.
+// Required: repo, bus
 type Create{{.NameTitle}}Handler struct {
 	repo domain.{{.NameTitle}}Repository
 	bus  events.EventPublisher

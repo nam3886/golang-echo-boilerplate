@@ -11,6 +11,9 @@ import (
 // Connect retries a connection function with exponential backoff.
 // Returns the first successful result or an error after maxRetries.
 // The context is checked between retries to support cancellation.
+//
+// WARNING: intended for infrastructure startup only (Postgres, Redis, RabbitMQ).
+// Do NOT use inside request handlers — use a circuit breaker or Watermill retry middleware instead.
 func Connect[T any](ctx context.Context, name string, maxRetries int, fn func() (T, error)) (T, error) {
 	var (
 		result T
@@ -21,7 +24,7 @@ func Connect[T any](ctx context.Context, name string, maxRetries int, fn func() 
 		if err == nil {
 			return result, nil
 		}
-		slog.Warn(name+" not ready, retrying", "attempt", i+1, "err", err)
+		slog.WarnContext(ctx, name+" not ready, retrying", "retry_count", i+1, "err", err)
 		timer := time.NewTimer(min(time.Duration(1<<uint(i))*time.Second, 30*time.Second))
 		select {
 		case <-ctx.Done():

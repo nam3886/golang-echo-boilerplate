@@ -229,6 +229,27 @@ func TestCreateUserHandler_EventPublishFailure_DoesNotFail(t *testing.T) {
 	}
 }
 
+// TestCreateUserHandler_AdminRole_Forbidden_WithoutAdminCaller verifies that
+// creating an admin-role user without an admin caller returns ErrForbidden.
+func TestCreateUserHandler_AdminRole_Forbidden_WithoutAdminCaller(t *testing.T) {
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	handler := NewCreateUserHandler(nil, &testutil.StubHasher{}, bus)
+
+	// context.Background() has no caller — must be rejected before any DB call
+	_, err := handler.Handle(context.Background(), CreateUserCmd{
+		Email:    "admin@example.com",
+		Name:     "Admin User",
+		Password: "secret123",
+		Role:     "admin",
+	})
+	if err == nil {
+		t.Fatal("expected ErrForbidden for admin role without admin caller")
+	}
+	if !errors.Is(err, sharederr.ErrForbidden()) {
+		t.Errorf("expected ErrForbidden, got %v", err)
+	}
+}
+
 // TestCreateUserHandler_GetByEmailDBError verifies that a DB error on the
 // email-uniqueness check propagates as an error (not silenced).
 func TestCreateUserHandler_GetByEmailDBError(t *testing.T) {

@@ -47,12 +47,19 @@ Source: `internal/shared/middleware/rbac_interceptor.go`
 ```
 JWT token  →  Auth middleware validates + injects AuthUser into context
 AuthUser.Permissions ([]string from JWT "perms" claim)
+  →  Handler checks if caller is authenticated (caller != nil)
+     →  Unauthenticated callers are rejected with 403 PermissionDenied
+        (all app handlers enforce caller authentication before permission check)
   →  RBACInterceptor looks up procedure → required permission
      →  user.HasPermission(perm): true if exact match OR "admin:*"
         → 403 PermissionDenied if false
 ```
 
 Source: `internal/shared/auth/context.go` — `AuthUser` and `HasPermission`.
+
+**Important:** Every mutation handler (Create, Update, Delete) enforces `caller != nil` check
+before permission evaluation. This ensures unauthenticated requests fail fast with clear 403
+PermissionDenied, rather than passing through to complex permission logic.
 
 ## Admin Wildcard
 

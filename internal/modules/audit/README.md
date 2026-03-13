@@ -31,6 +31,9 @@ Uses Watermill `msg.UUID` as the `audit_logs` primary key. `ON CONFLICT (id) DO 
 
 ## Failure Modes
 
-- **Postgres unavailable** — handler returns an error; Watermill requeues the message for retry
-- **Bad event payload (schema mismatch)** — acked immediately (permanent failure, retrying won't help); error logged with `module=audit`
-- **Invalid UUID in event** — acked immediately; error logged
+| Dependency | Failure | Behavior |
+|------------|---------|----------|
+| PostgreSQL | Unavailable | Handler returns error; Watermill requeues for retry |
+| RabbitMQ | Unavailable | Events not consumed; audit rows delayed until reconnect |
+| Bad event payload | Schema mismatch | Acked immediately (permanent); error logged with `module=audit` |
+| msg.UUID | Invalid UUID | Idempotency compromised; warned and a new UUID is generated |

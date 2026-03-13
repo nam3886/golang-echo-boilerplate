@@ -17,6 +17,7 @@ const (
 )
 
 // ListUsersHandler handles listing users with offset pagination.
+// Required: repo
 type ListUsersHandler struct {
 	repo domain.UserRepository
 }

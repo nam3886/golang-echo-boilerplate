@@ -25,14 +25,18 @@ func Auth(cfg *config.Config, rdb *redis.Client) echo.MiddlewareFunc {
 				return sharederr.ErrUnauthorized()
 			}
 
-			// Blacklist (logout) check — FAIL CLOSED: any Redis error rejects the token.
-			// Rationale: an unverified token must not be accepted. Security trumps availability.
+			// Blacklist (logout) check.
+			// Default: FAIL CLOSED — any Redis error rejects the token (security over availability).
+			// Configurable via BLACKLIST_FAIL_OPEN=true for HA deployments.
 			// See rate_limit.go for the contrasting fail-open policy used there.
 			ctx := c.Request().Context()
 			blacklisted, err := auth.IsBlacklisted(ctx, rdb, claims.ID)
 			if err != nil {
 				slog.ErrorContext(ctx, "blacklist check failed", "err", err, "jti", claims.ID)
-				return sharederr.ErrUnauthorized()
+				if !cfg.BlacklistFailOpen {
+					return sharederr.ErrUnauthorized()
+				}
+				// fail-open: Redis unreachable but config allows continuing
 			}
 			if blacklisted {
 				return sharederr.ErrUnauthorized()

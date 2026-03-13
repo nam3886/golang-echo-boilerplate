@@ -16,6 +16,7 @@ const (
 )
 
 // List{{.NamePluralTitle}}Handler handles listing {{.NamePlural}} with offset pagination.
+// Required: repo
 type List{{.NamePluralTitle}}Handler struct {
 	repo domain.{{.NameTitle}}Repository
 }

@@ -126,8 +126,17 @@ After changing repository interfaces: `task generate:mocks`
 ## Configuration
 
 Environment variables parsed via `caarlos0/env` struct tags in `internal/shared/config/config.go`.
-Required: `DATABASE_URL`, `REDIS_URL`, `RABBITMQ_URL`, `JWT_SECRET`.
-Optional: `ELASTICSEARCH_URL` (empty disables search), `OTEL_EXPORTER_OTLP_ENDPOINT`.
+
+**Required:**
+- `DATABASE_URL`, `REDIS_URL`, `RABBITMQ_URL`, `JWT_SECRET`
+
+**Optional:**
+- `ELASTICSEARCH_URL` — empty disables search
+- `OTEL_EXPORTER_OTLP_ENDPOINT` — OpenTelemetry collector endpoint
+- `OTEL_SAMPLING_RATIO` — trace sampling (0.0–1.0, default 0.01)
+- `BLACKLIST_FAIL_OPEN` — token blacklist strategy (default false = fail-closed)
+- `RATE_LIMIT_RPM`, `RATE_LIMIT_WINDOW`, `RATE_LIMIT_SCOPE`, `RATE_LIMIT_ALGORITHM`, `RATE_LIMIT_DISTRIBUTED` — rate limiting config
+- `JWT_ACCESS_TTL`, `JWT_REFRESH_TTL` — token expiry (default 15m, 168h)
 
 ## Dev Services (docker-compose)
 

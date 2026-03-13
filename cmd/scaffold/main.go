@@ -120,6 +120,7 @@ func main() {
 		{"adapter_grpc_mapper_test.tmpl", filepath.Join("internal", "modules", data.Name, "adapters", "grpc", "mapper_test.go")},
 		{"adapter_grpc_routes.tmpl", filepath.Join("internal", "modules", data.Name, "adapters", "grpc", "routes.go")},
 		{"module.tmpl", filepath.Join("internal", "modules", data.Name, "module.go")},
+		{"module_readme.tmpl", filepath.Join("internal", "modules", data.Name, "README.md")},
 	}
 
 	// Check for conflicts before writing anything.

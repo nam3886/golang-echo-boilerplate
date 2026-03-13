@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
 	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/events"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/mocks"
@@ -45,7 +46,7 @@ func TestDeleteUserHandler_Success(t *testing.T) {
 	bus := events.NewEventBus(recorder)
 	handler := NewDeleteUserHandler(mockRepo, bus)
 
-	err := handler.Handle(context.Background(), "user-id-1")
+	err := handler.Handle(memberCtx("user-id-1"), "user-id-1")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -69,7 +70,7 @@ func TestDeleteUserHandler_NotFound(t *testing.T) {
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewDeleteUserHandler(mockRepo, bus)
 
-	err := handler.Handle(context.Background(), "missing-id")
+	err := handler.Handle(memberCtx("missing-id"), "missing-id")
 	if err == nil {
 		t.Fatal("expected not found error, got nil")
 	}
@@ -91,7 +92,7 @@ func TestDeleteUserHandler_AlreadyDeleted(t *testing.T) {
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewDeleteUserHandler(mockRepo, bus)
 
-	err := handler.Handle(context.Background(), "already-deleted-id")
+	err := handler.Handle(memberCtx("already-deleted-id"), "already-deleted-id")
 	if err == nil {
 		t.Fatal("expected error for already-deleted user")
 	}
@@ -111,9 +112,30 @@ func TestDeleteUserHandler_RepoError(t *testing.T) {
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewDeleteUserHandler(mockRepo, bus)
 
-	err := handler.Handle(context.Background(), "user-id-1")
+	err := handler.Handle(memberCtx("user-id-1"), "user-id-1")
 	if err == nil {
 		t.Fatal("expected repo error, got nil")
+	}
+}
+
+// TestDeleteUserHandler_Forbidden_NonOwner verifies that a caller who is neither
+// the owner nor has user:delete permission receives ErrForbidden.
+func TestDeleteUserHandler_Forbidden_NonOwner(t *testing.T) {
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	handler := NewDeleteUserHandler(nil, bus)
+
+	// caller is "other-user-id", target is "user-id-1"
+	ctx := auth.WithUser(context.Background(), &auth.TokenClaims{
+		UserID:      "other-user-id",
+		Role:        "member",
+		Permissions: []string{"user:read"},
+	})
+	err := handler.Handle(ctx, "user-id-1")
+	if err == nil {
+		t.Fatal("expected ErrForbidden for non-owner without user:delete")
+	}
+	if !errors.Is(err, sharederr.ErrForbidden()) {
+		t.Errorf("expected ErrForbidden, got %v", err)
 	}
 }
 
@@ -129,7 +151,7 @@ func TestDeleteUserHandler_EventPublishFailureDoesNotFail(t *testing.T) {
 	handler := NewDeleteUserHandler(mockRepo, bus)
 
 	// Event publish failure is logged but must not propagate.
-	err := handler.Handle(context.Background(), "user-id-1")
+	err := handler.Handle(memberCtx("user-id-1"), "user-id-1")
 	if err != nil {
 		t.Fatalf("expected no error even when event publish fails, got %v", err)
 	}

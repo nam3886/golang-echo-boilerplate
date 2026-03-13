@@ -140,14 +140,14 @@ func TestLoad_RejectsInvalidSampleRate(t *testing.T) {
 	t.Setenv("RABBITMQ_URL", "amqp://localhost:5672")
 	t.Setenv("JWT_SECRET", "thisisaverylongjwtsecretfor32chars")
 	t.Setenv("APP_ENV", "development")
-	t.Setenv("OTEL_SAMPLE_RATE", "1.5")
+	t.Setenv("OTEL_SAMPLING_RATIO", "1.5")
 
 	cfg, err := Load()
 	if err == nil {
-		t.Fatal("expected error for invalid OTEL_SAMPLE_RATE, got nil")
+		t.Fatal("expected error for invalid OTEL_SAMPLING_RATIO, got nil")
 	}
 	if cfg != nil {
-		t.Error("expected nil config when OTEL_SAMPLE_RATE is invalid")
+		t.Error("expected nil config when OTEL_SAMPLING_RATIO is invalid")
 	}
 }
 

@@ -30,7 +30,20 @@ Watermill provides at-least-once delivery. Duplicate welcome emails on retry are
 
 ## Failure Modes
 
-- **SMTP transient error (4xx)** — handler returns error; Watermill requeues for retry
-- **SMTP permanent error (5xx)** — acked immediately; logged with `module=notification`. Bad addresses won't be fixed by retrying.
-- **Template render failure** — acked immediately to avoid infinite retry loop; fix template and redeploy
-- **Schema mismatch** — acked immediately; error logged with `module=notification`
+| Dependency | Failure | Behavior |
+|------------|---------|----------|
+| SMTP | Transient error (4xx) | Handler returns error; Watermill requeues for retry |
+| SMTP | Permanent error (5xx) | Acked immediately; logged with `module=notification`. Bad addresses won't be fixed by retrying. |
+| SMTP | Template render failure | Acked immediately to avoid infinite retry loop; fix template and redeploy |
+| RabbitMQ | Unavailable | Events not consumed; welcome emails delayed until recovery. No data loss with durable queues. |
+| Schema | Mismatch | Acked immediately; error logged with `module=notification` |
+
+## Design Decisions
+
+### Non-Idempotent Welcome Email (C4 Exception)
+
+Welcome emails use fire-and-forget delivery. Duplicate emails on Watermill retry are tolerated.
+
+**Rationale:** Welcome emails have no financial or compliance impact. Adding Redis `SET NX` dedup would introduce infra complexity disproportionate to the risk.
+
+**⚠️ Do NOT copy this pattern for financial, billing, or compliance-sensitive notifications.** Those must use Redis `SET NX msg.UUID` dedup before calling `sender.Send`.

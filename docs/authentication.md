@@ -71,8 +71,9 @@ Source: `internal/shared/auth/context.go`
 |---------|----------|---------|-------------|
 | `JWT_SECRET` | yes | — | HS256 signing key (min 32 chars) |
 | `JWT_ACCESS_TTL` | no | `15m` | Access token lifetime |
-| `JWT_REFRESH_TTL` | no | `168h` | Refresh token lifetime (7d) |
+| `JWT_REFRESH_TTL` | no | `168h` | Refresh token lifetime (7 days); shorten to reduce exposure window after credential leak |
 | `APP_NAME` | no | `golang-echo-boilerplate` | Used as JWT issuer |
+| `BLACKLIST_FAIL_OPEN` | no | `false` | Behavior when Redis is unreachable during token blacklist check. `false` (fail-closed): reject request — security over availability. `true` (fail-open): allow request — only use when HA is critical + local cache configured |
 
 ## Testing Authenticated Endpoints
 

@@ -67,6 +67,9 @@ func (h *Handler) handleAuditEvent(msg *message.Message, userID, actorID, ipAddr
 	// ON CONFLICT (id) DO NOTHING in the query silently deduplicates retries.
 	msgID, err := uuid.Parse(msg.UUID)
 	if err != nil {
+		slog.WarnContext(msg.Context(), "audit: invalid msg UUID, idempotency compromised — retry may insert duplicate row",
+			"module", "audit", "operation", "InsertAuditLog",
+			"msg_uuid", msg.UUID, "err", err)
 		msgID = uuid.New()
 	}
 

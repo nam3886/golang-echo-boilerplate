@@ -1,0 +1,32 @@
+# {{.NameTitle}} Module
+
+## Purpose
+
+TODO: Describe what this module does.
+
+## Structure
+
+```
+domain/          — Entity, repository interface, errors, events
+app/             — Use-case handlers + unit tests
+adapters/
+  postgres/      — sqlc repository implementation + integration tests
+  grpc/          — Connect RPC handler, routes, proto↔domain mapper
+module.go        — fx.Module wiring
+```
+
+## Events
+
+| Topic | Published by | Consumed by |
+|-------|-------------|-------------|
+| `{{.Name}}.created` | Create{{.NameTitle}}Handler | audit, notification |
+| `{{.Name}}.updated` | Update{{.NameTitle}}Handler | audit |
+| `{{.Name}}.deleted` | Delete{{.NameTitle}}Handler | audit |
+
+## Failure Modes
+
+| Dependency | Failure | Behavior |
+|------------|---------|----------|
+| PostgreSQL | Unavailable | Fail-closed; requests return 500 |
+| RabbitMQ | Unavailable | Events not published; DB writes succeed |
+| TODO | TODO | TODO — declare each external dep here |

@@ -62,7 +62,7 @@ func (ix *Indexer) HandleUserCreated(msg *message.Message) error {
 		ix.client.ES.Index.WithContext(msg.Context()),
 	)
 	if err != nil {
-		slog.ErrorContext(msg.Context(), "search: failed to index user", "module", "search", "user_id", ev.UserID, "err", err)
+		slog.ErrorContext(msg.Context(), "search: failed to index user", "module", "search", "operation", "HandleUserCreated", "user_id", ev.UserID, "err", err)
 		return fmt.Errorf("search: index user: %w", err)
 	}
 	defer func() { _ = res.Body.Close() }()
@@ -109,7 +109,7 @@ func (ix *Indexer) HandleUserUpdated(msg *message.Message) error {
 		ix.client.ES.Update.WithContext(msg.Context()),
 	)
 	if err != nil {
-		slog.ErrorContext(msg.Context(), "search: failed to update user", "module", "search", "user_id", ev.UserID, "err", err)
+		slog.ErrorContext(msg.Context(), "search: failed to update user", "module", "search", "operation", "HandleUserUpdated", "user_id", ev.UserID, "err", err)
 		return fmt.Errorf("search: update user: %w", err)
 	}
 	defer func() { _ = res.Body.Close() }()
@@ -141,7 +141,7 @@ func (ix *Indexer) HandleUserDeleted(msg *message.Message) error {
 		ix.client.ES.Delete.WithContext(msg.Context()),
 	)
 	if err != nil {
-		slog.ErrorContext(msg.Context(), "search: failed to delete user", "module", "search", "user_id", ev.UserID, "err", err)
+		slog.ErrorContext(msg.Context(), "search: failed to delete user", "module", "search", "operation", "HandleUserDeleted", "user_id", ev.UserID, "err", err)
 		return fmt.Errorf("search: delete user: %w", err)
 	}
 	defer func() { _ = res.Body.Close() }()

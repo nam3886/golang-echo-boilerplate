@@ -20,12 +20,24 @@ func (r ListResult) TotalPages(pageSize int) int {
 }
 
 // {{.NameTitle}}Repository is the port for {{.Name}} persistence.
+//
+// Contracts:
+//   - GetByID: returns Err{{.NameTitle}}NotFound if missing; retryable
+//   - Create: NOT idempotent; returns Err{{.NameTitle}}AlreadyExists on duplicate
+//   - Update: TOCTOU handled via FOR UPDATE lock; concurrent updates serialized at DB level
+//   - SoftDelete: atomic UPDATE RETURNING; returns deleted snapshot; Err{{.NameTitle}}NotFound if already deleted
+//   - List: always retryable; returns empty slice (never nil) for no results
+//
 // TODO: Add domain-specific lookup methods as needed (e.g. GetByEmail, GetBySlug).
-// These enable uniqueness pre-checks and alternative access patterns beyond ID.
 type {{.NameTitle}}Repository interface {
+	// GetByID returns the entity by ID. Returns Err{{.NameTitle}}NotFound if not found.
 	GetByID(ctx context.Context, id {{.NameID}}) (*{{.NameTitle}}, error)
+	// List returns paginated results. Empty page returns empty slice, not nil.
 	List(ctx context.Context, page, pageSize int) (ListResult, error)
+	// Create persists a new entity. NOT idempotent — duplicate returns error.
 	Create(ctx context.Context, entity *{{.NameTitle}}) error
+	// Update applies fn under FOR UPDATE lock. TOCTOU-safe. Returns ErrNoChange if fn is no-op.
 	Update(ctx context.Context, id {{.NameID}}, fn func(*{{.NameTitle}}) error) error
+	// SoftDelete marks entity deleted. Returns deleted snapshot for event publishing.
 	SoftDelete(ctx context.Context, id {{.NameID}}) (*{{.NameTitle}}, error)
 }

@@ -24,6 +24,7 @@ type UpdateUserCmd struct {
 }
 
 // UpdateUserHandler handles user updates via closure-based UoW.
+// Required: repo, bus
 type UpdateUserHandler struct {
 	repo domain.UserRepository
 	bus  events.EventPublisher
@@ -53,12 +54,15 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (_ *d
 	}
 
 	caller := auth.UserFromContext(ctx)
-	if caller != nil && caller.UserID != cmd.ID && !caller.HasPermission("user:write") {
+	if caller == nil {
+		return nil, sharederr.ErrForbidden()
+	}
+	if caller.UserID != cmd.ID && !caller.HasPermission("user:write") {
 		return nil, sharederr.ErrForbidden()
 	}
 	// Only admins can change any user's role (including self-promotion).
 	// Without this guard, a member could self-promote by sending role="admin".
-	if cmd.Role != nil && (caller == nil || !caller.HasPermission("admin:*")) {
+	if cmd.Role != nil && !caller.HasPermission("admin:*") {
 		return nil, sharederr.ErrForbidden()
 	}
 	// Skip DB lock entirely when no fields are provided.
@@ -128,8 +132,9 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (_ *d
 		At:            updated.UpdatedAt(),
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to publish user.updated event",
-			"module", "user", "operation", "update",
-			"user_id", cmd.ID, "err", err)
+			"module", "user", "operation", "UpdateUserHandler",
+			"user_id", cmd.ID, "error_code", "event_publish_failed",
+			"retryable", true, "err", err)
 	}
 
 	return updated, nil

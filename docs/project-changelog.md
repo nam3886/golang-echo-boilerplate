@@ -4,6 +4,67 @@ All notable changes to Golang Echo Boilerplate are documented here.
 
 ## [Unreleased]
 
+### Comprehensive Boilerplate Review Fixes (2026-03-13)
+
+**Summary:** Comprehensive fix session with two phases (RBAC security + observability/scaffold improvements) addressing 14+ issues across security, configuration, logging standards, and developer experience. All tests passing.
+
+#### Phase 1: RBAC & Security Hardening
+- **Unauthenticated Caller Rejection** — delete_user and update_user now enforce `caller == nil → ErrForbidden` before permission checks (security over availability)
+- **Admin-Only Guards** — create_user and update_user now enforce admin-only checks to prevent privilege escalation (BOLA mitigation)
+- **JWT Expiration Validation** — jwt.go now requires `exp` claim to prevent token validation bypasses
+- **Documentation** — Updated docs/rbac.md to document caller authentication requirement; updated docs/authentication.md with BLACKLIST_FAIL_OPEN configuration
+
+#### Phase 2: Boilerplate Deep Review Fixes (2026-03-13)
+
+**Summary:** Implemented 14 fixes across 4 priority tiers addressing observability, security, middleware, scaffold templates, and audit schema. All phases tested and passing.
+
+#### Fixed
+- **PII Logging** — Replaced `event.Email` with `event.UserID` in notification subscriber logs
+- **Log Key Standardization** — Added `module` and `operation` keys to all app handler and adapter error logs for consistency and machine filtering
+- **Latency Metric Naming** — Renamed `latency_ms` to `duration_ms` in request logger to align with OpenTelemetry convention
+- **HTTPS Redirect** — Added production-only HTTPS redirect middleware in chain (using Echo `HTTPSRedirect()`)
+- **Trace Sampling** — Implemented env-aware tracer sampler: development uses AlwaysSample for full visibility, production uses ratio-based sampling for cost control
+- **Audit Status Tracking** — Added `status` column to audit_logs table with "success" default for tracking operation outcomes
+- **Notification Idempotency** — Added documentation comment on Watermill at-least-once delivery guarantees
+
+#### Documentation & DX Improvements
+- **Scaffold Templates** — Added RBAC permission setup TODO block to gRPC routes template
+- **Repository Contracts** — Added doc comments to all UserRepository interface methods describing behavior and error contracts
+- **Domain Errors** — Added constraint error examples (AlreadyExists, InvalidState) to scaffold templates
+- **Rate Limiting Config** — Added `RateLimitRPM` and `RateLimitWindow` env vars for configurable rate limits
+- **JWT Rotation Runbook** — New `docs/runbooks/jwt-rotation.md` for safe secret rotation procedures
+- **Module Documentation** — New READMEs for user, audit, and notification modules describing structure and dependencies
+
+#### Test Improvements
+- **Scaffold Test Templates** — Added test cases for duplicate constraints (CreateHandler) and not-found scenarios (UpdateHandler)
+- **Integration Tests** — Added `TestPgUserRepository_Update_DuplicateEmail` to verify email uniqueness enforcement
+
+#### Files Modified
+- `internal/modules/notification/subscriber.go` — PII fix, log keys, idempotency comment
+- `internal/shared/middleware/request_log.go` — latency_ms → duration_ms
+- `internal/shared/middleware/chain.go` — HTTPS redirect, rate limit config usage
+- `internal/shared/observability/tracer.go` — env-aware sampler selection
+- `internal/shared/config/config.go` — RateLimitRPM, RateLimitWindow fields
+- `internal/modules/user/app/*.go` — standard log keys added (create, update, delete)
+- `internal/modules/audit/subscriber.go` — standard log keys, status field
+- `internal/modules/user/adapters/search/indexer.go` — standard log keys
+- `db/migrations/00005_add_audit_status.sql` — new migration
+- `db/queries/audit.sql` — status field in INSERT
+- `gen/sqlc/` — regenerated
+- `cmd/scaffold/templates/` — template improvements
+- `internal/modules/user/domain/repository.go` — contract doc comments
+- `internal/modules/user/adapters/postgres/repository_test.go` — new integration test
+- New: `docs/runbooks/jwt-rotation.md`
+- New: `internal/modules/user/README.md`, `internal/modules/audit/README.md`, `internal/modules/notification/README.md`
+
+#### Verification
+- All 4 phases tested and passing
+- `task lint` passes with no regressions
+- `task test` and `task test:integration` pass with new test cases
+- Full compatibility maintained with existing interfaces
+
+---
+
 ### Boilerplate Verified Fixes (2026-03-06)
 
 **Summary:** Implemented 6 critical and important fixes verified through cross-referenced review sessions. Fixed database constraints, architecture violations, domain validation, and soft-delete compatibility.

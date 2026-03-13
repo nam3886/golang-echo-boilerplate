@@ -20,6 +20,13 @@ func (r ListResult) TotalPages(pageSize int) int {
 }
 
 // UserRepository is the port for user persistence.
+//
+// Contracts:
+//   - GetByID, GetByEmail: returns ErrUserNotFound if missing; retryable
+//   - Create: NOT idempotent; returns ErrEmailTaken on duplicate (DB idx_users_email_active)
+//   - Update: TOCTOU handled via FOR UPDATE lock; concurrent updates serialized at DB level
+//   - SoftDelete: atomic UPDATE RETURNING; returns deleted snapshot
+//   - List: always retryable; returns empty slice (never nil) for no results
 type UserRepository interface {
 	// GetByID returns the active (non-deleted) user with the given ID.
 	// Returns ErrUserNotFound if no matching active user exists.

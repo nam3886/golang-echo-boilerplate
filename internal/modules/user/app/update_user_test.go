@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
 	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/events"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/mocks"
@@ -42,7 +43,7 @@ func TestUpdateUserHandler_Success(t *testing.T) {
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewUpdateUserHandler(mockRepo, bus)
 
-	user, err := handler.Handle(context.Background(), UpdateUserCmd{
+	user, err := handler.Handle(memberCtx("00000000-0000-0000-0000-000000000001"), UpdateUserCmd{
 		ID:   "00000000-0000-0000-0000-000000000001",
 		Name: testutil.Ptr("Updated Name"),
 	})
@@ -65,7 +66,7 @@ func TestUpdateUserHandler_RepoFailure(t *testing.T) {
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewUpdateUserHandler(mockRepo, bus)
 
-	_, err := handler.Handle(context.Background(), UpdateUserCmd{
+	_, err := handler.Handle(memberCtx("00000000-0000-0000-0000-000000000001"), UpdateUserCmd{
 		ID:   "00000000-0000-0000-0000-000000000001",
 		Name: testutil.Ptr("New Name"),
 	})
@@ -123,7 +124,7 @@ func TestUpdateUserHandler_EmptyName_ReturnsError(t *testing.T) {
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewUpdateUserHandler(mockRepo, bus)
 
-	_, err := handler.Handle(context.Background(), UpdateUserCmd{
+	_, err := handler.Handle(memberCtx("00000000-0000-0000-0000-000000000001"), UpdateUserCmd{
 		ID:   "00000000-0000-0000-0000-000000000001",
 		Name: testutil.Ptr(""), // empty string must be rejected
 	})
@@ -149,7 +150,7 @@ func TestUpdateUserHandler_EmailChange(t *testing.T) {
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewUpdateUserHandler(mockRepo, bus)
 
-	user, err := handler.Handle(context.Background(), UpdateUserCmd{
+	user, err := handler.Handle(memberCtx("00000000-0000-0000-0000-000000000001"), UpdateUserCmd{
 		ID:    "00000000-0000-0000-0000-000000000001",
 		Email: testutil.Ptr("new@example.com"),
 	})
@@ -175,7 +176,7 @@ func TestUpdateUserHandler_InvalidEmail_ReturnsError(t *testing.T) {
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewUpdateUserHandler(mockRepo, bus)
 
-	_, err := handler.Handle(context.Background(), UpdateUserCmd{
+	_, err := handler.Handle(memberCtx("00000000-0000-0000-0000-000000000001"), UpdateUserCmd{
 		ID:    "00000000-0000-0000-0000-000000000001",
 		Email: testutil.Ptr("not-an-email"),
 	})
@@ -200,7 +201,7 @@ func TestUpdateUserHandler_NoFieldsProvided(t *testing.T) {
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewUpdateUserHandler(mockRepo, bus)
 
-	user, err := handler.Handle(context.Background(), UpdateUserCmd{
+	user, err := handler.Handle(memberCtx("00000000-0000-0000-0000-000000000001"), UpdateUserCmd{
 		ID: "00000000-0000-0000-0000-000000000001",
 		// Name, Role, Email all nil
 	})
@@ -236,7 +237,7 @@ func TestUpdateUserHandler_SameValues_NoEvent(t *testing.T) {
 	bus := events.NewEventBus(recorder)
 	handler := NewUpdateUserHandler(mockRepo, bus)
 
-	user, err := handler.Handle(context.Background(), UpdateUserCmd{
+	user, err := handler.Handle(memberCtx("00000000-0000-0000-0000-000000000001"), UpdateUserCmd{
 		ID:   "00000000-0000-0000-0000-000000000001",
 		Name: testutil.Ptr("Original Name"), // same as fixture — no mutation
 	})
@@ -265,7 +266,7 @@ func TestUpdateUserHandler_NotFound(t *testing.T) {
 	handler := NewUpdateUserHandler(mockRepo, bus)
 
 	name := "New Name"
-	_, err := handler.Handle(context.Background(), UpdateUserCmd{
+	_, err := handler.Handle(memberCtx("missing-id"), UpdateUserCmd{
 		ID:   "missing-id",
 		Name: &name,
 	})
@@ -290,7 +291,7 @@ func TestUpdateUserHandler_EmailConflict(t *testing.T) {
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewUpdateUserHandler(mockRepo, bus)
 
-	_, err := handler.Handle(context.Background(), UpdateUserCmd{
+	_, err := handler.Handle(memberCtx("00000000-0000-0000-0000-000000000001"), UpdateUserCmd{
 		ID:    "00000000-0000-0000-0000-000000000001",
 		Email: testutil.Ptr("taken@example.com"),
 	})
@@ -318,7 +319,7 @@ func TestUpdateUserHandler_EventPublishFailure_DoesNotFail(t *testing.T) {
 	bus := events.NewEventBus(&testutil.FailPublisher{})
 	handler := NewUpdateUserHandler(mockRepo, bus)
 
-	user, err := handler.Handle(context.Background(), UpdateUserCmd{
+	user, err := handler.Handle(memberCtx("00000000-0000-0000-0000-000000000001"), UpdateUserCmd{
 		ID:   "00000000-0000-0000-0000-000000000001",
 		Name: testutil.Ptr("New Name"),
 	})
@@ -327,5 +328,52 @@ func TestUpdateUserHandler_EventPublishFailure_DoesNotFail(t *testing.T) {
 	}
 	if user == nil {
 		t.Fatal("expected user, got nil")
+	}
+}
+
+// memberCtx returns a context with a non-admin member caller injected.
+func memberCtx(userID string) context.Context {
+	return auth.WithUser(context.Background(), &auth.TokenClaims{
+		UserID:      userID,
+		Role:        "member",
+		Permissions: []string{"user:read"},
+	})
+}
+
+// TestUpdateUserHandler_Forbidden_NonOwnerNonAdmin verifies that a caller who is
+// neither the owner nor has user:write permission receives ErrForbidden.
+func TestUpdateUserHandler_Forbidden_NonOwnerNonAdmin(t *testing.T) {
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	handler := NewUpdateUserHandler(nil, bus)
+
+	// caller is "other-user-id", target is "00000000-0000-0000-0000-000000000001"
+	_, err := handler.Handle(memberCtx("other-user-id"), UpdateUserCmd{
+		ID:   "00000000-0000-0000-0000-000000000001",
+		Name: testutil.Ptr("Hacked Name"),
+	})
+	if err == nil {
+		t.Fatal("expected ErrForbidden for non-owner without user:write")
+	}
+	if !errors.Is(err, sharederr.ErrForbidden()) {
+		t.Errorf("expected ErrForbidden, got %v", err)
+	}
+}
+
+// TestUpdateUserHandler_RoleChange_Forbidden_NonAdmin verifies that a non-admin
+// caller cannot change their own role (privilege escalation guard).
+func TestUpdateUserHandler_RoleChange_Forbidden_NonAdmin(t *testing.T) {
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	handler := NewUpdateUserHandler(nil, bus)
+
+	// caller is the owner ("00000000-0000-0000-0000-000000000001") but not admin
+	_, err := handler.Handle(memberCtx("00000000-0000-0000-0000-000000000001"), UpdateUserCmd{
+		ID:   "00000000-0000-0000-0000-000000000001",
+		Role: testutil.Ptr("admin"),
+	})
+	if err == nil {
+		t.Fatal("expected ErrForbidden for role self-escalation by non-admin")
+	}
+	if !errors.Is(err, sharederr.ErrForbidden()) {
+		t.Errorf("expected ErrForbidden, got %v", err)
 	}
 }

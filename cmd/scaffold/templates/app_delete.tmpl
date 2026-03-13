@@ -15,6 +15,7 @@ import (
 )
 
 // Delete{{.NameTitle}}Handler handles soft-deleting a {{.Name}}.
+// Required: repo, bus
 type Delete{{.NameTitle}}Handler struct {
 	repo domain.{{.NameTitle}}Repository
 	bus  events.EventPublisher

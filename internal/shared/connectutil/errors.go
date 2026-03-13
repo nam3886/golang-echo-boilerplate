@@ -4,7 +4,6 @@ package connectutil
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 
 	"connectrpc.com/connect"
@@ -35,5 +34,5 @@ func DomainErrorToConnect(ctx context.Context, err error) error {
 		return connect.NewError(code, errors.New(domErr.Message))
 	}
 	slog.ErrorContext(ctx, "unhandled internal error", "err", err)
-	return connect.NewError(connect.CodeInternal, fmt.Errorf("internal error"))
+	return connect.NewError(connect.CodeInternal, errors.New("internal error"))
 }

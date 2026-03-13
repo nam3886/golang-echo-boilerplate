@@ -11,6 +11,7 @@ import (
 )
 
 // GetUserHandler handles fetching a single user.
+// Required: repo
 type GetUserHandler struct {
 	repo domain.UserRepository
 }

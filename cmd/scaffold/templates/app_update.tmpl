@@ -21,6 +21,7 @@ type Update{{.NameTitle}}Cmd struct {
 }
 
 // Update{{.NameTitle}}Handler handles {{.Name}} updates via closure-based UoW.
+// Required: repo, bus
 type Update{{.NameTitle}}Handler struct {
 	repo domain.{{.NameTitle}}Repository
 	bus  events.EventPublisher
