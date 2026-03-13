@@ -1,6 +1,7 @@
 package connectutil_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -18,6 +19,7 @@ func connectCode(err error) connect.Code {
 }
 
 func TestDomainErrorToConnect_KnownCodes(t *testing.T) {
+	ctx := context.Background()
 	cases := []struct {
 		name     string
 		err      error
@@ -36,7 +38,7 @@ func TestDomainErrorToConnect_KnownCodes(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := connectutil.DomainErrorToConnect(tc.err)
+			got := connectutil.DomainErrorToConnect(ctx, tc.err)
 			if got == nil {
 				t.Fatal("expected non-nil error")
 			}
@@ -49,7 +51,7 @@ func TestDomainErrorToConnect_KnownCodes(t *testing.T) {
 
 func TestDomainErrorToConnect_UnknownCodeDefaultsToInternal(t *testing.T) {
 	unknown := &sharederr.DomainError{Code: "TOTALLY_UNKNOWN", Message: "oops"}
-	got := connectutil.DomainErrorToConnect(unknown)
+	got := connectutil.DomainErrorToConnect(context.Background(), unknown)
 	if got == nil {
 		t.Fatal("expected non-nil error")
 	}
@@ -60,7 +62,7 @@ func TestDomainErrorToConnect_UnknownCodeDefaultsToInternal(t *testing.T) {
 
 func TestDomainErrorToConnect_NonDomainError(t *testing.T) {
 	plain := errors.New("something went wrong")
-	got := connectutil.DomainErrorToConnect(plain)
+	got := connectutil.DomainErrorToConnect(context.Background(), plain)
 	if got == nil {
 		t.Fatal("expected non-nil error")
 	}

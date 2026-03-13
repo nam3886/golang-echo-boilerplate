@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 
 	sqlcgen "{{.GoModule}}/gen/sqlc"
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
@@ -46,6 +47,9 @@ func (r *Pg{{.NameTitle}}Repository) List(ctx context.Context, page, pageSize in
 	q := sqlcgen.New(r.pool)
 
 	offset := (page - 1) * pageSize
+	if offset > math.MaxInt32 || pageSize > math.MaxInt32 {
+		return domain.ListResult{}, sharederr.New(sharederr.CodeInvalidArgument, "{{.Name}}.invalid_pagination", "pagination values too large")
+	}
 	rows, err := q.List{{.NamePluralTitle}}(ctx, sqlcgen.List{{.NamePluralTitle}}Params{
 		Limit:  int32(pageSize),
 		Offset: int32(offset),
@@ -145,7 +149,7 @@ func (r *Pg{{.NameTitle}}Repository) Update(ctx context.Context, id domain.{{.Na
 	// WARNING: If this entity has sensitive fields (e.g. hashed password) not included
 	// in the RETURNING clause, preserve them before overwriting. See the user module's
 	// toDomainFromUpdateRow(row, entity.SensitiveField()) pattern as reference.
-	*entity = *toDomain(updatedRow)
+	*entity = *toDomainFromUpdateRow(updatedRow)
 
 	return tx.Commit(ctx)
 }

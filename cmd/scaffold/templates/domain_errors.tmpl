@@ -17,7 +17,3 @@ func ErrNameRequired() *sharederr.DomainError {
 	return sharederr.New(sharederr.CodeInvalidArgument, "{{.Name}}.name_required", "name is required")
 }
 
-// ErrInvalidArgument indicates a generic invalid argument (e.g. empty ID).
-func ErrInvalidArgument() *sharederr.DomainError {
-	return sharederr.New(sharederr.CodeInvalidArgument, "{{.Name}}.invalid_argument", "invalid argument")
-}

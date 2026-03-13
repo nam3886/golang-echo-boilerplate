@@ -46,7 +46,7 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*dom
 	}
 
 	caller := auth.UserFromContext(ctx)
-	if caller != nil && caller.UserID != cmd.ID && !caller.HasPermission("user:update") {
+	if caller != nil && caller.UserID != cmd.ID && !caller.HasPermission("user:write") {
 		return nil, sharederr.ErrForbidden()
 	}
 	// Skip DB lock entirely when no fields are provided.

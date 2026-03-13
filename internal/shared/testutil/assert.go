@@ -10,6 +10,10 @@ import (
 // AssertDomainError checks that err is a DomainError with the expected message.
 // Unlike errors.Is, this checks identity (message), not just category (code).
 // Use this when testing that a specific error message is returned, not just an error code.
+//
+// Example:
+//
+//	testutil.AssertDomainError(t, err, "email is already taken")
 func AssertDomainError(t *testing.T, err error, wantMsg string) {
 	t.Helper()
 	var de *sharederr.DomainError

@@ -44,7 +44,7 @@ func (h *{{.NameTitle}}ServiceHandler) Create{{.NameTitle}}(ctx context.Context,
 		Name: req.Msg.Name,
 	})
 	if err != nil {
-		return nil, connectutil.DomainErrorToConnect(err)
+		return nil, connectutil.DomainErrorToConnect(ctx, err)
 	}
 	return connect.NewResponse(&{{.Name}}v1.Create{{.NameTitle}}Response{ {{- .NameTitle}}: toProto(entity)}), nil
 }
@@ -52,7 +52,7 @@ func (h *{{.NameTitle}}ServiceHandler) Create{{.NameTitle}}(ctx context.Context,
 func (h *{{.NameTitle}}ServiceHandler) Get{{.NameTitle}}(ctx context.Context, req *connect.Request[{{.Name}}v1.Get{{.NameTitle}}Request]) (*connect.Response[{{.Name}}v1.Get{{.NameTitle}}Response], error) {
 	entity, err := h.get{{.NameTitle}}.Handle(ctx, req.Msg.Id)
 	if err != nil {
-		return nil, connectutil.DomainErrorToConnect(err)
+		return nil, connectutil.DomainErrorToConnect(ctx, err)
 	}
 	return connect.NewResponse(&{{.Name}}v1.Get{{.NameTitle}}Response{ {{- .NameTitle}}: toProto(entity)}), nil
 }
@@ -60,7 +60,7 @@ func (h *{{.NameTitle}}ServiceHandler) Get{{.NameTitle}}(ctx context.Context, re
 func (h *{{.NameTitle}}ServiceHandler) List{{.NamePluralTitle}}(ctx context.Context, req *connect.Request[{{.Name}}v1.List{{.NamePluralTitle}}Request]) (*connect.Response[{{.Name}}v1.List{{.NamePluralTitle}}Response], error) {
 	result, err := h.list{{.NamePluralTitle}}.Handle(ctx, int(req.Msg.Page), int(req.Msg.PageSize))
 	if err != nil {
-		return nil, connectutil.DomainErrorToConnect(err)
+		return nil, connectutil.DomainErrorToConnect(ctx, err)
 	}
 
 	items := make([]*{{.Name}}v1.{{.NameTitle}}, 0, len(result.{{.NamePluralTitle}}))
@@ -94,14 +94,14 @@ func (h *{{.NameTitle}}ServiceHandler) Update{{.NameTitle}}(ctx context.Context,
 
 	entity, err := h.update{{.NameTitle}}.Handle(ctx, cmd)
 	if err != nil {
-		return nil, connectutil.DomainErrorToConnect(err)
+		return nil, connectutil.DomainErrorToConnect(ctx, err)
 	}
 	return connect.NewResponse(&{{.Name}}v1.Update{{.NameTitle}}Response{ {{- .NameTitle}}: toProto(entity)}), nil
 }
 
 func (h *{{.NameTitle}}ServiceHandler) Delete{{.NameTitle}}(ctx context.Context, req *connect.Request[{{.Name}}v1.Delete{{.NameTitle}}Request]) (*connect.Response[{{.Name}}v1.Delete{{.NameTitle}}Response], error) {
 	if err := h.delete{{.NameTitle}}.Handle(ctx, req.Msg.Id); err != nil {
-		return nil, connectutil.DomainErrorToConnect(err)
+		return nil, connectutil.DomainErrorToConnect(ctx, err)
 	}
 	return connect.NewResponse(&{{.Name}}v1.Delete{{.NameTitle}}Response{}), nil
 }

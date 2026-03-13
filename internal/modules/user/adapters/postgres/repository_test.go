@@ -219,3 +219,24 @@ func TestPgUserRepository_List_Pagination(t *testing.T) {
 		t.Errorf("expected total=3, got %d", res2.Total)
 	}
 }
+
+func TestPgUserRepository_Create_ViewerRole(t *testing.T) {
+	repo := setupRepo(t)
+	ctx := context.Background()
+
+	user, err := domain.NewUser("viewer@test.com", "ViewerUser", "password123", domain.RoleViewer)
+	if err != nil {
+		t.Fatalf("NewUser: %v", err)
+	}
+	if err := repo.Create(ctx, user); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	got, err := repo.GetByID(ctx, user.ID())
+	if err != nil {
+		t.Fatalf("GetByID: %v", err)
+	}
+	if got.Role() != domain.RoleViewer {
+		t.Errorf("expected role %q, got %q", domain.RoleViewer, got.Role())
+	}
+}

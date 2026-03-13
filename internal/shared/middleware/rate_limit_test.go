@@ -22,7 +22,10 @@ func newRateLimitEcho(rdb *redis.Client, limit int, window time.Duration) *echo.
 // So with limit=N, requests 1..N succeed; the (N+1)th request is the first to be rejected.
 
 func TestRateLimit_UnderLimit_Passes(t *testing.T) {
-	mr, _ := miniredis.Run()
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer mr.Close()
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 
@@ -41,7 +44,10 @@ func TestRateLimit_UnderLimit_Passes(t *testing.T) {
 }
 
 func TestRateLimit_OverLimit_Returns429(t *testing.T) {
-	mr, _ := miniredis.Run()
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer mr.Close()
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 
@@ -85,7 +91,10 @@ func TestRateLimit_RedisFailure_FailsOpen(t *testing.T) {
 
 // Rate limiter is always IP-based; auth context does not change the key.
 func TestRateLimit_WithAuthContext_StillKeyedByIP(t *testing.T) {
-	mr, _ := miniredis.Run()
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer mr.Close()
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 

@@ -276,6 +276,31 @@ func TestUpdateUserHandler_NotFound(t *testing.T) {
 	}
 }
 
+// TestUpdateUserHandler_EmailConflict verifies that when the repository returns
+// ErrEmailTaken (email uniqueness conflict), the handler surfaces it correctly.
+func TestUpdateUserHandler_EmailConflict(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMockUserRepository(ctrl)
+
+	mockRepo.EXPECT().
+		Update(gomock.Any(), domain.UserID("00000000-0000-0000-0000-000000000001"), gomock.Any()).
+		Return(domain.ErrEmailTaken())
+
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	handler := NewUpdateUserHandler(mockRepo, bus)
+
+	_, err := handler.Handle(context.Background(), UpdateUserCmd{
+		ID:    "00000000-0000-0000-0000-000000000001",
+		Email: testutil.Ptr("taken@example.com"),
+	})
+	if err == nil {
+		t.Fatal("expected email conflict error")
+	}
+	if !errors.Is(err, domain.ErrEmailTaken()) {
+		t.Errorf("expected ErrEmailTaken, got %v", err)
+	}
+}
+
 // TestUpdateUserHandler_EventPublishFailure_DoesNotFail verifies that a publish
 // error is logged but does not cause the handler to return an error.
 func TestUpdateUserHandler_EventPublishFailure_DoesNotFail(t *testing.T) {

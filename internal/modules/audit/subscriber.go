@@ -40,13 +40,13 @@ func parseIPAddress(ip string) *netip.Addr {
 }
 
 // parseActorID extracts the actor from the event, falling back to entityID.
-func parseActorID(actorIDStr string, entityID uuid.UUID) uuid.UUID {
+func parseActorID(ctx context.Context, actorIDStr string, entityID uuid.UUID) uuid.UUID {
 	if actorIDStr == "" {
 		return entityID
 	}
 	parsed, err := uuid.Parse(actorIDStr)
 	if err != nil {
-		slog.Warn("audit: invalid actor_id in event, falling back to entity_id",
+		slog.WarnContext(ctx, "audit: invalid actor_id in event, falling back to entity_id",
 			"actor_id", actorIDStr, "entity_id", entityID, "err", err)
 		return entityID
 	}
@@ -74,7 +74,7 @@ func (h *Handler) handleAuditEvent(msg *message.Message, userID, actorID, ipAddr
 		EntityType: "user",
 		EntityID:   entityID,
 		Action:     action,
-		ActorID:    parseActorID(actorID, entityID),
+		ActorID:    parseActorID(msg.Context(), actorID, entityID),
 		Changes:    json.RawMessage(msg.Payload), // raw JSON preserves all event fields
 		IpAddress:  parseIPAddress(ipAddress),
 	})

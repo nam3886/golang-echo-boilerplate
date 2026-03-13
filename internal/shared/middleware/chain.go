@@ -26,8 +26,8 @@ func SetupMiddleware(e *echo.Echo, cfg *config.Config, rdb *redis.Client) {
 
 	// Warn if production uses default IP extraction (spoofable via X-Forwarded-For).
 	if cfg.IsProduction() && e.IPExtractor == nil {
-		slog.Warn("rate limiter uses default IPExtractor in production; " +
-			"configure e.IPExtractor for accurate client IP behind reverse proxy")
+		slog.Error("rate limiter uses default IPExtractor in production; " +
+			"configure e.IPExtractor = echo.ExtractIPFromXFFHeader() for accurate client IP behind reverse proxy")
 	}
 
 	// 1. OTel HTTP tracing (wraps handler to create spans per request)

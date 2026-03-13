@@ -41,3 +41,18 @@ func toDomain(row sqlcgen.{{.NameTitle}}) *domain.{{.NameTitle}} {
 		row.CreatedAt, row.UpdatedAt, deletedAt,
 	)
 }
+
+// toDomainFromUpdateRow converts an Update{{.NameTitle}}Row to a domain entity.
+// WARNING: If this entity has sensitive fields excluded from RETURNING, add a
+// parameter to preserve them (see user module's toDomainFromUpdateRow(row, pwd) pattern).
+func toDomainFromUpdateRow(row sqlcgen.Update{{.NameTitle}}Row) *domain.{{.NameTitle}} {
+	var deletedAt *time.Time
+	if row.DeletedAt.Valid {
+		deletedAt = &row.DeletedAt.Time
+	}
+	return domain.Reconstitute(
+		domain.{{.NameID}}(row.ID.String()),
+		row.Name,
+		row.CreatedAt, row.UpdatedAt, deletedAt,
+	)
+}

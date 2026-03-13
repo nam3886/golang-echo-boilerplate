@@ -2,7 +2,6 @@
 package sharederr
 
 import (
-	"errors"
 	"net/http"
 )
 
@@ -37,8 +36,8 @@ func (e *DomainError) Unwrap() error { return e.Err }
 // Key-based matching enables precise sentinel matching (e.g. errors.Is(err, ErrNotFound()))
 // while Code-only matching remains available for HTTP status mapping when Key is absent.
 func (e *DomainError) Is(target error) bool {
-	var t *DomainError
-	if !errors.As(target, &t) {
+	t, ok := target.(*DomainError)
+	if !ok {
 		return false
 	}
 	if e.Key != "" && t.Key != "" {

@@ -100,6 +100,7 @@ func StartRouter(lc fx.Lifecycle, router *message.Router, shutdowner fx.Shutdown
 			go func() {
 				if err := router.Run(ctx); err != nil {
 					slog.Error("watermill router fatal error, initiating shutdown", "err", err)
+					cancel()
 					_ = shutdowner.Shutdown(fx.ExitCode(1))
 				}
 			}()

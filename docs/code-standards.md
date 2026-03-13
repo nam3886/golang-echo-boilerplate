@@ -142,12 +142,16 @@ func ErrEmailTaken() *sharederr.DomainError {
 > they race on the error's internal state. Constructor functions return fresh instances
 > on every call, eliminating the race.
 
-#### DomainError.Is() — Category Matching
+#### DomainError.Is() — Matching Rules
 
-`DomainError.Is()` matches by **error category (ErrorCode)**, not by specific error identity.
-This means `errors.Is(ErrUserNotFound(), ErrOrderNotFound())` returns `true` because both have
-`CodeNotFound`. This is intentional — HTTP status mapping relies on the code, not the message.
-For identity-specific matching, use `errors.As` and check the `Message` field.
+`DomainError.Is()` uses a two-tier matching strategy:
+- **When both errors have a Key:** matches by Code + Key (precise). So
+  `errors.Is(ErrUserNotFound(), ErrOrderNotFound())` returns `false` because keys differ
+  (`user.not_found` vs `order.not_found`).
+- **When either error has no Key:** matches by Code alone (category). This enables
+  `errors.Is(err, sharederr.ErrNotFound())` for HTTP status mapping.
+
+Module-specific errors with different keys do NOT match each other.
 
 ### Error Codes
 
@@ -568,7 +572,7 @@ func (h *UserServiceHandler) CreateUser(
         Role:     req.Msg.Role,
     })
     if err != nil {
-        return nil, connectutil.DomainErrorToConnect(err)
+        return nil, connectutil.DomainErrorToConnect(ctx, err)
     }
     return connect.NewResponse(&userv1.CreateUserResponse{
         User: toProto(user),

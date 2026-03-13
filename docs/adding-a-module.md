@@ -16,7 +16,7 @@ For custom plural naming:
 task module:create name=category plural=categories
 ```
 
-This creates 27 files + runs code generation.
+This creates 28 files + runs code generation.
 
 > **Note:** Scaffolded code imports from `gen/proto/` and `gen/sqlc/` which don't exist until code generation runs. Run `task generate` to resolve IDE errors.
 
@@ -397,6 +397,7 @@ import (
     productv1 "github.com/gnha/golang-echo-boilerplate/gen/proto/product/v1"
     "github.com/gnha/golang-echo-boilerplate/gen/proto/product/v1/productv1connect"
     "github.com/gnha/golang-echo-boilerplate/internal/modules/product/app"
+    "github.com/gnha/golang-echo-boilerplate/internal/shared/connectutil"
 )
 
 type ProductServiceHandler struct {
@@ -413,7 +414,7 @@ var _ productv1connect.ProductServiceHandler = (*ProductServiceHandler)(nil)
 func (h *ProductServiceHandler) CreateProduct(ctx context.Context, req *connect.Request[productv1.CreateProductRequest]) (*connect.Response[productv1.CreateProductResponse], error) {
     p, err := h.createProduct.Handle(ctx, app.CreateProductCmd{Name: req.Msg.Name})
     if err != nil {
-        return nil, connectutil.DomainErrorToConnect(err)
+        return nil, connectutil.DomainErrorToConnect(ctx, err)
     }
     return connect.NewResponse(&productv1.CreateProductResponse{
         Product: toProto(p),

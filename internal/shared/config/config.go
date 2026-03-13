@@ -42,7 +42,7 @@ type Config struct {
 
 	// Observability
 	OTLPEndpoint   string  `env:"OTEL_EXPORTER_OTLP_ENDPOINT"`
-	OTLPSampleRate float64 `env:"OTEL_SAMPLE_RATE" envDefault:"1.0"`
+	OTLPSampleRate float64 `env:"OTEL_SAMPLE_RATE" envDefault:"0.1"`
 
 	// SMTP
 	SMTPHost      string `env:"SMTP_HOST" envDefault:"localhost"`
@@ -87,6 +87,9 @@ func Load() (*Config, error) {
 	}
 	if cfg.DBMinConns > cfg.DBMaxConns {
 		return nil, fmt.Errorf("DB_MIN_CONNS (%d) must not exceed DB_MAX_CONNS (%d)", cfg.DBMinConns, cfg.DBMaxConns)
+	}
+	if cfg.OTLPSampleRate < 0 || cfg.OTLPSampleRate > 1 {
+		return nil, fmt.Errorf("OTEL_SAMPLE_RATE must be between 0 and 1 (got %f)", cfg.OTLPSampleRate)
 	}
 	return cfg, nil
 }

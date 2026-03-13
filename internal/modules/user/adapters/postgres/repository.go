@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 
 	sqlcgen "github.com/gnha/golang-echo-boilerplate/gen/sqlc"
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
@@ -58,6 +59,9 @@ func (r *PgUserRepository) List(ctx context.Context, page, pageSize int) (domain
 	q := sqlcgen.New(r.pool)
 
 	offset := (page - 1) * pageSize
+	if offset > math.MaxInt32 || pageSize > math.MaxInt32 {
+		return domain.ListResult{}, sharederr.New(sharederr.CodeInvalidArgument, "user.invalid_pagination", "pagination values too large")
+	}
 	rows, err := q.ListUsersWithTotal(ctx, sqlcgen.ListUsersWithTotalParams{
 		Limit:  int32(pageSize),
 		Offset: int32(offset),

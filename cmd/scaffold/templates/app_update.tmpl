@@ -2,7 +2,10 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
+
+	"go.opentelemetry.io/otel"
 
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
 	"{{.GoModule}}/internal/shared/auth"
@@ -31,6 +34,9 @@ func NewUpdate{{.NameTitle}}Handler(repo domain.{{.NameTitle}}Repository, bus ev
 // Handle applies partial updates to a {{.NameTitle}} within a transaction.
 // If no fields are provided (all nil), returns current state without acquiring lock.
 func (h *Update{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Update{{.NameTitle}}Cmd) (*domain.{{.NameTitle}}, error) {
+	ctx, span := otel.Tracer("{{.Name}}").Start(ctx, "Update{{.NameTitle}}Handler.Handle")
+	defer span.End()
+
 	if cmd.ID == "" {
 		return nil, sharederr.New(sharederr.CodeInvalidArgument, "{{.Name}}.id_required", "{{.Name}} ID is required")
 	}
@@ -59,7 +65,10 @@ func (h *Update{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Update{{.N
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("update_{{.Name}}: %w", err)
+	}
+	if updated == nil {
+		return nil, fmt.Errorf("update_{{.Name}}: repository did not populate entity")
 	}
 
 	// Skip event if nothing was actually changed.

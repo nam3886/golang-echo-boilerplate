@@ -2,6 +2,7 @@
 package connectutil
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -24,7 +25,7 @@ var codeToConnect = map[sharederr.ErrorCode]connect.Code{
 
 // DomainErrorToConnect maps a DomainError to a Connect RPC error.
 // Non-domain errors are logged and returned as a generic internal error to avoid leaking internals.
-func DomainErrorToConnect(err error) error {
+func DomainErrorToConnect(ctx context.Context, err error) error {
 	var domErr *sharederr.DomainError
 	if errors.As(err, &domErr) {
 		code, ok := codeToConnect[domErr.Code]
@@ -33,6 +34,6 @@ func DomainErrorToConnect(err error) error {
 		}
 		return connect.NewError(code, errors.New(domErr.Message))
 	}
-	slog.Error("unhandled internal error", "err", err)
+	slog.ErrorContext(ctx, "unhandled internal error", "err", err)
 	return connect.NewError(connect.CodeInternal, fmt.Errorf("internal error"))
 }
