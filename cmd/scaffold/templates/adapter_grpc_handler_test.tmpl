@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	{{.Name}}v1 "{{.GoModule}}/gen/proto/{{.Name}}/v1"
 	grpcadapter "{{.GoModule}}/internal/modules/{{.Name}}/adapters/grpc"
 	"{{.GoModule}}/internal/modules/{{.Name}}/app"
+	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
 	"{{.GoModule}}/internal/shared/events"
 	"{{.GoModule}}/internal/shared/mocks"
 	sharederr "{{.GoModule}}/internal/shared/errors"
@@ -83,15 +85,10 @@ func TestHandler_Get{{.NameTitle}}_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockRepo := mocks.NewMock{{.NameTitle}}Repository(ctrl)
 
-	// Reconstitute is called inside Get handler via repo.GetByID.
-	// We return a minimal entity to verify the handler maps it correctly.
+	now := time.Now()
 	mockRepo.EXPECT().
 		GetByID(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, id interface{}) (interface{}, error) {
-			// Use the domain package to build the entity.
-			_ = id
-			return nil, nil
-		})
+		Return(domain.Reconstitute(domain.{{.NameID}}("entity-id-1"), "Test Name", now, now, nil), nil)
 
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	create := app.NewCreate{{.NameTitle}}Handler(mockRepo, bus)
@@ -105,9 +102,9 @@ func TestHandler_Get{{.NameTitle}}_Success(t *testing.T) {
 	_, err := h.Get{{.NameTitle}}(context.Background(), connect.NewRequest(&{{.Name}}v1.Get{{.NameTitle}}Request{
 		Id: "entity-id-1",
 	}))
-	// nil entity from mock returns internal error — this test verifies the call flows
-	// through without panicking. See GetByID mock for success path override.
-	_ = err
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 }
 
 func TestHandler_Get{{.NameTitle}}_NotFound(t *testing.T) {
@@ -148,7 +145,7 @@ func TestHandler_List{{.NamePluralTitle}}_Pagination(t *testing.T) {
 
 	mockRepo.EXPECT().
 		List(gomock.Any(), 1, 2).
-		Return(nil, nil)
+		Return(domain.ListResult{}, nil)
 
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	create := app.NewCreate{{.NameTitle}}Handler(mockRepo, bus)
@@ -209,9 +206,10 @@ func TestHandler_Delete{{.NameTitle}}_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockRepo := mocks.NewMock{{.NameTitle}}Repository(ctrl)
 
+	now := time.Now()
 	mockRepo.EXPECT().
 		SoftDelete(gomock.Any(), gomock.Any()).
-		Return(nil, nil)
+		Return(domain.Reconstitute(domain.{{.NameID}}("entity-id-1"), "Test Name", now, now, &now), nil)
 
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	create := app.NewCreate{{.NameTitle}}Handler(mockRepo, bus)
@@ -225,9 +223,9 @@ func TestHandler_Delete{{.NameTitle}}_Success(t *testing.T) {
 	_, err := h.Delete{{.NameTitle}}(context.Background(), connect.NewRequest(&{{.Name}}v1.Delete{{.NameTitle}}Request{
 		Id: "entity-id-1",
 	}))
-	// nil entity from SoftDelete returns error in delete handler — see domain.DeletedAt().
-	// This test verifies the call flows correctly.
-	_ = err
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 }
 
 func TestHandler_Delete{{.NameTitle}}_NotFound(t *testing.T) {

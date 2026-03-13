@@ -129,11 +129,11 @@ Module-specific errors are **constructor functions**, not package-level vars:
 // Define module-specific errors as constructor functions
 // (errors.go in domain/)
 func ErrUserNotFound() *sharederr.DomainError {
-    return sharederr.New(sharederr.CodeNotFound, "user not found")
+    return sharederr.New(sharederr.CodeNotFound, "user.not_found", "user not found")
 }
 
 func ErrEmailTaken() *sharederr.DomainError {
-    return sharederr.New(sharederr.CodeAlreadyExists, "email already taken")
+    return sharederr.New(sharederr.CodeAlreadyExists, "user.email_taken", "email already taken")
 }
 ```
 
@@ -186,7 +186,7 @@ if errors.Is(err, sharederr.ErrNotFound()) { }
   functions like `ErrInvalidEmail()`, `ErrNameRequired()`. These represent domain invariant
   failures.
 - **App-layer errors** (inline in handlers): Input/plumbing validation. Use
-  `sharederr.New(sharederr.CodeInvalidArgument, "user ID is required")` for app-level
+  `sharederr.New(sharederr.CodeInvalidArgument, "user.id_required", "user ID is required")` for app-level
   checks that don't belong to the domain model (e.g., empty ID, missing required command fields).
 
 Both produce `DomainError` and map to HTTP status codes identically. The distinction is
@@ -343,7 +343,7 @@ type GetUserHandler struct {
 
 func (h *GetUserHandler) Handle(ctx context.Context, id string) (*domain.User, error) {
     if id == "" {
-        return nil, sharederr.New(sharederr.CodeInvalidArgument, "user ID is required")
+        return nil, sharederr.New(sharederr.CodeInvalidArgument, "user.id_required", "user ID is required")
     }
     user, err := h.repo.GetByID(ctx, domain.UserID(id))
     if err != nil {
@@ -443,7 +443,7 @@ type DeleteUserHandler struct {
 
 func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
     if id == "" {
-        return sharederr.New(sharederr.CodeInvalidArgument, "user ID is required")
+        return sharederr.New(sharederr.CodeInvalidArgument, "user.id_required", "user ID is required")
     }
     user, err := h.repo.SoftDelete(ctx, domain.UserID(id))
     if err != nil {
@@ -527,7 +527,7 @@ if errors.As(err, &pgErr) && pgErr.Code == "23505" {
     if pgErr.ConstraintName == "idx_users_email_active" {
         return domain.ErrEmailTaken()
     }
-    return sharederr.New(sharederr.CodeAlreadyExists, "duplicate entry")
+    return sharederr.New(sharederr.CodeAlreadyExists, "entity.duplicate", "duplicate entry")
 }
 ```
 

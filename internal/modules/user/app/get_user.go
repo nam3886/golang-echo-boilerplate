@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"go.opentelemetry.io/otel"
+
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
 )
 
@@ -19,6 +21,9 @@ func NewGetUserHandler(repo domain.UserRepository) *GetUserHandler {
 
 // Handle returns a user by ID.
 func (h *GetUserHandler) Handle(ctx context.Context, id string) (*domain.User, error) {
+	ctx, span := otel.Tracer("user").Start(ctx, "GetUserHandler.Handle")
+	defer span.End()
+
 	if id == "" {
 		return nil, domain.ErrUserIDRequired()
 	}

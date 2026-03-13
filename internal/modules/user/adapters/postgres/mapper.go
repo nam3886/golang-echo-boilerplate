@@ -3,11 +3,21 @@ package postgres
 import (
 	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
+
 	sqlcgen "github.com/gnha/golang-echo-boilerplate/gen/sqlc"
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
 	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
 	"github.com/google/uuid"
 )
+
+// nullTimeToPtr converts a pgtype.Timestamptz to *time.Time.
+func nullTimeToPtr(nt pgtype.Timestamptz) *time.Time {
+	if !nt.Valid {
+		return nil
+	}
+	return &nt.Time
+}
 
 // parseUserID safely parses a domain.UserID into a uuid.UUID.
 func parseUserID(id domain.UserID) (uuid.UUID, error) {
@@ -20,15 +30,11 @@ func parseUserID(id domain.UserID) (uuid.UUID, error) {
 
 // toDomain converts a sqlc User row (with password) to a domain entity.
 func toDomain(row sqlcgen.User) *domain.User {
-	var deletedAt *time.Time
-	if row.DeletedAt.Valid {
-		deletedAt = &row.DeletedAt.Time
-	}
 	return domain.Reconstitute(
 		domain.UserID(row.ID.String()),
 		row.Email, row.Name, row.Password,
 		domain.Role(row.Role),
-		row.CreatedAt, row.UpdatedAt, deletedAt,
+		row.CreatedAt, row.UpdatedAt, nullTimeToPtr(row.DeletedAt),
 	)
 }
 
@@ -36,73 +42,53 @@ func toDomain(row sqlcgen.User) *domain.User {
 // Password is set to "" because this query intentionally excludes it.
 // Callers must not use Password() on entities returned by read-only queries.
 func toDomainFromGetRow(row sqlcgen.GetUserByIDRow) *domain.User {
-	var deletedAt *time.Time
-	if row.DeletedAt.Valid {
-		deletedAt = &row.DeletedAt.Time
-	}
 	return domain.Reconstitute(
 		domain.UserID(row.ID.String()),
 		row.Email, row.Name, "",
 		domain.Role(row.Role),
-		row.CreatedAt, row.UpdatedAt, deletedAt,
+		row.CreatedAt, row.UpdatedAt, nullTimeToPtr(row.DeletedAt),
 	)
 }
 
 // toDomainFromListWithTotalRow converts a ListUsersWithTotalRow (no password) to a domain entity.
 func toDomainFromListWithTotalRow(row sqlcgen.ListUsersWithTotalRow) *domain.User {
-	var deletedAt *time.Time
-	if row.DeletedAt.Valid {
-		deletedAt = &row.DeletedAt.Time
-	}
 	return domain.Reconstitute(
 		domain.UserID(row.ID.String()),
 		row.Email, row.Name, "",
 		domain.Role(row.Role),
-		row.CreatedAt, row.UpdatedAt, deletedAt,
+		row.CreatedAt, row.UpdatedAt, nullTimeToPtr(row.DeletedAt),
 	)
 }
 
 // toDomainFromUpdateRow converts an UpdateUserRow to a domain entity.
 // Password is preserved via the pwd parameter since RETURNING excludes it.
 func toDomainFromUpdateRow(row sqlcgen.UpdateUserRow, pwd string) *domain.User {
-	var deletedAt *time.Time
-	if row.DeletedAt.Valid {
-		deletedAt = &row.DeletedAt.Time
-	}
 	return domain.Reconstitute(
 		domain.UserID(row.ID.String()),
 		row.Email, row.Name, pwd,
 		domain.Role(row.Role),
-		row.CreatedAt, row.UpdatedAt, deletedAt,
+		row.CreatedAt, row.UpdatedAt, nullTimeToPtr(row.DeletedAt),
 	)
 }
 
 // toDomainFromCreateRow converts a CreateUserRow to a domain entity.
 // Password is preserved via the pwd parameter since RETURNING excludes it.
 func toDomainFromCreateRow(row sqlcgen.CreateUserRow, pwd string) *domain.User {
-	var deletedAt *time.Time
-	if row.DeletedAt.Valid {
-		deletedAt = &row.DeletedAt.Time
-	}
 	return domain.Reconstitute(
 		domain.UserID(row.ID.String()),
 		row.Email, row.Name, pwd,
 		domain.Role(row.Role),
-		row.CreatedAt, row.UpdatedAt, deletedAt,
+		row.CreatedAt, row.UpdatedAt, nullTimeToPtr(row.DeletedAt),
 	)
 }
 
 // toDomainFromSoftDeleteRow converts a SoftDeleteUserRow (no password) to a domain entity.
 // Password is "" since the RETURNING clause intentionally excludes it.
 func toDomainFromSoftDeleteRow(row sqlcgen.SoftDeleteUserRow) *domain.User {
-	var deletedAt *time.Time
-	if row.DeletedAt.Valid {
-		deletedAt = &row.DeletedAt.Time
-	}
 	return domain.Reconstitute(
 		domain.UserID(row.ID.String()),
 		row.Email, row.Name, "",
 		domain.Role(row.Role),
-		row.CreatedAt, row.UpdatedAt, deletedAt,
+		row.CreatedAt, row.UpdatedAt, nullTimeToPtr(row.DeletedAt),
 	)
 }

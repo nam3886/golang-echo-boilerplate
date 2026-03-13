@@ -5,6 +5,10 @@
 `auth.GenerateAccessToken(cfg, userID, role, permissions)` — returns a signed HS256 JWT.
 `auth.GenerateRefreshToken()` — returns a 32-byte cryptographically random base64 string.
 
+> **Note:** `GenerateRefreshToken` is a placeholder. It generates a random token string but has
+> **no server-side storage, rotation, or revocation** implemented. Storing refresh tokens,
+> rotating them on use, and revoking them on logout is left to application-specific implementation.
+
 Source: `internal/shared/auth/jwt.go`
 
 ## Token Structure (Claims)

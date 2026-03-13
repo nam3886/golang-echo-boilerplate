@@ -44,7 +44,7 @@ func (h *Handler) HandleUserCreated(msg *message.Message) error {
 		slog.ErrorContext(ctx, "notification: failed to send email", "err", err, "to", event.Email)
 		// Permanent SMTP errors (5xx) won't be fixed by retrying -- ack them.
 		if isPermanentSMTPError(err) {
-			slog.Warn("notification: permanent SMTP error, acking message", "err", err)
+			slog.WarnContext(ctx, "notification: permanent SMTP error, acking message", "err", err)
 			return nil
 		}
 		return err

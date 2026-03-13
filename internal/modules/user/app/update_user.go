@@ -2,7 +2,10 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
+
+	"go.opentelemetry.io/otel"
 
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
@@ -35,8 +38,16 @@ func NewUpdateUserHandler(repo domain.UserRepository, bus events.EventPublisher)
 // without acquiring a FOR UPDATE lock. This is a deliberate optimization:
 // the caller (gRPC handler) may send updates with no actual changes.
 func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*domain.User, error) {
+	ctx, span := otel.Tracer("user").Start(ctx, "UpdateUserHandler.Handle")
+	defer span.End()
+
 	if cmd.ID == "" {
 		return nil, domain.ErrUserIDRequired()
+	}
+
+	caller := auth.UserFromContext(ctx)
+	if caller != nil && caller.UserID != cmd.ID && !caller.HasPermission("user:update") {
+		return nil, sharederr.ErrForbidden()
 	}
 	// Skip DB lock entirely when no fields are provided.
 	if cmd.Name == nil && cmd.Role == nil && cmd.Email == nil {
@@ -82,7 +93,10 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*dom
 	})
 	// err==nil && len(changedFields)==0: repo committed read-only tx (ErrNoChange), no SQL UPDATE issued.
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("update_user: %w", err)
+	}
+	if updated == nil {
+		return nil, fmt.Errorf("update_user: repository did not populate entity")
 	}
 
 	// Skip event if nothing was actually changed.

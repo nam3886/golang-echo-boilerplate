@@ -250,6 +250,32 @@ func TestUpdateUserHandler_SameValues_NoEvent(t *testing.T) {
 	}
 }
 
+// TestUpdateUserHandler_NotFound verifies that when the repository cannot find
+// the user, the handler returns an error that wraps ErrNotFound.
+func TestUpdateUserHandler_NotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMockUserRepository(ctrl)
+
+	mockRepo.EXPECT().
+		Update(gomock.Any(), domain.UserID("missing-id"), gomock.Any()).
+		Return(sharederr.ErrNotFound())
+
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	handler := NewUpdateUserHandler(mockRepo, bus)
+
+	name := "New Name"
+	_, err := handler.Handle(context.Background(), UpdateUserCmd{
+		ID:   "missing-id",
+		Name: &name,
+	})
+	if err == nil {
+		t.Fatal("expected not found error")
+	}
+	if !errors.Is(err, sharederr.ErrNotFound()) {
+		t.Errorf("expected ErrNotFound, got %v", err)
+	}
+}
+
 // TestUpdateUserHandler_EventPublishFailure_DoesNotFail verifies that a publish
 // error is logged but does not cause the handler to return an error.
 func TestUpdateUserHandler_EventPublishFailure_DoesNotFail(t *testing.T) {

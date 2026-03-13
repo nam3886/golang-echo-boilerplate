@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"log/slog"
 
+	"go.opentelemetry.io/otel"
+
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/events"
+	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/netutil"
 )
 
@@ -24,8 +27,16 @@ func NewDeleteUserHandler(repo domain.UserRepository, bus events.EventPublisher)
 
 // Handle soft-deletes a user by ID.
 func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
+	ctx, span := otel.Tracer("user").Start(ctx, "DeleteUserHandler.Handle")
+	defer span.End()
+
 	if id == "" {
 		return domain.ErrUserIDRequired()
+	}
+
+	caller := auth.UserFromContext(ctx)
+	if caller != nil && caller.UserID != id && !caller.HasPermission("user:delete") {
+		return sharederr.ErrForbidden()
 	}
 	user, err := h.repo.SoftDelete(ctx, domain.UserID(id))
 	if err != nil {

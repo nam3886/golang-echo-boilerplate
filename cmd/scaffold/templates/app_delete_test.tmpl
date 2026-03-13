@@ -16,7 +16,7 @@ import (
 
 func deleted{{.NameTitle}}Fixture() *domain.{{.NameTitle}} {
 	now := time.Now()
-	return domain.Reconstitute("entity-id-1", "Test Name", now, now, &now)
+	return domain.Reconstitute(domain.{{.NameID}}("entity-id-1"), "Test Name", now, now, &now)
 }
 
 func TestDelete{{.NameTitle}}Handler_Success(t *testing.T) {

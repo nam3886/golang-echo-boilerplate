@@ -86,5 +86,5 @@ See [docs/adding-a-module.md](docs/adding-a-module.md)
 
 ```bash
 task docker:build    # Build image
-# GitLab CI handles staging/production deploy
+# GitHub Actions handles staging/production deploy
 ```

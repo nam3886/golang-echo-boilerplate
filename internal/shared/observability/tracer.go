@@ -3,6 +3,7 @@ package observability
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/config"
 	"go.opentelemetry.io/otel"
@@ -21,6 +22,9 @@ func NewTracerProvider(cfg *config.Config, version config.AppVersion) (*sdktrace
 			propagation.TraceContext{},
 			propagation.Baggage{},
 		))
+		otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
+			slog.Error("otel internal error", "err", err)
+		}))
 		return tp, nil
 	}
 
@@ -40,6 +44,7 @@ func NewTracerProvider(cfg *config.Config, version config.AppVersion) (*sdktrace
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter),
 		sdktrace.WithResource(newOTelResource(cfg, version)),
+		sdktrace.WithSampler(sdktrace.TraceIDRatioBased(cfg.OTLPSampleRate)),
 	)
 
 	otel.SetTracerProvider(tp)
@@ -47,6 +52,9 @@ func NewTracerProvider(cfg *config.Config, version config.AppVersion) (*sdktrace
 		propagation.TraceContext{},
 		propagation.Baggage{},
 	))
+	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
+		slog.Error("otel internal error", "err", err)
+	}))
 
 	return tp, nil
 }

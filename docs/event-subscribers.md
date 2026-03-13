@@ -13,7 +13,7 @@ Always inject `events.EventPublisher` into handlers; fx wires it from `EventBus`
 ## Event Contracts Location
 
 All shared event types and topic constants live in:
-`internal/shared/events/contracts/user_events.go`
+`internal/shared/events/contracts/` (e.g., `user_events.go`, `{name}_events.go` per module)
 
 External modules must import from `contracts` directly — never from another module's
 `domain/` package. This preserves the no-cross-module-imports rule.

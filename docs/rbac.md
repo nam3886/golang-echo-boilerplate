@@ -21,7 +21,7 @@ The Echo route group applies only `Auth` (JWT validation); permission checks hap
 
 ### Echo Route Group: Auth Only
 
-`Auth(cfg, rdb)` — validates the JWT/API key and injects `AuthUser` into the request context.
+`Auth(cfg, rdb)` — validates the JWT and injects `AuthUser` into the request context.
 Returns 401 if the token is missing, expired, or invalid.
 
 No Echo-level permission middleware is applied. All permission enforcement

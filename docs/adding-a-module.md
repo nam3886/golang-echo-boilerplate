@@ -294,11 +294,11 @@ import sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors
 // when errors are wrapped concurrently.
 
 func ErrNameRequired() *sharederr.DomainError {
-    return sharederr.New(sharederr.CodeInvalidArgument, "name is required")
+    return sharederr.New(sharederr.CodeInvalidArgument, "product.name_required", "name is required")
 }
 
 func ErrProductNotFound() *sharederr.DomainError {
-    return sharederr.New(sharederr.CodeNotFound, "product not found")
+    return sharederr.New(sharederr.CodeNotFound, "product.not_found", "product not found")
 }
 ```
 
@@ -591,6 +591,7 @@ In your app handler (e.g., `CreateProductHandler`), inject `events.EventPublishe
 
 ```go
 if err := h.bus.Publish(ctx, domain.TopicProductCreated, domain.ProductCreatedEvent{
+    Version:   1,
     ProductID: string(p.ID()),
     ActorID:   actorID,
     Name:      p.Name(),
@@ -718,16 +719,19 @@ if existing != nil {
 
 ### Multiple Field Updates
 
-Track mutations with a boolean flag. Return `ErrNoChange` if nothing changed:
+Track mutations with a slice of changed field names. Return `ErrNoChange` if nothing changed. The slice is also passed to the event payload so subscribers know what was modified:
 
 ```go
-var mutated bool
-err := h.repo.Update(ctx, id, func(user *domain.User) error {
-    if cmd.Name != nil && *cmd.Name != user.Name() {
-        user.ChangeName(*cmd.Name)
-        mutated = true
+var changedFields []string
+err := h.repo.Update(ctx, id, func(entity *domain.Product) error {
+    changedFields = nil // reset on retry
+    if cmd.Name != nil && *cmd.Name != entity.Name() {
+        if err := entity.ChangeName(*cmd.Name); err != nil {
+            return err
+        }
+        changedFields = append(changedFields, "name")
     }
-    if !mutated {
+    if len(changedFields) == 0 {
         return sharederr.ErrNoChange()
     }
     return nil

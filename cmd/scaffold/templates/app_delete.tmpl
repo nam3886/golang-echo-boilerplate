@@ -26,7 +26,7 @@ func NewDelete{{.NameTitle}}Handler(repo domain.{{.NameTitle}}Repository, bus ev
 // Handle soft-deletes a {{.Name}} by ID.
 func (h *Delete{{.NameTitle}}Handler) Handle(ctx context.Context, id string) error {
 	if id == "" {
-		return sharederr.New(sharederr.CodeInvalidArgument, "{{.Name}} ID is required")
+		return sharederr.New(sharederr.CodeInvalidArgument, "{{.Name}}.id_required", "{{.Name}} ID is required")
 	}
 	entity, err := h.repo.SoftDelete(ctx, domain.{{.NameID}}(id))
 	if err != nil {

@@ -78,6 +78,6 @@ func (b *EventBus) Publish(ctx context.Context, topic string, event any) error {
 		return fmt.Errorf("publishing event %s: %w", topic, err)
 	}
 
-	slog.Debug("event published", "topic", topic, "id", msg.UUID)
+	slog.DebugContext(ctx, "event published", "topic", topic, "id", msg.UUID)
 	return nil
 }

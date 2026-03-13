@@ -50,11 +50,11 @@ func RequestLogger() echo.MiddlewareFunc {
 			}
 
 			if res.Status >= 500 {
-				slog.Error("request", attrs...)
+				slog.ErrorContext(ctx, "request", attrs...)
 			} else if res.Status >= 400 {
-				slog.Warn("request", attrs...)
+				slog.WarnContext(ctx, "request", attrs...)
 			} else {
-				slog.Info("request", attrs...)
+				slog.InfoContext(ctx, "request", attrs...)
 			}
 
 			return err

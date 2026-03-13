@@ -13,7 +13,7 @@ import (
 func parse{{.NameTitle}}ID(id domain.{{.NameID}}) (uuid.UUID, error) {
 	uid, err := uuid.Parse(string(id))
 	if err != nil {
-		return uuid.UUID{}, sharederr.New(sharederr.CodeInvalidArgument, "invalid {{.Name}} ID format")
+		return uuid.UUID{}, sharederr.New(sharederr.CodeInvalidArgument, "{{.Name}}.invalid_id", "invalid {{.Name}} ID format")
 	}
 	return uid, nil
 }

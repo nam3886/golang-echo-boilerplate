@@ -25,19 +25,24 @@ func makeUser(id, email, name string, role domain.Role) *domain.User {
 	)
 }
 
-func buildHandler(
-	createUser *app.CreateUserHandler,
-	getUser *app.GetUserHandler,
-	listUsers *app.ListUsersHandler,
-	updateUser *app.UpdateUserHandler,
-	deleteUser *app.DeleteUserHandler,
-) *grpcadapter.UserServiceHandler {
-	return grpcadapter.NewUserServiceHandler(createUser, getUser, listUsers, updateUser, deleteUser)
+func buildTestHandlers(t *testing.T, ctrl *gomock.Controller) (*mocks.MockUserRepository, *grpcadapter.UserServiceHandler) {
+	t.Helper()
+	mockRepo := mocks.NewMockUserRepository(ctrl)
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+
+	create := app.NewCreateUserHandler(mockRepo, &testutil.StubHasher{}, bus)
+	get := app.NewGetUserHandler(mockRepo)
+	list := app.NewListUsersHandler(mockRepo)
+	update := app.NewUpdateUserHandler(mockRepo, bus)
+	del := app.NewDeleteUserHandler(mockRepo, bus)
+
+	h := grpcadapter.NewUserServiceHandler(create, get, list, update, del)
+	return mockRepo, h
 }
 
 func TestHandler_CreateUser_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	mockRepo := mocks.NewMockUserRepository(ctrl)
+	mockRepo, h := buildTestHandlers(t, ctrl)
 
 	mockRepo.EXPECT().
 		GetByEmail(gomock.Any(), "new@example.com").
@@ -45,15 +50,6 @@ func TestHandler_CreateUser_Success(t *testing.T) {
 	mockRepo.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		Return(nil)
-
-	bus := events.NewEventBus(&testutil.NoopPublisher{})
-	create := app.NewCreateUserHandler(mockRepo, &testutil.StubHasher{}, bus)
-	get := app.NewGetUserHandler(mockRepo)
-	list := app.NewListUsersHandler(mockRepo)
-	update := app.NewUpdateUserHandler(mockRepo, bus)
-	delete := app.NewDeleteUserHandler(mockRepo, bus)
-
-	h := buildHandler(create, get, list, update, delete)
 
 	resp, err := h.CreateUser(context.Background(), connect.NewRequest(&userv1.CreateUserRequest{
 		Email:    "new@example.com",
@@ -74,20 +70,11 @@ func TestHandler_CreateUser_Success(t *testing.T) {
 
 func TestHandler_GetUser_NotFound(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	mockRepo := mocks.NewMockUserRepository(ctrl)
+	mockRepo, h := buildTestHandlers(t, ctrl)
 
 	mockRepo.EXPECT().
 		GetByID(gomock.Any(), domain.UserID("missing-id")).
 		Return(nil, sharederr.ErrNotFound())
-
-	bus := events.NewEventBus(&testutil.NoopPublisher{})
-	create := app.NewCreateUserHandler(mockRepo, &testutil.StubHasher{}, bus)
-	get := app.NewGetUserHandler(mockRepo)
-	list := app.NewListUsersHandler(mockRepo)
-	update := app.NewUpdateUserHandler(mockRepo, bus)
-	del := app.NewDeleteUserHandler(mockRepo, bus)
-
-	h := buildHandler(create, get, list, update, del)
 
 	_, err := h.GetUser(context.Background(), connect.NewRequest(&userv1.GetUserRequest{
 		Id: "missing-id",
@@ -107,7 +94,7 @@ func TestHandler_GetUser_NotFound(t *testing.T) {
 
 func TestHandler_ListUsers_Pagination(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	mockRepo := mocks.NewMockUserRepository(ctrl)
+	mockRepo, h := buildTestHandlers(t, ctrl)
 
 	u1 := makeUser("id-1", "a@example.com", "Alice", domain.RoleMember)
 	u2 := makeUser("id-2", "b@example.com", "Bob", domain.RoleViewer)
@@ -118,15 +105,6 @@ func TestHandler_ListUsers_Pagination(t *testing.T) {
 			Users: []*domain.User{u1, u2},
 			Total: 5,
 		}, nil)
-
-	bus := events.NewEventBus(&testutil.NoopPublisher{})
-	create := app.NewCreateUserHandler(mockRepo, &testutil.StubHasher{}, bus)
-	get := app.NewGetUserHandler(mockRepo)
-	list := app.NewListUsersHandler(mockRepo)
-	update := app.NewUpdateUserHandler(mockRepo, bus)
-	del := app.NewDeleteUserHandler(mockRepo, bus)
-
-	h := buildHandler(create, get, list, update, del)
 
 	resp, err := h.ListUsers(context.Background(), connect.NewRequest(&userv1.ListUsersRequest{
 		Page:     1,
@@ -151,7 +129,7 @@ func TestHandler_ListUsers_Pagination(t *testing.T) {
 
 func TestHandler_UpdateUser_PartialFields(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	mockRepo := mocks.NewMockUserRepository(ctrl)
+	mockRepo, h := buildTestHandlers(t, ctrl)
 
 	existing := makeUser("id-1", "user@example.com", "Original", domain.RoleMember)
 
@@ -160,15 +138,6 @@ func TestHandler_UpdateUser_PartialFields(t *testing.T) {
 		DoAndReturn(func(_ context.Context, _ domain.UserID, fn func(*domain.User) error) error {
 			return fn(existing)
 		})
-
-	bus := events.NewEventBus(&testutil.NoopPublisher{})
-	create := app.NewCreateUserHandler(mockRepo, &testutil.StubHasher{}, bus)
-	get := app.NewGetUserHandler(mockRepo)
-	list := app.NewListUsersHandler(mockRepo)
-	update := app.NewUpdateUserHandler(mockRepo, bus)
-	del := app.NewDeleteUserHandler(mockRepo, bus)
-
-	h := buildHandler(create, get, list, update, del)
 
 	newName := "Updated Name"
 	resp, err := h.UpdateUser(context.Background(), connect.NewRequest(&userv1.UpdateUserRequest{
@@ -190,7 +159,7 @@ func TestHandler_UpdateUser_PartialFields(t *testing.T) {
 
 func TestHandler_DeleteUser_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	mockRepo := mocks.NewMockUserRepository(ctrl)
+	mockRepo, h := buildTestHandlers(t, ctrl)
 
 	now := time.Now()
 	deleted := domain.Reconstitute(
@@ -200,15 +169,6 @@ func TestHandler_DeleteUser_Success(t *testing.T) {
 	mockRepo.EXPECT().
 		SoftDelete(gomock.Any(), domain.UserID("id-del")).
 		Return(deleted, nil)
-
-	bus := events.NewEventBus(&testutil.NoopPublisher{})
-	create := app.NewCreateUserHandler(mockRepo, &testutil.StubHasher{}, bus)
-	get := app.NewGetUserHandler(mockRepo)
-	list := app.NewListUsersHandler(mockRepo)
-	update := app.NewUpdateUserHandler(mockRepo, bus)
-	del := app.NewDeleteUserHandler(mockRepo, bus)
-
-	h := buildHandler(create, get, list, update, del)
 
 	resp, err := h.DeleteUser(context.Background(), connect.NewRequest(&userv1.DeleteUserRequest{
 		Id: "id-del",
@@ -223,20 +183,11 @@ func TestHandler_DeleteUser_Success(t *testing.T) {
 
 func TestHandler_DeleteUser_NotFound(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	mockRepo := mocks.NewMockUserRepository(ctrl)
+	mockRepo, h := buildTestHandlers(t, ctrl)
 
 	mockRepo.EXPECT().
 		SoftDelete(gomock.Any(), domain.UserID("no-such-id")).
 		Return(nil, sharederr.ErrNotFound())
-
-	bus := events.NewEventBus(&testutil.NoopPublisher{})
-	create := app.NewCreateUserHandler(mockRepo, &testutil.StubHasher{}, bus)
-	get := app.NewGetUserHandler(mockRepo)
-	list := app.NewListUsersHandler(mockRepo)
-	update := app.NewUpdateUserHandler(mockRepo, bus)
-	del := app.NewDeleteUserHandler(mockRepo, bus)
-
-	h := buildHandler(create, get, list, update, del)
 
 	_, err := h.DeleteUser(context.Background(), connect.NewRequest(&userv1.DeleteUserRequest{
 		Id: "no-such-id",

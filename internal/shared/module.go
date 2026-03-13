@@ -33,7 +33,10 @@ func registerOTelShutdown(lc fx.Lifecycle, tp *sdktrace.TracerProvider, mp *sdkm
 			if err := mp.Shutdown(ctx); err != nil {
 				slog.Warn("meter provider shutdown error", "err", err)
 			}
-			return tp.Shutdown(ctx)
+			if err := tp.Shutdown(ctx); err != nil {
+				slog.ErrorContext(ctx, "tracer shutdown failed", "err", err)
+			}
+			return nil
 		},
 	})
 }

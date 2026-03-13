@@ -1,6 +1,7 @@
 package audit
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/netip"
@@ -11,14 +12,19 @@ import (
 	sqlcgen "github.com/gnha/golang-echo-boilerplate/gen/sqlc"
 )
 
+// auditWriter persists audit log entries.
+type auditWriter interface {
+	CreateAuditLog(ctx context.Context, params sqlcgen.CreateAuditLogParams) error
+}
+
 // Handler processes audit-related events.
 type Handler struct {
-	queries *sqlcgen.Queries
+	writer auditWriter
 }
 
 // NewHandler constructs the audit handler.
-func NewHandler(queries *sqlcgen.Queries) *Handler {
-	return &Handler{queries: queries}
+func NewHandler(writer auditWriter) *Handler {
+	return &Handler{writer: writer}
 }
 
 // parseIPAddress parses a string IP into *netip.Addr for the audit log.
@@ -63,7 +69,7 @@ func (h *Handler) handleAuditEvent(msg *message.Message, userID, actorID, ipAddr
 		msgID = uuid.New()
 	}
 
-	return h.queries.CreateAuditLog(msg.Context(), sqlcgen.CreateAuditLogParams{
+	return h.writer.CreateAuditLog(msg.Context(), sqlcgen.CreateAuditLogParams{
 		ID:         msgID,
 		EntityType: "user",
 		EntityID:   entityID,

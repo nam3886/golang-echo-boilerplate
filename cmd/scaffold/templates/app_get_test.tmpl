@@ -17,7 +17,7 @@ func TestGet{{.NameTitle}}Handler_Success(t *testing.T) {
 	mockRepo := mocks.NewMock{{.NameTitle}}Repository(ctrl)
 
 	now := time.Now()
-	entity := domain.Reconstitute("entity-id-1", "Test Name", now, now, nil)
+	entity := domain.Reconstitute(domain.{{.NameID}}("entity-id-1"), "Test Name", now, now, nil)
 	mockRepo.EXPECT().
 		GetByID(gomock.Any(), domain.{{.NameID}}("entity-id-1")).
 		Return(entity, nil)

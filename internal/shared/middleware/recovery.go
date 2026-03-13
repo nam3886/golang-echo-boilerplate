@@ -40,7 +40,7 @@ func Recovery() echo.MiddlewareFunc {
 					if len(stackStr) > maxStackLog {
 						stackStr = stackStr[:maxStackLog] + "\n...[stack truncated]"
 					}
-					slog.Error("panic recovered",
+					slog.ErrorContext(c.Request().Context(), "panic recovered",
 						"error", panicStr,
 						"stack", stackStr,
 						"path", c.Request().URL.Path,

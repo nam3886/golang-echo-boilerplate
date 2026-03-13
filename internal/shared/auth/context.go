@@ -25,6 +25,8 @@ func WithUser(ctx context.Context, claims *TokenClaims) context.Context {
 }
 
 // UserFromContext extracts the authenticated user from context.
+// Returns nil if no user is present (e.g., unauthenticated request).
+// Callers MUST nil-check the result before use.
 func UserFromContext(ctx context.Context) *AuthUser {
 	if u, ok := ctx.Value(userContextKey).(*AuthUser); ok {
 		return u

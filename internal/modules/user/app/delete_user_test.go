@@ -73,9 +73,8 @@ func TestDeleteUserHandler_NotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected not found error, got nil")
 	}
-	var domErr *sharederr.DomainError
-	if !errors.As(err, &domErr) || domErr.Code != sharederr.CodeNotFound {
-		t.Errorf("expected CodeNotFound, got %v", err)
+	if !errors.Is(err, sharederr.ErrNotFound()) {
+		t.Errorf("expected ErrNotFound, got %v", err)
 	}
 }
 
@@ -96,9 +95,8 @@ func TestDeleteUserHandler_AlreadyDeleted(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for already-deleted user")
 	}
-	var domErr *sharederr.DomainError
-	if !errors.As(err, &domErr) || domErr.Code != sharederr.CodeNotFound {
-		t.Errorf("expected CodeNotFound, got %v", err)
+	if !errors.Is(err, sharederr.ErrNotFound()) {
+		t.Errorf("expected ErrNotFound, got %v", err)
 	}
 }
 

@@ -65,6 +65,9 @@ func ValidateAccessToken(cfg *config.Config, tokenStr string) (*TokenClaims, err
 }
 
 // GenerateRefreshToken creates a cryptographically random refresh token.
+// NOTE: This generates a random opaque token but does NOT persist it server-side.
+// No storage, rotation, or revocation is implemented. Callers must implement
+// their own refresh token storage before using this in production.
 func GenerateRefreshToken() (string, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {

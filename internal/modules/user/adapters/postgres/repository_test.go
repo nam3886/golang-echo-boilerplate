@@ -108,6 +108,80 @@ func TestPgUserRepository_SoftDelete(t *testing.T) {
 	}
 }
 
+func TestPgUserRepository_Update_Success(t *testing.T) {
+	repo := setupRepo(t)
+	ctx := context.Background()
+
+	user := createTestUser(t, "update-ok@example.com")
+	if err := repo.Create(ctx, user); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	err := repo.Update(ctx, user.ID(), func(u *domain.User) error {
+		return u.ChangeName("Updated Name")
+	})
+	if err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+
+	got, err := repo.GetByID(ctx, user.ID())
+	if err != nil {
+		t.Fatalf("GetByID after Update: %v", err)
+	}
+	if got.Name() != "Updated Name" {
+		t.Errorf("expected name=Updated Name, got %s", got.Name())
+	}
+}
+
+func TestPgUserRepository_Update_NotFound(t *testing.T) {
+	repo := setupRepo(t)
+	ctx := context.Background()
+
+	err := repo.Update(ctx, domain.UserID("00000000-0000-0000-0000-000000000000"), func(u *domain.User) error {
+		return u.ChangeName("Should Not Reach")
+	})
+	if err == nil {
+		t.Fatal("expected not found error")
+	}
+	if !errors.Is(err, sharederr.ErrNotFound()) {
+		t.Errorf("expected ErrNotFound, got %v", err)
+	}
+}
+
+func TestPgUserRepository_GetByEmail_Success(t *testing.T) {
+	repo := setupRepo(t)
+	ctx := context.Background()
+
+	user := createTestUser(t, "byemail@example.com")
+	if err := repo.Create(ctx, user); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	got, err := repo.GetByEmail(ctx, "byemail@example.com")
+	if err != nil {
+		t.Fatalf("GetByEmail: %v", err)
+	}
+	if got.ID() != user.ID() {
+		t.Errorf("ID mismatch: got %s, want %s", got.ID(), user.ID())
+	}
+	if got.Email() != "byemail@example.com" {
+		t.Errorf("Email mismatch: got %s", got.Email())
+	}
+}
+
+func TestPgUserRepository_GetByEmail_NotFound(t *testing.T) {
+	repo := setupRepo(t)
+	ctx := context.Background()
+
+	_, err := repo.GetByEmail(ctx, "nobody@example.com")
+	if err == nil {
+		t.Fatal("expected not found error")
+	}
+	if !errors.Is(err, sharederr.ErrNotFound()) {
+		t.Errorf("expected ErrNotFound, got %v", err)
+	}
+}
+
 func TestPgUserRepository_List_Pagination(t *testing.T) {
 	repo := setupRepo(t)
 	ctx := context.Background()
