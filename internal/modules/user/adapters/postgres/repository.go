@@ -35,7 +35,7 @@ func (r *PgUserRepository) GetByID(ctx context.Context, id domain.UserID) (*doma
 	row, err := q.GetUserByID(ctx, uid)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, sharederr.ErrNotFound()
+			return nil, domain.ErrUserNotFound()
 		}
 		return nil, fmt.Errorf("getting user by id: %w", err)
 	}
@@ -47,7 +47,7 @@ func (r *PgUserRepository) GetByEmail(ctx context.Context, email string) (*domai
 	row, err := q.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, sharederr.ErrNotFound()
+			return nil, domain.ErrUserNotFound()
 		}
 		return nil, fmt.Errorf("getting user by email: %w", err)
 	}
@@ -125,7 +125,7 @@ func (r *PgUserRepository) Update(ctx context.Context, id domain.UserID, fn func
 	row, err := q.GetUserByIDForUpdate(ctx, uid)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return sharederr.ErrNotFound()
+			return domain.ErrUserNotFound()
 		}
 		return fmt.Errorf("fetching user for update: %w", err)
 	}
@@ -176,7 +176,7 @@ func (r *PgUserRepository) SoftDelete(ctx context.Context, id domain.UserID) (*d
 	row, err := q.SoftDeleteUser(ctx, uid)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, sharederr.ErrNotFound()
+			return nil, domain.ErrUserNotFound()
 		}
 		return nil, fmt.Errorf("soft deleting user: %w", err)
 	}

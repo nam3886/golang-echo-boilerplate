@@ -70,7 +70,7 @@ func (h *CreateUserHandler) Handle(ctx context.Context, cmd CreateUserCmd) (_ *d
 	// Fast-path: check email availability before expensive password hashing.
 	// The DB unique constraint (idx_users_email_active) is the authoritative guard against races.
 	existing, err := h.repo.GetByEmail(ctx, cmd.Email)
-	if err != nil && !errors.Is(err, sharederr.ErrNotFound()) {
+	if err != nil && !errors.Is(err, domain.ErrUserNotFound()) {
 		return nil, fmt.Errorf("checking email: %w", err)
 	}
 	if existing != nil {

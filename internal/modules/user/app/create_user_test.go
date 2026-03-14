@@ -32,7 +32,7 @@ func TestCreateUserHandler_Success(t *testing.T) {
 	// GetByEmail returns not found (email available)
 	mockRepo.EXPECT().
 		GetByEmail(gomock.Any(), "new@example.com").
-		Return(nil, sharederr.ErrNotFound())
+		Return(nil, domain.ErrUserNotFound())
 
 	// Create succeeds
 	mockRepo.EXPECT().
@@ -93,7 +93,7 @@ func TestCreateUserHandler_InvalidRole(t *testing.T) {
 	// Email check returns not found (role validation happens after)
 	mockRepo.EXPECT().
 		GetByEmail(gomock.Any(), "user@example.com").
-		Return(nil, sharederr.ErrNotFound())
+		Return(nil, domain.ErrUserNotFound())
 
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewCreateUserHandler(mockRepo, &testutil.StubHasher{}, bus)
@@ -118,7 +118,7 @@ func TestCreateUserHandler_HasherFailure(t *testing.T) {
 
 	mockRepo.EXPECT().
 		GetByEmail(gomock.Any(), "user@example.com").
-		Return(nil, sharederr.ErrNotFound())
+		Return(nil, domain.ErrUserNotFound())
 
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewCreateUserHandler(mockRepo, &testutil.FailHasher{}, bus)
@@ -140,7 +140,7 @@ func TestCreateUserHandler_RepoCreateFailure(t *testing.T) {
 
 	mockRepo.EXPECT().
 		GetByEmail(gomock.Any(), "user@example.com").
-		Return(nil, sharederr.ErrNotFound())
+		Return(nil, domain.ErrUserNotFound())
 
 	mockRepo.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
@@ -166,7 +166,7 @@ func TestCreateUserHandler_PublishesEventOnSuccess(t *testing.T) {
 
 	mockRepo.EXPECT().
 		GetByEmail(gomock.Any(), "user@example.com").
-		Return(nil, sharederr.ErrNotFound())
+		Return(nil, domain.ErrUserNotFound())
 
 	mockRepo.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
@@ -206,7 +206,7 @@ func TestCreateUserHandler_EventPublishFailure_DoesNotFail(t *testing.T) {
 
 	mockRepo.EXPECT().
 		GetByEmail(gomock.Any(), "user@example.com").
-		Return(nil, sharederr.ErrNotFound())
+		Return(nil, domain.ErrUserNotFound())
 
 	mockRepo.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
