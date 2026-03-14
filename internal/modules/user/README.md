@@ -28,6 +28,10 @@ module.go        — fx.Module wiring
 | `user.updated` | `UserUpdatedEvent` | After field change (skipped if nothing changed) |
 | `user.deleted` | `UserDeletedEvent` | After SoftDelete |
 
+## Pagination
+
+⚠️ `page_size` is clamped server-side: `0 → 20`, `>100 → 100`. The effective `page_size` is reflected back in the response — clients must not assume the requested value was honored.
+
 ## Dependencies
 
 - `internal/shared/auth` — JWT, password hashing, context helpers
