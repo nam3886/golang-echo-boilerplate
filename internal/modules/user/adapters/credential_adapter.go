@@ -9,27 +9,6 @@ import (
 	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
 )
 
-// rolePermissions maps each role to its granted permissions.
-// Must stay in sync with internal/shared/middleware/rbac.go permission constants.
-var rolePermissions = map[domain.Role][]string{
-	domain.RoleAdmin:  {"admin:*"},
-	domain.RoleMember: {"user:read", "user:write"},
-	domain.RoleViewer: {"user:read"},
-}
-
-// PermissionsForRole returns the permissions granted to a given role.
-// Exported for use by the auth module's login handler.
-func PermissionsForRole(role string) []string {
-	perms, ok := rolePermissions[domain.Role(role)]
-	if !ok {
-		return nil
-	}
-	// Return a copy to prevent caller mutation.
-	out := make([]string, len(perms))
-	copy(out, perms)
-	return out
-}
-
 // CredentialAdapter implements auth.CredentialLookup using the user repository.
 type CredentialAdapter struct {
 	repo domain.UserRepository
@@ -49,7 +28,7 @@ func NewCredentialAdapter(repo domain.UserRepository) *CredentialAdapter {
 func (a *CredentialAdapter) GetByEmail(ctx context.Context, email string) (userID, hashedPassword, role string, err error) {
 	user, err := a.repo.GetByEmail(ctx, email)
 	if err != nil {
-		if errors.Is(err, sharederr.ErrNotFound()) {
+		if errors.Is(err, domain.ErrUserNotFound()) {
 			return "", "", "", sharederr.ErrNotFound()
 		}
 		return "", "", "", fmt.Errorf("credential lookup: %w", err)

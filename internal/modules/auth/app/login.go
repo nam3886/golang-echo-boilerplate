@@ -10,7 +10,6 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 
-	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/adapters"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/config"
 	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
@@ -88,7 +87,7 @@ func (h *LoginHandler) Handle(ctx context.Context, cmd LoginCmd) (_ LoginResult,
 		return LoginResult{}, ErrInvalidCredentials()
 	}
 
-	permissions := adapters.PermissionsForRole(role)
+	permissions := auth.PermissionsForRole(role)
 
 	accessToken, err := auth.GenerateAccessToken(h.cfg, userID, role, permissions)
 	if err != nil {
