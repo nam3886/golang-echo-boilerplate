@@ -26,7 +26,9 @@ func NewTracerProvider(cfg *config.Config, version config.AppVersion) (*sdktrace
 			propagation.Baggage{},
 		))
 		otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
-			slog.Error("otel internal error", "err", err)
+			slog.Error("otel internal error",
+				"module", "observability", "operation", "OtelInternal",
+				"error_code", "otel_error", "retryable", false, "err", err)
 		}))
 		return tp, nil
 	}
@@ -56,7 +58,9 @@ func NewTracerProvider(cfg *config.Config, version config.AppVersion) (*sdktrace
 		propagation.Baggage{},
 	))
 	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
-		slog.Error("otel internal error", "err", err)
+		slog.Error("otel internal error",
+			"module", "observability", "operation", "OtelInternal",
+			"error_code", "otel_error", "retryable", false, "err", err)
 	}))
 
 	return tp, nil

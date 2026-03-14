@@ -33,6 +33,8 @@ func DomainErrorToConnect(ctx context.Context, err error) error {
 		}
 		return connect.NewError(code, errors.New(domErr.Message))
 	}
-	slog.ErrorContext(ctx, "unhandled internal error", "err", err)
+	slog.ErrorContext(ctx, "unhandled internal error",
+		"module", "connectutil", "operation", "DomainErrorToConnect",
+		"error_code", "internal", "retryable", false, "err", err)
 	return connect.NewError(connect.CodeInternal, errors.New("internal error"))
 }

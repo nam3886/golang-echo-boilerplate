@@ -99,7 +99,9 @@ func StartRouter(lc fx.Lifecycle, router *message.Router, shutdowner fx.Shutdown
 			ctx, cancel = context.WithCancel(context.Background())
 			go func() {
 				if err := router.Run(ctx); err != nil {
-					slog.Error("watermill router fatal error, initiating shutdown", "err", err)
+					slog.Error("watermill router fatal error, initiating shutdown",
+						"module", "events", "operation", "RouterRun",
+						"error_code", "router_fatal", "retryable", false, "err", err)
 					cancel()
 					_ = shutdowner.Shutdown(fx.ExitCode(1))
 				}

@@ -46,7 +46,9 @@ func RateLimit(rdb *redis.Client, limit int, window time.Duration) echo.Middlewa
 			if err != nil {
 				// Fail open: rate limiting is a best-effort control.
 				// A Redis outage must not bring down the service.
-				slog.ErrorContext(c.Request().Context(), "rate limiter redis error", "err", err)
+				slog.ErrorContext(c.Request().Context(), "rate limiter redis error",
+					"module", "middleware", "operation", "RateLimit",
+					"error_code", "redis_unavailable", "retryable", true, "err", err)
 				return next(c)
 			}
 			if count > int64(limit) {
