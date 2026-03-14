@@ -58,9 +58,6 @@ func TestLoginHandler_Success(t *testing.T) {
 	if result.AccessToken == "" {
 		t.Error("expected non-empty access token")
 	}
-	if result.RefreshToken == "" {
-		t.Error("expected non-empty refresh token")
-	}
 	if result.ExpiresIn <= 0 {
 		t.Errorf("expected positive expires_in, got %d", result.ExpiresIn)
 	}

@@ -46,7 +46,7 @@ func (h *Update{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Update{{.N
 	defer span.End()
 
 	if cmd.ID == "" {
-		return nil, sharederr.New(sharederr.CodeInvalidArgument, "{{.Name}}.id_required", "{{.Name}} ID is required")
+		return nil, domain.Err{{.NameTitle}}IDRequired()
 	}
 	// Skip DB lock entirely when no fields are provided.
 	if cmd.Name == nil {
@@ -84,7 +84,7 @@ func (h *Update{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Update{{.N
 		return updated, nil
 	}
 
-	if err := h.bus.Publish(ctx, domain.Topic{{.NameTitle}}Updated, domain.{{.NameTitle}}UpdatedEvent{
+	if pubErr := h.bus.Publish(ctx, domain.Topic{{.NameTitle}}Updated, domain.{{.NameTitle}}UpdatedEvent{
 		Version:         1,
 		{{.NameTitle}}ID: cmd.ID,
 		Name:            updated.Name(),
@@ -92,9 +92,11 @@ func (h *Update{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Update{{.N
 		ChangedFields:   changedFields,
 		IPAddress:       netutil.GetClientIP(ctx),
 		At:              updated.UpdatedAt(),
-	}); err != nil {
+	}); pubErr != nil {
 		slog.ErrorContext(ctx, "failed to publish {{.Name}}.updated event",
-			"{{.Name}}_id", cmd.ID, "err", err)
+			"module", "{{.Name}}", "operation", "Update{{.NameTitle}}Handler",
+			"{{.Name}}_id", cmd.ID, "error_code", "event_publish_failed",
+			"retryable", true, "err", pubErr)
 	}
 
 	return updated, nil

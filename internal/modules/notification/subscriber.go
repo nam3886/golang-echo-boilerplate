@@ -18,6 +18,8 @@ import (
 const dedupTTL = 24 * time.Hour
 
 // Handler processes notification-related events.
+// Required: sender
+// Optional: rdb (Redis dedup — nil disables dedup; fail-open if Redis is unavailable)
 type Handler struct {
 	sender Sender
 	tmpl   *template.Template
@@ -25,7 +27,11 @@ type Handler struct {
 }
 
 // NewHandler constructs the notification handler.
+// Panics if sender is nil. rdb is optional — nil disables dedup entirely.
 func NewHandler(sender Sender, rdb *redis.Client) *Handler {
+	if sender == nil {
+		panic("notification.NewHandler: sender must not be nil")
+	}
 	tmpl := template.Must(template.New("welcome").Parse(welcomeTemplate))
 	return &Handler{sender: sender, tmpl: tmpl, rdb: rdb}
 }
@@ -37,16 +43,19 @@ func (h *Handler) HandleUserCreated(msg *message.Message) error {
 	ctx := msg.Context()
 
 	// Dedup: SET NX with 24h TTL — skip if already processed.
-	// nolint:staticcheck // SetNX works fine despite deprecation warning
-	ok, err := h.rdb.SetNX(ctx, "notification:dedup:"+msg.UUID, "1", dedupTTL).Result()
-	if err != nil {
-		// Fail-open: Redis issue should not block email delivery.
-		slog.WarnContext(ctx, "notification: dedup check failed, proceeding to send",
-			"module", "notification", "msg_id", msg.UUID, "err", err)
-	} else if !ok {
-		slog.InfoContext(ctx, "notification: duplicate message, skipping",
-			"module", "notification", "msg_id", msg.UUID)
-		return nil
+	// Skipped entirely when rdb is nil (dedup disabled).
+	if h.rdb != nil {
+		// nolint:staticcheck // SetNX works fine despite deprecation warning
+		ok, err := h.rdb.SetNX(ctx, "notification:dedup:"+msg.UUID, "1", dedupTTL).Result()
+		if err != nil {
+			// Fail-open: Redis issue should not block email delivery.
+			slog.WarnContext(ctx, "notification: dedup check failed, proceeding to send",
+				"module", "notification", "msg_id", msg.UUID, "err", err)
+		} else if !ok {
+			slog.InfoContext(ctx, "notification: duplicate message, skipping",
+				"module", "notification", "msg_id", msg.UUID)
+			return nil
+		}
 	}
 
 	var event contracts.UserCreatedEvent

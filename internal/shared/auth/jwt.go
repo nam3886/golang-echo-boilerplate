@@ -1,8 +1,6 @@
 package auth
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"time"
 
@@ -63,16 +61,4 @@ func ValidateAccessToken(cfg *config.Config, tokenStr string) (*TokenClaims, err
 		return nil, fmt.Errorf("invalid token claims")
 	}
 	return claims, nil
-}
-
-// GenerateRefreshToken creates a cryptographically random refresh token.
-// NOTE: This generates a random opaque token but does NOT persist it server-side.
-// No storage, rotation, or revocation is implemented. Callers must implement
-// their own refresh token storage before using this in production.
-func GenerateRefreshToken() (string, error) {
-	b := make([]byte, 32)
-	if _, err := rand.Read(b); err != nil {
-		return "", fmt.Errorf("generating refresh token: %w", err)
-	}
-	return base64.URLEncoding.EncodeToString(b), nil
 }

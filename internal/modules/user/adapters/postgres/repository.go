@@ -65,7 +65,7 @@ func (r *PgUserRepository) List(ctx context.Context, page, pageSize int) (domain
 
 	offset := (page - 1) * pageSize
 	if offset > math.MaxInt32 || pageSize > math.MaxInt32 {
-		return domain.ListResult{}, sharederr.New(sharederr.CodeInvalidArgument, "user.invalid_pagination", "pagination values too large")
+		return domain.ListResult{}, domain.ErrInvalidPagination()
 	}
 	rows, err := q.ListUsersWithTotal(ctx, sqlcgen.ListUsersWithTotalParams{
 		Limit:  int32(pageSize),

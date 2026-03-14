@@ -40,9 +40,8 @@ func (h *AuthServiceHandler) Login(ctx context.Context, req *connect.Request[aut
 		return nil, connectutil.DomainErrorToConnect(ctx, err)
 	}
 	return connect.NewResponse(&authv1.LoginResponse{
-		AccessToken:  result.AccessToken,
-		RefreshToken: result.RefreshToken,
-		ExpiresIn:    result.ExpiresIn,
+		AccessToken: result.AccessToken,
+		ExpiresIn:   result.ExpiresIn,
 	}), nil
 }
 

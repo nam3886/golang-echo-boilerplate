@@ -46,3 +46,13 @@ func ErrUserNotFound() *sharederr.DomainError {
 func ErrEmailTaken() *sharederr.DomainError {
 	return sharederr.New(sharederr.CodeAlreadyExists, "user.email_taken", "email already taken")
 }
+
+// ErrInvalidUserID indicates the user ID is not a valid UUID.
+func ErrInvalidUserID() *sharederr.DomainError {
+	return sharederr.New(sharederr.CodeInvalidArgument, "user.invalid_id", "invalid user ID format")
+}
+
+// ErrInvalidPagination indicates the pagination values would overflow int32.
+func ErrInvalidPagination() *sharederr.DomainError {
+	return sharederr.New(sharederr.CodeInvalidArgument, "user.invalid_pagination", "pagination values too large")
+}

@@ -31,9 +31,8 @@ type LoginCmd struct {
 
 // LoginResult holds the tokens issued on successful login.
 type LoginResult struct {
-	AccessToken  string
-	RefreshToken string
-	ExpiresIn    int64 // seconds until access token expiry
+	AccessToken string
+	ExpiresIn   int64 // seconds until access token expiry
 }
 
 // LoginHandler handles user authentication.
@@ -77,6 +76,10 @@ func (h *LoginHandler) Handle(ctx context.Context, cmd LoginCmd) (_ LoginResult,
 	userID, hashedPwd, role, err := h.lookup.GetByEmail(ctx, cmd.Email)
 	if err != nil {
 		if errors.Is(err, sharederr.ErrNotFound()) {
+			slog.WarnContext(ctx, "login failed: unknown email",
+				"module", "auth", "operation", "LoginHandler",
+				"error_code", "invalid_credentials", "ip", netutil.GetClientIP(ctx),
+				"retryable", false)
 			return LoginResult{}, ErrInvalidCredentials()
 		}
 		return LoginResult{}, fmt.Errorf("credential lookup: %w", err)
@@ -84,6 +87,10 @@ func (h *LoginHandler) Handle(ctx context.Context, cmd LoginCmd) (_ LoginResult,
 
 	match, err := h.hasher.Verify(cmd.Password, hashedPwd)
 	if err != nil || !match {
+		slog.WarnContext(ctx, "login failed: wrong password",
+			"module", "auth", "operation", "LoginHandler",
+			"error_code", "invalid_credentials", "ip", netutil.GetClientIP(ctx),
+			"retryable", false)
 		return LoginResult{}, ErrInvalidCredentials()
 	}
 
@@ -92,11 +99,6 @@ func (h *LoginHandler) Handle(ctx context.Context, cmd LoginCmd) (_ LoginResult,
 	accessToken, err := auth.GenerateAccessToken(h.cfg, userID, role, permissions)
 	if err != nil {
 		return LoginResult{}, fmt.Errorf("generating access token: %w", err)
-	}
-
-	refreshToken, err := auth.GenerateRefreshToken()
-	if err != nil {
-		return LoginResult{}, fmt.Errorf("generating refresh token: %w", err)
 	}
 
 	// Publish event after successful authentication (fail-open).
@@ -113,8 +115,7 @@ func (h *LoginHandler) Handle(ctx context.Context, cmd LoginCmd) (_ LoginResult,
 	}
 
 	return LoginResult{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		ExpiresIn:    int64(h.cfg.JWTAccessTTL.Seconds()),
+		AccessToken: accessToken,
+		ExpiresIn:   int64(h.cfg.JWTAccessTTL.Seconds()),
 	}, nil
 }

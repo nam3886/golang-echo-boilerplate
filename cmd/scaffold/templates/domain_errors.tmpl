@@ -28,3 +28,12 @@ func ErrInvalid{{.NameTitle}}State() *sharederr.DomainError {
 	return sharederr.New(sharederr.CodeInvalidArgument, "{{.Name}}.invalid_state", "{{.Name}} is in an invalid state")
 }
 
+// Err{{.NameTitle}}IDRequired indicates a {{.Name}} ID was not provided.
+func Err{{.NameTitle}}IDRequired() *sharederr.DomainError {
+	return sharederr.New(sharederr.CodeInvalidArgument, "{{.Name}}.id_required", "{{.Name}} ID is required")
+}
+
+// Err{{.NameTitle}}InvalidPagination indicates the pagination values would overflow int32.
+func Err{{.NameTitle}}InvalidPagination() *sharederr.DomainError {
+	return sharederr.New(sharederr.CodeInvalidArgument, "{{.Name}}.invalid_pagination", "pagination values too large")
+}

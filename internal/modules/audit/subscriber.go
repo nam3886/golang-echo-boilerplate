@@ -18,12 +18,17 @@ type auditWriter interface {
 }
 
 // Handler processes audit-related events.
+// Required: writer (audit chain breaks without a working writer)
 type Handler struct {
 	writer auditWriter
 }
 
 // NewHandler constructs the audit handler.
+// Panics if writer is nil — a nil writer panics at the first audit event instead of at startup.
 func NewHandler(writer auditWriter) *Handler {
+	if writer == nil {
+		panic("audit.NewHandler: writer must not be nil")
+	}
 	return &Handler{writer: writer}
 }
 

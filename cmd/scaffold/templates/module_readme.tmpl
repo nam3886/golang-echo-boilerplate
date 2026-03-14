@@ -28,5 +28,10 @@ module.go        — fx.Module wiring
 | Dependency | Failure | Behavior |
 |------------|---------|----------|
 | PostgreSQL | Unavailable | Fail-closed; requests return 500 |
-| RabbitMQ | Unavailable | Events not published; DB writes succeed |
-| TODO | TODO | TODO — declare each external dep here |
+| RabbitMQ | Unavailable | Events not published; DB writes succeed (fail-open) |
+
+> ⚠️ Add a row for each additional external dependency (Redis, Elasticsearch, SMTP, etc.) with explicit fail-open or fail-closed declaration.
+
+## Notes
+
+> ⚠️ `domain.Reconstitute()` is for persistence adapters only — do not call it in app handlers or domain tests. Use `domain.NewXxx()` instead.

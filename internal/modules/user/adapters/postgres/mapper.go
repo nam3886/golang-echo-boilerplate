@@ -7,7 +7,6 @@ import (
 
 	sqlcgen "github.com/gnha/golang-echo-boilerplate/gen/sqlc"
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
-	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
 	"github.com/google/uuid"
 )
 
@@ -23,7 +22,7 @@ func nullTimeToPtr(nt pgtype.Timestamptz) *time.Time {
 func parseUserID(id domain.UserID) (uuid.UUID, error) {
 	uid, err := uuid.Parse(string(id))
 	if err != nil {
-		return uuid.UUID{}, sharederr.New(sharederr.CodeInvalidArgument, "user.invalid_id", "invalid user ID format")
+		return uuid.UUID{}, domain.ErrInvalidUserID()
 	}
 	return uid, nil
 }
