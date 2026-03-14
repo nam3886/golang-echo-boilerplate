@@ -22,7 +22,12 @@ type PgUserRepository struct {
 }
 
 // NewPgUserRepository constructs the repository.
+// Panics if pool is nil — a nil pool produces a valid-looking struct that
+// crashes at the first DB call instead of at startup.
 func NewPgUserRepository(pool *pgxpool.Pool) *PgUserRepository {
+	if pool == nil {
+		panic("NewPgUserRepository: pool must not be nil")
+	}
 	return &PgUserRepository{pool: pool}
 }
 
