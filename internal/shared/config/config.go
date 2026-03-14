@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -106,6 +107,9 @@ func Load() (*Config, error) {
 	}
 	if cfg.RateLimitRPM <= 0 {
 		return nil, fmt.Errorf("RATE_LIMIT_RPM must be greater than 0 (got %d)", cfg.RateLimitRPM)
+	}
+	if cfg.IsProduction() && slices.Contains(cfg.CORSOrigins, "*") {
+		return nil, fmt.Errorf("CORS_ORIGINS=* is not allowed in production; specify explicit origins")
 	}
 	return cfg, nil
 }

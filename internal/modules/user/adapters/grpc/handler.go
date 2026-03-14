@@ -71,20 +71,13 @@ func (h *UserServiceHandler) ListUsers(ctx context.Context, req *connect.Request
 		items = append(items, toProto(u))
 	}
 
-	pageSize := int(req.Msg.PageSize)
-	if pageSize <= 0 {
-		pageSize = 20 // matches app layer default
-	}
-	if pageSize > 100 {
-		pageSize = 100
-	}
-	totalPages := result.TotalPages(pageSize)
+	totalPages := result.TotalPages(result.PageSize)
 
 	return connect.NewResponse(&userv1.ListUsersResponse{
 		Items:      items,
 		Total:      int64(result.Total),
 		Page:       req.Msg.Page,
-		PageSize:   req.Msg.PageSize,
+		PageSize:   int32(result.PageSize),
 		TotalPages: int64(totalPages),
 	}), nil
 }

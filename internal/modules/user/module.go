@@ -3,11 +3,13 @@ package user
 import (
 	"context"
 
+	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/adapters"
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/adapters/grpc"
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/adapters/postgres"
 	usersearch "github.com/gnha/golang-echo-boilerplate/internal/modules/user/adapters/search"
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/app"
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/events"
 	"go.uber.org/fx"
 )
@@ -18,6 +20,12 @@ var Module = fx.Module("user",
 		fx.Annotate(
 			postgres.NewPgUserRepository,
 			fx.As(new(domain.UserRepository)),
+		),
+	),
+	fx.Provide(
+		fx.Annotate(
+			adapters.NewCredentialAdapter,
+			fx.As(new(auth.CredentialLookup)),
 		),
 	),
 	fx.Provide(app.NewCreateUserHandler),
