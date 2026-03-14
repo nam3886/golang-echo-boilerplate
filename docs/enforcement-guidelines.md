@@ -154,8 +154,11 @@ Chọn 1 style per module — không mix:
 - **Adapter/transport** → Inline factory OK (`sharederr.New(...)`)
 
 ```bash
-# Verify: domain layer không dùng sharederr.New
-grep -r "sharederr\.New" internal/modules/user/domain/ # phải empty
+# Verify: chỉ domain/errors.go được dùng sharederr.New (bên trong named constructors).
+# Entity file và repository file KHÔNG được gọi sharederr.New trực tiếp.
+grep -r "sharederr\.New" internal/modules/user/domain/errors.go   # OK — đây là implementation
+grep -r "sharederr\.New" internal/modules/user/domain/user.go     # phải empty
+grep -r "sharederr\.New" internal/modules/user/domain/repository.go # phải empty
 ```
 
 ### CONS2 — Logging Context Propagation Mandatory 🔴
