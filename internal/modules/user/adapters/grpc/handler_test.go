@@ -325,3 +325,46 @@ func TestHandler_CreateUser_InvalidArgument(t *testing.T) {
 		t.Errorf("expected CodeInvalidArgument, got %v", ce.Code())
 	}
 }
+
+// TestHandler_ListUsers_ZeroPage verifies that page=0 is clamped to 1 by the app layer.
+func TestHandler_ListUsers_ZeroPage(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo, h := buildTestHandlers(t, ctrl)
+
+	// page=0 → clamped to 1; pageSize=0 → clamped to defaultPageSize (20)
+	mockRepo.EXPECT().
+		List(gomock.Any(), 1, 20).
+		Return(domain.ListResult{Users: nil, Total: 0}, nil)
+
+	resp, err := h.ListUsers(context.Background(), connect.NewRequest(&userv1.ListUsersRequest{
+		Page:     0,
+		PageSize: 0,
+	}))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if resp.Msg.PageSize != 20 {
+		t.Errorf("expected effective pageSize=20, got %d", resp.Msg.PageSize)
+	}
+}
+
+// TestHandler_ListUsers_OversizePageSize verifies that pageSize>100 is clamped to 100.
+func TestHandler_ListUsers_OversizePageSize(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo, h := buildTestHandlers(t, ctrl)
+
+	mockRepo.EXPECT().
+		List(gomock.Any(), 1, 100).
+		Return(domain.ListResult{Users: nil, Total: 0}, nil)
+
+	resp, err := h.ListUsers(context.Background(), connect.NewRequest(&userv1.ListUsersRequest{
+		Page:     1,
+		PageSize: 9999,
+	}))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if resp.Msg.PageSize != 100 {
+		t.Errorf("expected effective pageSize=100, got %d", resp.Msg.PageSize)
+	}
+}

@@ -873,9 +873,11 @@ if cfg.IsProduction() && slices.Contains(cfg.CORSOrigins, "*") {
     return nil, fmt.Errorf("CORS_ORIGINS=* is not allowed in production")
 }
 
-if cfg.IsProduction() && e.IPExtractor == nil {
-    log.Fatal("FATAL: rate limiter uses default IPExtractor in production; " +
-        "set e.IPExtractor = echo.ExtractIPFromXFFHeader() for accurate client IP")
+if !cfg.IsDevelopment() && e.IPExtractor == nil {
+    slog.Error("rate limiter uses default IPExtractor in staging/production; "+
+        "set e.IPExtractor = echo.ExtractIPFromXFFHeader() for accurate client IP behind reverse proxy",
+        "module", "middleware", "operation", "SetupMiddleware")
+    os.Exit(1)
 }
 ```
 

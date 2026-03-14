@@ -97,3 +97,49 @@ func TestIsPermanentSMTPError(t *testing.T) {
 		}
 	}
 }
+
+// countingSender increments a counter on each successful send.
+type countingSender struct {
+	count *int
+	err   error
+}
+
+func (s *countingSender) Send(_ context.Context, _, _, _ string) error {
+	if s.err != nil {
+		return s.err
+	}
+	*s.count++
+	return nil
+}
+
+func TestHandleUserCreated_Dedup_SkipsDuplicate(t *testing.T) {
+	// Two messages with the same UUID: second must be skipped (return nil, no send).
+	sendCount := 0
+	counter := &countingSender{count: &sendCount}
+	h := NewHandler(counter, newTestRedis(t))
+
+	msg := newMsg(validUserCreatedPayload)
+	if err := h.HandleUserCreated(msg); err != nil {
+		t.Fatalf("first call: expected nil error, got %v", err)
+	}
+	if sendCount != 1 {
+		t.Fatalf("expected 1 send after first call, got %d", sendCount)
+	}
+
+	// Replay same UUID — dedup should suppress the second send.
+	if err := h.HandleUserCreated(msg); err != nil {
+		t.Fatalf("second call: expected nil error, got %v", err)
+	}
+	if sendCount != 1 {
+		t.Errorf("expected still 1 send after duplicate, got %d (dedup failed)", sendCount)
+	}
+}
+
+func TestHandleUserCreated_NilRedis_SendsWithoutDedup(t *testing.T) {
+	// nil rdb disables dedup — message should still be delivered.
+	h := NewHandler(&stubSender{err: nil}, nil)
+	err := h.HandleUserCreated(newMsg(validUserCreatedPayload))
+	if err != nil {
+		t.Errorf("expected nil error with nil redis, got %v", err)
+	}
+}
