@@ -68,10 +68,13 @@ func (h *Handler) handleAuditEvent(msg *message.Message, userID, actorID, ipAddr
 	// ON CONFLICT (id) DO NOTHING in the query silently deduplicates retries.
 	msgID, err := uuid.Parse(msg.UUID)
 	if err != nil {
-		slog.WarnContext(msg.Context(), "audit: invalid msg UUID, idempotency compromised — retry may insert duplicate row",
+		// Fallback: derive a deterministic UUID from the raw payload so retries of the
+		// same message still collide with ON CONFLICT (id) DO NOTHING.
+		// uuid.New() (random) would defeat dedup — never use it here.
+		msgID = uuid.NewSHA1(uuid.NameSpaceOID, msg.Payload)
+		slog.WarnContext(msg.Context(), "audit: invalid msg UUID, using payload-derived deterministic ID",
 			"module", "audit", "operation", "InsertAuditLog",
-			"msg_uuid", msg.UUID, "err", err)
-		msgID = uuid.New()
+			"msg_uuid", msg.UUID, "derived_id", msgID, "err", err)
 	}
 
 	return h.writer.CreateAuditLog(msg.Context(), sqlcgen.CreateAuditLogParams{
