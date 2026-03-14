@@ -100,6 +100,29 @@ Mutation Handler (Create/Update/Delete)
 - **RBACInterceptor** — maps procedure path → required permission; fail-closed (denies unmapped procedures under registered services)
 - **protovalidate** — validates proto messages against buf/validate rules; returns INVALID_ARGUMENT on failure
 
+## Configuration Strategy
+
+All configuration lives in `internal/shared/config/config.go` as a single `Config` struct, parsed from environment variables via `caarlos0/env` struct tags at startup. There is no runtime config reloading.
+
+**Rules:**
+- Add new config fields to `Config` only — never read `os.Getenv` directly in application code
+- Required fields (no default) panic at startup if missing; optional fields carry safe defaults
+- Config is injected via Fx as `*config.Config` — never stored as package-level globals
+
+**Validation occurs at two points:**
+1. `env.Parse` — type coercion and required-field presence
+2. `config.Validate()` — cross-field business rules (e.g., TTL constraints, enum values)
+
+**Example flow for adding a new config value:**
+```go
+// 1. Add to Config struct
+type Config struct {
+    MyFeatureEnabled bool `env:"MY_FEATURE_ENABLED" envDefault:"false"`
+}
+// 2. Inject via Fx — no other steps needed
+func NewMyHandler(cfg *config.Config) *MyHandler { ... }
+```
+
 ## Key Design Decisions
 
 - **sqlc over ORM**: Type-safe SQL without runtime reflection overhead

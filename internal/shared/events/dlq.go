@@ -1,6 +1,7 @@
 package events
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 
@@ -11,7 +12,7 @@ import (
 // the given topics. Must be called at startup before subscribers begin consuming.
 // Each {topic}.dlq queue is bound to the "dlx" exchange with routing key = topic,
 // so dead-lettered messages are correctly routed instead of looping back.
-func DeclareDLQQueues(rabbitURL string, topics []string) error {
+func DeclareDLQQueues(ctx context.Context, rabbitURL string, topics []string) error {
 	conn, err := amqplib.Dial(rabbitURL)
 	if err != nil {
 		return fmt.Errorf("DLQ dial: %w", err)
@@ -38,7 +39,7 @@ func DeclareDLQQueues(rabbitURL string, topics []string) error {
 		if err := ch.QueueBind(dlqName, topic, "dlx", false, nil); err != nil {
 			return fmt.Errorf("binding queue %s to dlx: %w", dlqName, err)
 		}
-		slog.Debug("DLQ queue declared and bound", "queue", dlqName, "routing_key", topic)
+		slog.DebugContext(ctx, "DLQ queue declared and bound", "queue", dlqName, "routing_key", topic)
 	}
 	return nil
 }

@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/events"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/events/contracts"
 	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/netutil"
 )
@@ -120,7 +122,8 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (_ *d
 	}
 	if updated == nil {
 		slog.ErrorContext(ctx, "repository did not populate entity after update",
-			"module", "user", "operation", "UpdateUserHandler", "user_id", cmd.ID)
+			"module", "user", "operation", "UpdateUserHandler",
+			"user_id", cmd.ID, "error_code", "nil_entity_after_update", "retryable", false)
 		return nil, sharederr.ErrInternal()
 	}
 
@@ -130,7 +133,8 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (_ *d
 	}
 
 	if err := h.bus.Publish(ctx, domain.TopicUserUpdated, domain.UserUpdatedEvent{
-		Version:       1,
+		EventID:       uuid.NewString(),
+		Version:       contracts.EventSchemaVersion,
 		UserID:        string(updated.ID()),
 		ActorID:       auth.ActorIDFromContext(ctx),
 		Name:          updated.Name(),

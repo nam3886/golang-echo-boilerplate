@@ -67,9 +67,12 @@ func TestListUsersHandler_DefaultPageSize(t *testing.T) {
 		Return(domain.ListResult{}, nil)
 
 	handler := NewListUsersHandler(mockRepo)
-	_, err := handler.Handle(context.Background(), 0, 0)
+	result, err := handler.Handle(context.Background(), 0, 0)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
+	}
+	if result.PageSize != 20 {
+		t.Errorf("expected PageSize=20 after clamping, got %d", result.PageSize)
 	}
 }
 
@@ -83,9 +86,12 @@ func TestListUsersHandler_PageSizeCappedAt100(t *testing.T) {
 		Return(domain.ListResult{}, nil)
 
 	handler := NewListUsersHandler(mockRepo)
-	_, err := handler.Handle(context.Background(), 1, 200)
+	result, err := handler.Handle(context.Background(), 1, 200)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
+	}
+	if result.PageSize != 100 {
+		t.Errorf("expected PageSize=100 after clamping, got %d", result.PageSize)
 	}
 }
 

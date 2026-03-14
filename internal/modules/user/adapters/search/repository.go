@@ -8,14 +8,12 @@ import (
 	"log/slog"
 	"strings"
 
+	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
 	sharedsearch "github.com/gnha/golang-echo-boilerplate/internal/shared/search"
 )
 
-// Result holds search results with pagination metadata.
-type Result struct {
-	UserIDs []string
-	Total   int64
-}
+// Compile-time check: Repository must satisfy domain.UserSearch.
+var _ domain.UserSearch = (*Repository)(nil)
 
 // Repository provides search operations against the users index.
 type Repository struct {
@@ -35,9 +33,9 @@ func NewRepository(client *sharedsearch.Client) *Repository {
 }
 
 // Search performs a multi_match query on name+email with fuzziness.
-func (r *Repository) Search(ctx context.Context, query string, limit, offset int) (*Result, error) {
+func (r *Repository) Search(ctx context.Context, query string, limit, offset int) (*domain.UserSearchResult, error) {
 	if r == nil {
-		return &Result{}, nil
+		return &domain.UserSearchResult{}, nil
 	}
 
 	q := map[string]any{
@@ -48,8 +46,8 @@ func (r *Repository) Search(ctx context.Context, query string, limit, offset int
 				"fuzziness": "AUTO",
 			},
 		},
-		"from": offset,
-		"size": limit,
+		"from":    offset,
+		"size":    limit,
 		"_source": false,
 	}
 
@@ -92,7 +90,7 @@ func (r *Repository) Search(ctx context.Context, query string, limit, offset int
 		ids[i] = hit.ID
 	}
 
-	return &Result{
+	return &domain.UserSearchResult{
 		UserIDs: ids,
 		Total:   result.Hits.Total.Value,
 	}, nil
@@ -114,7 +112,8 @@ func (r *Repository) EnsureIndex(ctx context.Context) error {
 	defer func() { _ = res.Body.Close() }()
 
 	if !res.IsError() {
-		slog.InfoContext(ctx, "search: index already exists", "index", r.indexName)
+		slog.InfoContext(ctx, "search: index already exists",
+			"module", "search", "operation", "EnsureIndex", "index", r.indexName)
 		return nil
 	}
 
@@ -129,16 +128,25 @@ func (r *Repository) EnsureIndex(ctx context.Context) error {
 	defer func() { _ = res.Body.Close() }()
 
 	if res.IsError() {
-		// 400 resource_already_exists_exception means a concurrent startup beat us — treat as success.
-		// This is the only safe way to handle the TOCTOU window between Exists and Create
-		// on rolling deploys where multiple instances start simultaneously.
+		// 400 with resource_already_exists_exception means a concurrent startup beat us — treat as success.
+		// Parse the error type to avoid silently swallowing unrelated 400 errors.
 		if res.StatusCode == 400 {
-			slog.InfoContext(ctx, "search: index already exists (concurrent creation)", "index", r.indexName)
-			return nil
+			var errResp struct {
+				Error struct {
+					Type string `json:"type"`
+				} `json:"error"`
+			}
+			_ = json.NewDecoder(res.Body).Decode(&errResp)
+			if errResp.Error.Type == "resource_already_exists_exception" {
+				slog.InfoContext(ctx, "search: index already exists (concurrent creation)",
+					"module", "search", "operation", "EnsureIndex", "index", r.indexName)
+				return nil
+			}
 		}
 		return fmt.Errorf("search: create index returned %s", res.Status())
 	}
 
-	slog.InfoContext(ctx, "search: created index", "index", r.indexName)
+	slog.InfoContext(ctx, "search: created index",
+		"module", "search", "operation", "EnsureIndex", "index", r.indexName)
 	return nil
 }

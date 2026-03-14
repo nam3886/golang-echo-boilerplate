@@ -5,6 +5,10 @@ package contracts
 
 import "time"
 
+// EventSchemaVersion is the current event schema version.
+// Increment when making breaking changes; deploy subscribers before publishers.
+const EventSchemaVersion = "v1"
+
 // User event topics.
 const (
 	TopicUserCreated = "user.created"
@@ -14,8 +18,11 @@ const (
 
 // UserCreatedEvent is published when a user is created.
 type UserCreatedEvent struct {
-	// Schema version, currently 1.
-	Version   int       `json:"version"`
+	// EventID is a UUID v4 uniquely identifying this event for deduplication.
+	// Subscribers MUST use this field to detect and skip replays.
+	EventID string `json:"event_id"`
+	// Version is the schema version (e.g. "v1"). Breaking changes require a new version.
+	Version   string    `json:"version"`
 	UserID    string    `json:"user_id"`
 	ActorID   string    `json:"actor_id"`
 	Email     string    `json:"email"`
@@ -27,8 +34,10 @@ type UserCreatedEvent struct {
 
 // UserUpdatedEvent is published when a user is updated.
 type UserUpdatedEvent struct {
-	// Schema version, currently 1.
-	Version       int       `json:"version"`
+	// EventID is a UUID v4 uniquely identifying this event for deduplication.
+	EventID string `json:"event_id"`
+	// Version is the schema version.
+	Version       string    `json:"version"`
 	UserID        string    `json:"user_id"`
 	ActorID       string    `json:"actor_id"`
 	Name          string    `json:"name"`
@@ -41,8 +50,10 @@ type UserUpdatedEvent struct {
 
 // UserDeletedEvent is published when a user is soft-deleted.
 type UserDeletedEvent struct {
-	// Schema version, currently 1.
-	Version   int       `json:"version"`
+	// EventID is a UUID v4 uniquely identifying this event for deduplication.
+	EventID string `json:"event_id"`
+	// Version is the schema version.
+	Version   string    `json:"version"`
 	UserID    string    `json:"user_id"`
 	ActorID   string    `json:"actor_id"`
 	IPAddress string    `json:"ip_address,omitempty"`
@@ -57,8 +68,10 @@ const (
 
 // UserLoggedInEvent is published when a user successfully authenticates.
 type UserLoggedInEvent struct {
-	// Schema version, currently 1.
-	Version   int       `json:"version"`
+	// EventID is a UUID v4 uniquely identifying this event for deduplication.
+	EventID string `json:"event_id"`
+	// Version is the schema version.
+	Version   string    `json:"version"`
 	UserID    string    `json:"user_id"`
 	IPAddress string    `json:"ip_address,omitempty"`
 	At        time.Time `json:"at"`
@@ -66,8 +79,10 @@ type UserLoggedInEvent struct {
 
 // UserLoggedOutEvent is published when a user's token is revoked.
 type UserLoggedOutEvent struct {
-	// Schema version, currently 1.
-	Version   int       `json:"version"`
+	// EventID is a UUID v4 uniquely identifying this event for deduplication.
+	EventID string `json:"event_id"`
+	// Version is the schema version.
+	Version   string    `json:"version"`
 	UserID    string    `json:"user_id"`
 	TokenID   string    `json:"token_id"`
 	IPAddress string    `json:"ip_address,omitempty"`

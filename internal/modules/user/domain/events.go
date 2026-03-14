@@ -20,3 +20,6 @@ type UserUpdatedEvent = contracts.UserUpdatedEvent
 
 // UserDeletedEvent is re-exported from shared contracts.
 type UserDeletedEvent = contracts.UserDeletedEvent
+
+// EventSchemaVersion is the current event schema version for user domain events.
+const EventSchemaVersion = contracts.EventSchemaVersion

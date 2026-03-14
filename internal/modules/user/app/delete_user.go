@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/events"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/events/contracts"
 	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/netutil"
 )
@@ -67,7 +69,8 @@ func (h *DeleteUserHandler) Handle(ctx context.Context, id string) (err error) {
 	deletedAt := *user.DeletedAt()
 
 	if err := h.bus.Publish(ctx, domain.TopicUserDeleted, domain.UserDeletedEvent{
-		Version:   1,
+		EventID:   uuid.NewString(),
+		Version:   contracts.EventSchemaVersion,
 		UserID:    id,
 		ActorID:   auth.ActorIDFromContext(ctx),
 		IPAddress: netutil.GetClientIP(ctx),

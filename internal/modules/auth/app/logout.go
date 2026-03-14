@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 
@@ -14,26 +15,25 @@ import (
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/events"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/events/contracts"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/netutil"
-	"github.com/redis/go-redis/v9"
 )
 
 // LogoutHandler handles token revocation.
-// Required: rdb, bus
+// Required: bl, bus
 type LogoutHandler struct {
-	rdb *redis.Client
+	bl  auth.Blacklister
 	bus events.EventPublisher
 }
 
 // NewLogoutHandler constructs the handler.
 // Panics if any required dependency is nil.
-func NewLogoutHandler(rdb *redis.Client, bus events.EventPublisher) *LogoutHandler {
-	if rdb == nil {
-		panic("NewLogoutHandler: rdb must not be nil")
+func NewLogoutHandler(bl auth.Blacklister, bus events.EventPublisher) *LogoutHandler {
+	if bl == nil {
+		panic("NewLogoutHandler: bl must not be nil")
 	}
 	if bus == nil {
 		panic("NewLogoutHandler: bus must not be nil")
 	}
-	return &LogoutHandler{rdb: rdb, bus: bus}
+	return &LogoutHandler{bl: bl, bus: bus}
 }
 
 // Handle blacklists the caller's current access token.
@@ -52,7 +52,7 @@ func (h *LogoutHandler) Handle(ctx context.Context, claims *auth.TokenClaims) (e
 	}
 
 	expiry := claims.ExpiresAt.Time
-	if err := auth.BlacklistToken(ctx, h.rdb, claims.ID, expiry); err != nil {
+	if err := h.bl.Blacklist(ctx, claims.ID, expiry); err != nil {
 		return fmt.Errorf("blacklisting token: %w", err)
 	}
 
@@ -63,7 +63,8 @@ func (h *LogoutHandler) Handle(ctx context.Context, claims *auth.TokenClaims) (e
 
 	// Publish event after successful blacklist (fail-open).
 	if pubErr := h.bus.Publish(ctx, contracts.TopicUserLoggedOut, contracts.UserLoggedOutEvent{
-		Version:   1,
+		EventID:   uuid.NewString(),
+		Version:   contracts.EventSchemaVersion,
 		UserID:    claims.UserID,
 		TokenID:   claims.ID,
 		IPAddress: netutil.GetClientIP(ctx),

@@ -36,3 +36,32 @@ func IsBlacklisted(ctx context.Context, rdb *redis.Client, jti string) (bool, er
 	}
 	return n > 0, nil
 }
+
+// IsBlacklistedWithCache checks the Redis blacklist and maintains a local in-memory cache.
+// On successful Redis hit: populates cache so it survives brief Redis outages.
+// On Redis error with fail-open: consults cache — if jti is cached as blacklisted, still denies.
+// tokenExpiry is required to set correct TTL in the local cache.
+// Returns (blacklisted bool, redisErr error).
+func IsBlacklistedWithCache(
+	ctx context.Context,
+	rdb *redis.Client,
+	cache *BlacklistCache,
+	jti string,
+	tokenExpiry time.Time,
+) (blacklisted bool, err error) {
+	key := blacklistPrefix + jti
+	n, redisErr := rdb.Exists(ctx, key).Result()
+	if redisErr != nil {
+		// Redis unavailable — fall back to local cache.
+		// If jti was previously seen as blacklisted, honour that (deny).
+		// If not in cache, caller decides based on fail-open/fail-closed policy.
+		return cache.Contains(jti), fmt.Errorf("checking blacklist for %s: %w", jti, redisErr)
+	}
+
+	isBlacklisted := n > 0
+	if isBlacklisted {
+		// Populate cache so Redis-outage fallback can still deny this token.
+		cache.Set(jti, tokenExpiry)
+	}
+	return isBlacklisted, nil
+}

@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/events"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/events/contracts"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/netutil"
 
 	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
@@ -93,7 +95,8 @@ func (h *CreateUserHandler) Handle(ctx context.Context, cmd CreateUserCmd) (_ *d
 
 	// Publish event after successful DB write
 	if err := h.bus.Publish(ctx, domain.TopicUserCreated, domain.UserCreatedEvent{
-		Version:   1,
+		EventID:   uuid.NewString(),
+		Version:   contracts.EventSchemaVersion,
 		UserID:    string(user.ID()),
 		ActorID:   auth.ActorIDFromContext(ctx),
 		Email:     user.Email(),

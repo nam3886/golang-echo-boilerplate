@@ -75,8 +75,9 @@ func TestPassword_HashFormat(t *testing.T) {
 
 func TestPassword_VerifyOversized_ReturnsFalse(t *testing.T) {
 	h := auth.NewPasswordHasher()
-	oversized := strings.Repeat("a", 100) // exceeds bcrypt 72-byte limit
-	ok, err := h.Verify(oversized, "$2a$10$invalidhashbutdoesntmatter")
+	oversized := strings.Repeat("a", 100) // exceeds argon2id 72-byte limit
+	// Early-return for oversized input never reaches hash parsing, so any valid argon2id hash format works.
+	ok, err := h.Verify(oversized, "$argon2id$v=19$m=65536,t=3,p=4$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

@@ -33,7 +33,7 @@ func TestLogoutHandler_Success_BlacklistsToken(t *testing.T) {
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
-	h := NewLogoutHandler(rdb, bus)
+	h := NewLogoutHandler(auth.NewRedisBlacklister(rdb), bus)
 
 	claims := stubClaims("test-jti-001", "user-1", time.Now().Add(15*time.Minute))
 
@@ -57,7 +57,7 @@ func TestLogoutHandler_AlreadyExpiredToken_NoError(t *testing.T) {
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
-	h := NewLogoutHandler(rdb, bus)
+	h := NewLogoutHandler(auth.NewRedisBlacklister(rdb), bus)
 
 	// Expired tokens should not error — BlacklistToken is a no-op for expired tokens.
 	claims := stubClaims("expired-jti", "user-1", time.Now().Add(-1*time.Second))
@@ -73,7 +73,7 @@ func TestLogoutHandler_NilClaims_ReturnsUnauthorized(t *testing.T) {
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
-	h := NewLogoutHandler(rdb, bus)
+	h := NewLogoutHandler(auth.NewRedisBlacklister(rdb), bus)
 
 	err := h.Handle(context.Background(), nil)
 	if err == nil {
@@ -90,7 +90,7 @@ func TestLogoutHandler_EventPublishFailure_DoesNotFail(t *testing.T) {
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 
 	bus := events.NewEventBus(&testutil.FailPublisher{})
-	h := NewLogoutHandler(rdb, bus)
+	h := NewLogoutHandler(auth.NewRedisBlacklister(rdb), bus)
 
 	claims := stubClaims("test-jti-002", "user-1", time.Now().Add(15*time.Minute))
 
@@ -104,7 +104,7 @@ func TestLogoutHandler_RedisWriteFailure_ReturnsError(t *testing.T) {
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
-	h := NewLogoutHandler(rdb, bus)
+	h := NewLogoutHandler(auth.NewRedisBlacklister(rdb), bus)
 
 	claims := stubClaims("test-jti-fail", "user-1", time.Now().Add(15*time.Minute))
 
@@ -123,8 +123,8 @@ func TestLogoutHandler_NilPanics(t *testing.T) {
 	t.Cleanup(mr.Close)
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 
-	assertPanics(t, "nil rdb", func() { NewLogoutHandler(nil, bus) })
-	assertPanics(t, "nil bus", func() { NewLogoutHandler(rdb, nil) })
+	assertPanics(t, "nil bl", func() { NewLogoutHandler(nil, bus) })
+	assertPanics(t, "nil bus", func() { NewLogoutHandler(auth.NewRedisBlacklister(rdb), nil) })
 }
 
 // isUnauthorized checks if err matches the UNAUTHENTICATED domain error code.

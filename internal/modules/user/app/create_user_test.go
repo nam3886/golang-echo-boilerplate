@@ -252,6 +252,33 @@ func TestCreateUserHandler_AdminRole_Forbidden_WithoutAdminCaller(t *testing.T) 
 	}
 }
 
+// TestCreateUserHandler_InvalidEmail verifies that a malformed email address
+// is rejected by domain validation (NewUser) before any DB write.
+func TestCreateUserHandler_InvalidEmail(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMockUserRepository(ctrl)
+
+	mockRepo.EXPECT().
+		GetByEmail(gomock.Any(), "not-an-email").
+		Return(nil, domain.ErrUserNotFound())
+
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	handler := NewCreateUserHandler(mockRepo, &testutil.StubHasher{}, bus)
+
+	_, err := handler.Handle(context.Background(), CreateUserCmd{
+		Email:    "not-an-email",
+		Name:     "User",
+		Password: "secret123",
+		Role:     "member",
+	})
+	if err == nil {
+		t.Fatal("expected error for invalid email")
+	}
+	if !errors.Is(err, domain.ErrInvalidEmail()) {
+		t.Errorf("expected ErrInvalidEmail, got %v", err)
+	}
+}
+
 // TestCreateUserHandler_GetByEmailDBError verifies that a DB error on the
 // email-uniqueness check propagates as an error (not silenced).
 func TestCreateUserHandler_GetByEmailDBError(t *testing.T) {

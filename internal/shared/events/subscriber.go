@@ -80,7 +80,7 @@ func NewRouter(params RouterParams) (*message.Router, error) {
 	for _, h := range params.Handlers {
 		topics = append(topics, h.Topic)
 	}
-	if err := DeclareDLQQueues(params.Config.RabbitURL, uniqueTopics(topics)); err != nil {
+	if err := DeclareDLQQueues(context.Background(), params.Config.RabbitURL, uniqueTopics(topics)); err != nil {
 		return nil, fmt.Errorf("declaring DLQ queues: %w", err)
 	}
 

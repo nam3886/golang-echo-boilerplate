@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 
@@ -108,7 +109,8 @@ func (h *LoginHandler) Handle(ctx context.Context, cmd LoginCmd) (_ LoginResult,
 
 	// Publish event after successful authentication (fail-open).
 	if pubErr := h.bus.Publish(ctx, contracts.TopicUserLoggedIn, contracts.UserLoggedInEvent{
-		Version:   1,
+		EventID:   uuid.NewString(),
+		Version:   contracts.EventSchemaVersion,
 		UserID:    userID,
 		IPAddress: netutil.GetClientIP(ctx),
 		At:        time.Now(),

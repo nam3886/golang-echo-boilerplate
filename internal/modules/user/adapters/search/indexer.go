@@ -9,6 +9,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/events/contracts"
 	sharedsearch "github.com/gnha/golang-echo-boilerplate/internal/shared/search"
 )
 
@@ -41,6 +42,11 @@ func (ix *Indexer) HandleUserCreated(msg *message.Message) error {
 			"module", "search", "operation", "HandleUserCreated",
 			"error_code", "unmarshal_failed", "retryable", false, "err", err)
 		return nil // ack — schema mismatch won't be fixed by retrying
+	}
+	if ev.Version != contracts.EventSchemaVersion {
+		slog.WarnContext(msg.Context(), "search: unexpected event schema version",
+			"module", "search", "operation", "HandleUserCreated",
+			"expected", contracts.EventSchemaVersion, "got", ev.Version)
 	}
 
 	doc := UserDocument{
@@ -97,6 +103,11 @@ func (ix *Indexer) HandleUserUpdated(msg *message.Message) error {
 			"error_code", "unmarshal_failed", "retryable", false, "err", err)
 		return nil
 	}
+	if ev.Version != contracts.EventSchemaVersion {
+		slog.WarnContext(msg.Context(), "search: unexpected event schema version",
+			"module", "search", "operation", "HandleUserUpdated",
+			"expected", contracts.EventSchemaVersion, "got", ev.Version)
+	}
 
 	doc := map[string]any{
 		"doc": map[string]any{
@@ -151,6 +162,11 @@ func (ix *Indexer) HandleUserDeleted(msg *message.Message) error {
 			"module", "search", "operation", "HandleUserDeleted",
 			"error_code", "unmarshal_failed", "retryable", false, "err", err)
 		return nil
+	}
+	if ev.Version != contracts.EventSchemaVersion {
+		slog.WarnContext(msg.Context(), "search: unexpected event schema version",
+			"module", "search", "operation", "HandleUserDeleted",
+			"expected", contracts.EventSchemaVersion, "got", ev.Version)
 	}
 
 	res, err := ix.client.ES.Delete(

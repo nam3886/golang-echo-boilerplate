@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"log/slog"
 
 	"connectrpc.com/connect"
 	userv1 "github.com/gnha/golang-echo-boilerplate/gen/proto/user/v1"
@@ -40,6 +41,7 @@ func NewUserServiceHandler(
 var _ userv1connect.UserServiceHandler = (*UserServiceHandler)(nil)
 
 func (h *UserServiceHandler) CreateUser(ctx context.Context, req *connect.Request[userv1.CreateUserRequest]) (*connect.Response[userv1.CreateUserResponse], error) {
+	slog.DebugContext(ctx, "grpc: CreateUser called", "module", "user", "operation", "CreateUser")
 	user, err := h.createUser.Handle(ctx, app.CreateUserCmd{
 		Email:    req.Msg.Email,
 		Name:     req.Msg.Name,
@@ -53,6 +55,7 @@ func (h *UserServiceHandler) CreateUser(ctx context.Context, req *connect.Reques
 }
 
 func (h *UserServiceHandler) GetUser(ctx context.Context, req *connect.Request[userv1.GetUserRequest]) (*connect.Response[userv1.GetUserResponse], error) {
+	slog.DebugContext(ctx, "grpc: GetUser called", "module", "user", "operation", "GetUser")
 	user, err := h.getUser.Handle(ctx, req.Msg.Id)
 	if err != nil {
 		return nil, connectutil.DomainErrorToConnect(ctx, err)
@@ -61,6 +64,7 @@ func (h *UserServiceHandler) GetUser(ctx context.Context, req *connect.Request[u
 }
 
 func (h *UserServiceHandler) ListUsers(ctx context.Context, req *connect.Request[userv1.ListUsersRequest]) (*connect.Response[userv1.ListUsersResponse], error) {
+	slog.DebugContext(ctx, "grpc: ListUsers called", "module", "user", "operation", "ListUsers")
 	result, err := h.listUsers.Handle(ctx, int(req.Msg.Page), int(req.Msg.PageSize))
 	if err != nil {
 		return nil, connectutil.DomainErrorToConnect(ctx, err)
@@ -83,6 +87,7 @@ func (h *UserServiceHandler) ListUsers(ctx context.Context, req *connect.Request
 }
 
 func (h *UserServiceHandler) UpdateUser(ctx context.Context, req *connect.Request[userv1.UpdateUserRequest]) (*connect.Response[userv1.UpdateUserResponse], error) {
+	slog.DebugContext(ctx, "grpc: UpdateUser called", "module", "user", "operation", "UpdateUser")
 	cmd := app.UpdateUserCmd{ID: req.Msg.Id}
 	if req.Msg.Name != nil {
 		cmd.Name = req.Msg.Name
@@ -102,6 +107,7 @@ func (h *UserServiceHandler) UpdateUser(ctx context.Context, req *connect.Reques
 }
 
 func (h *UserServiceHandler) DeleteUser(ctx context.Context, req *connect.Request[userv1.DeleteUserRequest]) (*connect.Response[userv1.DeleteUserResponse], error) {
+	slog.DebugContext(ctx, "grpc: DeleteUser called", "module", "user", "operation", "DeleteUser")
 	if err := h.deleteUser.Handle(ctx, req.Msg.Id); err != nil {
 		return nil, connectutil.DomainErrorToConnect(ctx, err)
 	}
