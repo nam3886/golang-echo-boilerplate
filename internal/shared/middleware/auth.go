@@ -32,7 +32,9 @@ func Auth(cfg *config.Config, rdb *redis.Client) echo.MiddlewareFunc {
 			ctx := c.Request().Context()
 			blacklisted, err := auth.IsBlacklisted(ctx, rdb, claims.ID)
 			if err != nil {
-				slog.ErrorContext(ctx, "blacklist check failed", "err", err, "jti", claims.ID)
+				slog.ErrorContext(ctx, "blacklist check failed",
+					"module", "auth", "operation", "blacklist_check",
+					"user_id", claims.UserID, "jti", claims.ID, "err", err)
 				if !cfg.BlacklistFailOpen {
 					return sharederr.ErrUnauthorized()
 				}
