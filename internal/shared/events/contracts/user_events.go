@@ -48,3 +48,28 @@ type UserDeletedEvent struct {
 	IPAddress string    `json:"ip_address,omitempty"`
 	At        time.Time `json:"at"`
 }
+
+// Auth event topics.
+const (
+	TopicUserLoggedIn  = "user.logged_in"
+	TopicUserLoggedOut = "user.logged_out"
+)
+
+// UserLoggedInEvent is published when a user successfully authenticates.
+type UserLoggedInEvent struct {
+	// Schema version, currently 1.
+	Version   int       `json:"version"`
+	UserID    string    `json:"user_id"`
+	IPAddress string    `json:"ip_address,omitempty"`
+	At        time.Time `json:"at"`
+}
+
+// UserLoggedOutEvent is published when a user's token is revoked.
+type UserLoggedOutEvent struct {
+	// Schema version, currently 1.
+	Version   int       `json:"version"`
+	UserID    string    `json:"user_id"`
+	TokenID   string    `json:"token_id"`
+	IPAddress string    `json:"ip_address,omitempty"`
+	At        time.Time `json:"at"`
+}
