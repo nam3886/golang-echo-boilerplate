@@ -33,6 +33,7 @@ func NewListUsersHandler(repo domain.UserRepository) *ListUsersHandler {
 
 // Handle returns a paginated list of users.
 // ⚠️ pageSize=0 is silently clamped to 20; pageSize>100 is silently clamped to 100.
+// ⚠️ page<=0 is silently clamped to 1; page>10000 is silently clamped to 10000.
 // The effective pageSize used is returned in ListResult.PageSize.
 func (h *ListUsersHandler) Handle(ctx context.Context, page, pageSize int) (_ domain.ListResult, err error) {
 	ctx, span := otel.Tracer("user").Start(ctx, "ListUsersHandler.Handle")

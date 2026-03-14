@@ -93,6 +93,33 @@ func provideHandlers(h *Handler) []events.HandlerRegistration {
 Each handler gets its own AMQP queue (e.g., `user.created_audit.user_created`) via `SubscriberFactory`,
 ensuring it receives all published events instead of round-robin distribution.
 
+### Tier 3: Flat Infrastructure Module (Auth-style)
+
+Use for cross-cutting infrastructure concerns that expose an API but have no domain entity, no repository, and no database table.
+
+**Examples:** `auth` (login/logout/token refresh), `healthcheck`, `feature-flags`.
+
+**Structure:**
+```
+internal/modules/auth/
+├── app/                 # Use-case handlers only (no domain/ layer)
+│   ├── login.go         # Errors defined here, not in domain/
+│   └── logout.go
+├── adapters/
+│   └── grpc/            # Connect RPC handler + routes
+├── README.md            # Required: document fail modes explicitly
+└── module.go            # fx Module
+```
+
+**Key differences from Tier 1:**
+- **No `domain/` directory** — no repository interface, no entity struct, no domain events
+- **Errors defined in `app/`** — e.g., `ErrInvalidCredentials()` lives in `app/login.go`
+- **Uses shared interfaces** — depends on `internal/shared/auth` (CredentialLookup, PasswordHasher) not a module-owned repository
+- **No migrations or SQL queries** — reads from other modules' tables via shared interfaces
+- **No event publishing** — or publishes to shared topics like `contracts.TopicUserLoggedIn`
+
+**When NOT to use Tier 3:** If you need to own a table, define an entity, or expose CRUD — use Tier 1 instead.
+
 ## Manual Steps (Reference)
 
 The sections below detail what the scaffold generates, for reference.
