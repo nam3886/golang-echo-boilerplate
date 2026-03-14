@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/audit"
+	authmodule "github.com/gnha/golang-echo-boilerplate/internal/modules/auth"
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/notification"
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared"
@@ -35,6 +36,7 @@ func main() {
 		search.Module,
 		// Modules
 		user.Module,
+		authmodule.Module,
 		audit.Module,
 		notification.Module,
 		// ADD_MODULE_HERE

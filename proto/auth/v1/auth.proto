@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package auth.v1;
+
+option go_package = "github.com/gnha/golang-echo-boilerplate/gen/proto/auth/v1;authv1";
+
+import "buf/validate/validate.proto";
+
+service AuthService {
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+}
+
+message LoginRequest {
+  string email = 1 [(buf.validate.field).string.email = true];
+  string password = 2 [(buf.validate.field).string = {min_len: 8, max_len: 72}];
+}
+
+message LoginResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  int64 expires_in = 3;
+}
+
+message LogoutRequest {}
+
+message LogoutResponse {}
