@@ -26,7 +26,14 @@ type Create{{.NameTitle}}Handler struct {
 }
 
 // NewCreate{{.NameTitle}}Handler constructs the handler.
+// Panics on nil required deps so misconfigured DI wiring fails at startup, not at runtime.
 func NewCreate{{.NameTitle}}Handler(repo domain.{{.NameTitle}}Repository, bus events.EventPublisher) *Create{{.NameTitle}}Handler {
+	if repo == nil {
+		panic("NewCreate{{.NameTitle}}Handler: repo must not be nil")
+	}
+	if bus == nil {
+		panic("NewCreate{{.NameTitle}}Handler: bus must not be nil")
+	}
 	return &Create{{.NameTitle}}Handler{repo: repo, bus: bus}
 }
 

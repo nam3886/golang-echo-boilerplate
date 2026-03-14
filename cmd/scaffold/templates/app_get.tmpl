@@ -17,7 +17,11 @@ type Get{{.NameTitle}}Handler struct {
 }
 
 // NewGet{{.NameTitle}}Handler constructs the handler.
+// Panics on nil required deps so misconfigured DI wiring fails at startup, not at runtime.
 func NewGet{{.NameTitle}}Handler(repo domain.{{.NameTitle}}Repository) *Get{{.NameTitle}}Handler {
+	if repo == nil {
+		panic("NewGet{{.NameTitle}}Handler: repo must not be nil")
+	}
 	return &Get{{.NameTitle}}Handler{repo: repo}
 }
 
