@@ -66,12 +66,11 @@ type Config struct {
 	// true (fail-open): allow the request — use only when HA is more critical than security + local cache is configured.
 	BlacklistFailOpen bool `env:"BLACKLIST_FAIL_OPEN" envDefault:"false"`
 
-	// Rate limiting
-	RateLimitRPM        int           `env:"RATE_LIMIT_RPM" envDefault:"100"`
-	RateLimitWindow     time.Duration `env:"RATE_LIMIT_WINDOW" envDefault:"1m"`
-	RateLimitScope      string        `env:"RATE_LIMIT_SCOPE" envDefault:"per-ip"`
-	RateLimitAlgorithm  string        `env:"RATE_LIMIT_ALGORITHM" envDefault:"sliding-window"`
-	RateLimitDistributed bool         `env:"RATE_LIMIT_DISTRIBUTED" envDefault:"true"`
+	// Rate limiting (IP-based sliding-window, Redis-backed).
+	// Scope is fixed to per-ip: this middleware runs before Auth, so user identity is unavailable.
+	// Algorithm is fixed to sliding-window. Redis is a required dep for distributed enforcement.
+	RateLimitRPM    int           `env:"RATE_LIMIT_RPM" envDefault:"100"`
+	RateLimitWindow time.Duration `env:"RATE_LIMIT_WINDOW" envDefault:"1m"`
 
 	// CORS
 	CORSOrigins []string `env:"CORS_ORIGINS" envSeparator:"," envDefault:"http://localhost:3000"`
@@ -108,8 +107,8 @@ func Load() (*Config, error) {
 	if cfg.RateLimitRPM <= 0 {
 		return nil, fmt.Errorf("RATE_LIMIT_RPM must be greater than 0 (got %d)", cfg.RateLimitRPM)
 	}
-	if cfg.IsProduction() && slices.Contains(cfg.CORSOrigins, "*") {
-		return nil, fmt.Errorf("CORS_ORIGINS=* is not allowed in production; specify explicit origins")
+	if !cfg.IsDevelopment() && slices.Contains(cfg.CORSOrigins, "*") {
+		return nil, fmt.Errorf("CORS_ORIGINS=* is not allowed in staging/production; specify explicit origins")
 	}
 	return cfg, nil
 }
@@ -164,9 +163,6 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "BlacklistFailOpen:%v ", c.BlacklistFailOpen)
 	fmt.Fprintf(&b, "RateLimitRPM:%d ", c.RateLimitRPM)
 	fmt.Fprintf(&b, "RateLimitWindow:%s ", c.RateLimitWindow)
-	fmt.Fprintf(&b, "RateLimitScope:%s ", c.RateLimitScope)
-	fmt.Fprintf(&b, "RateLimitAlgorithm:%s ", c.RateLimitAlgorithm)
-	fmt.Fprintf(&b, "RateLimitDistributed:%v ", c.RateLimitDistributed)
 	fmt.Fprintf(&b, "CORSOrigins:%v", c.CORSOrigins)
 	b.WriteByte('}')
 	return b.String()
