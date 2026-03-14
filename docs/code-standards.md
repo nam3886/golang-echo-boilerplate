@@ -366,7 +366,9 @@ func (h *CreateUserHandler) Handle(ctx context.Context, cmd CreateUserCmd) (*dom
     }); err != nil {
         // Log event publishing failures but don't fail the handler
         slog.ErrorContext(ctx, "failed to publish user.created event",
-            "user_id", string(user.ID()), "err", err)
+            "module", "user", "operation", "CreateUserHandler",
+            "user_id", string(user.ID()), "error_code", "event_publish_failed",
+            "retryable", true, "err", err)
     }
 
     return user, nil
@@ -401,6 +403,7 @@ When a handler attempts to mutate an entity, track changed fields in a slice. If
 ```go
 var changedFields []string
 err := h.repo.Update(ctx, id, func(user *domain.User) error {
+    changedFields = nil // reset on retry — closure may be re-invoked in future
     if cmd.Name != nil && *cmd.Name != user.Name() {
         if err := user.ChangeName(*cmd.Name); err != nil {
             return err
@@ -436,6 +439,7 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*dom
     var updated *domain.User
     var changedFields []string
     err := h.repo.Update(ctx, domain.UserID(cmd.ID), func(user *domain.User) error {
+        changedFields = nil // reset on retry — closure may be re-invoked in future
         if cmd.Name != nil && *cmd.Name != user.Name() {
             if err := user.ChangeName(*cmd.Name); err != nil {
                 return err

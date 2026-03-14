@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -28,7 +29,7 @@ func stubClaims(tokenID, userID string, expiresAt time.Time) *auth.TokenClaims {
 
 func TestLogoutHandler_Success_BlacklistsToken(t *testing.T) {
 	mr, _ := miniredis.Run()
-	defer mr.Close()
+	t.Cleanup(mr.Close)
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
@@ -52,7 +53,7 @@ func TestLogoutHandler_Success_BlacklistsToken(t *testing.T) {
 
 func TestLogoutHandler_AlreadyExpiredToken_NoError(t *testing.T) {
 	mr, _ := miniredis.Run()
-	defer mr.Close()
+	t.Cleanup(mr.Close)
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
@@ -68,7 +69,7 @@ func TestLogoutHandler_AlreadyExpiredToken_NoError(t *testing.T) {
 
 func TestLogoutHandler_NilClaims_ReturnsUnauthorized(t *testing.T) {
 	mr, _ := miniredis.Run()
-	defer mr.Close()
+	t.Cleanup(mr.Close)
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
@@ -85,7 +86,7 @@ func TestLogoutHandler_NilClaims_ReturnsUnauthorized(t *testing.T) {
 
 func TestLogoutHandler_EventPublishFailure_DoesNotFail(t *testing.T) {
 	mr, _ := miniredis.Run()
-	defer mr.Close()
+	t.Cleanup(mr.Close)
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 
 	bus := events.NewEventBus(&testutil.FailPublisher{})
@@ -98,10 +99,28 @@ func TestLogoutHandler_EventPublishFailure_DoesNotFail(t *testing.T) {
 	}
 }
 
+func TestLogoutHandler_RedisWriteFailure_ReturnsError(t *testing.T) {
+	mr, _ := miniredis.Run()
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+
+	bus := events.NewEventBus(&testutil.NoopPublisher{})
+	h := NewLogoutHandler(rdb, bus)
+
+	claims := stubClaims("test-jti-fail", "user-1", time.Now().Add(15*time.Minute))
+
+	// Close Redis before the blacklist write to simulate failure.
+	mr.Close()
+
+	err := h.Handle(context.Background(), claims)
+	if err == nil {
+		t.Fatal("expected error when Redis is unavailable, got nil")
+	}
+}
+
 func TestLogoutHandler_NilPanics(t *testing.T) {
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	mr, _ := miniredis.Run()
-	defer mr.Close()
+	t.Cleanup(mr.Close)
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 
 	assertPanics(t, "nil rdb", func() { NewLogoutHandler(nil, bus) })
@@ -111,9 +130,8 @@ func TestLogoutHandler_NilPanics(t *testing.T) {
 // isUnauthorized checks if err matches the UNAUTHENTICATED domain error code.
 func isUnauthorized(err error) bool {
 	var de *sharederr.DomainError
-	if de, ok := err.(*sharederr.DomainError); ok {
+	if errors.As(err, &de) {
 		return de.Code == sharederr.CodeUnauthenticated
 	}
-	_ = de
 	return false
 }

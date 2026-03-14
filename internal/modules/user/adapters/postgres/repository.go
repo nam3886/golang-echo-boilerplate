@@ -82,6 +82,9 @@ func (r *PgUserRepository) List(ctx context.Context, page, pageSize int) (domain
 		users = append(users, toDomainFromListWithTotalRow(row))
 	}
 
+	if total > int64(math.MaxInt) {
+		return domain.ListResult{}, fmt.Errorf("listing users: total count %d exceeds platform int range", total)
+	}
 	return domain.ListResult{
 		Users: users,
 		Total: int(total),
@@ -141,6 +144,11 @@ func (r *PgUserRepository) Update(ctx context.Context, id domain.UserID, fn func
 		// Do NOT Commit: committing a no-op update holds the row lock through an
 		// unnecessary round-trip and obscures intent.
 		if errors.Is(err, sharederr.ErrNoChange()) {
+			// No mutations — rollback releases the FOR UPDATE lock.
+			// NOTE: The caller's entity retains application-layer timestamps (set by
+			// domain methods), NOT DB-authoritative ones. This is acceptable because
+			// no DB write occurred, so no RETURNING row exists. Callers relying on
+			// DB-authoritative timestamps must not use ErrNoChange entities for display.
 			return nil
 		}
 		return err

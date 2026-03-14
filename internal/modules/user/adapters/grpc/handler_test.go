@@ -214,6 +214,36 @@ func TestHandler_DeleteUser_NotFound(t *testing.T) {
 	}
 }
 
+// TestHandler_UpdateUser_InsufficientPermissions verifies that a caller without
+// user:write permission cannot update another user's profile.
+func TestHandler_UpdateUser_InsufficientPermissions(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	_, h := buildTestHandlers(t, ctrl)
+
+	// Caller has only read permission — missing user:write.
+	ctx := auth.WithUser(context.Background(), &auth.TokenClaims{
+		UserID:      "caller-id",
+		Role:        "member",
+		Permissions: []string{"user:read"},
+	})
+
+	newName := "Hacked Name"
+	_, err := h.UpdateUser(ctx, connect.NewRequest(&userv1.UpdateUserRequest{
+		Id:   "other-user-id", // not the caller's own ID
+		Name: &newName,
+	}))
+	if err == nil {
+		t.Fatal("expected connect error for insufficient permissions, got nil")
+	}
+	var ce *connect.Error
+	if !errors.As(err, &ce) {
+		t.Fatalf("expected *connect.Error, got %T", err)
+	}
+	if ce.Code() != connect.CodePermissionDenied {
+		t.Errorf("expected CodePermissionDenied, got %v", ce.Code())
+	}
+}
+
 // TestHandler_CreateUser_Forbidden verifies that creating an admin-role user
 // without an admin caller maps to CodePermissionDenied at the Connect layer.
 func TestHandler_CreateUser_Forbidden(t *testing.T) {

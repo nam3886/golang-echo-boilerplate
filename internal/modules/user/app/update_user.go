@@ -116,10 +116,12 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (_ *d
 	})
 	// err==nil && len(changedFields)==0: repo committed read-only tx (ErrNoChange), no SQL UPDATE issued.
 	if err != nil {
-		return nil, fmt.Errorf("update_user: %w", err)
+		return nil, fmt.Errorf("updating user %s: %w", cmd.ID, err)
 	}
 	if updated == nil {
-		return nil, fmt.Errorf("update_user: repository did not populate entity")
+		slog.ErrorContext(ctx, "repository did not populate entity after update",
+			"module", "user", "operation", "UpdateUserHandler", "user_id", cmd.ID)
+		return nil, sharederr.ErrInternal()
 	}
 
 	// Skip event if nothing was actually changed.

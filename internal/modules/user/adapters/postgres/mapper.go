@@ -38,8 +38,11 @@ func toDomain(row sqlcgen.User) *domain.User {
 }
 
 // toDomainFromGetRow converts a GetUserByIDRow (no password) to a domain entity.
-// Password is set to "" because this query intentionally excludes it.
-// Callers must not use Password() on entities returned by read-only queries.
+// Password is set to "" because read-only queries intentionally exclude it for security.
+//
+// ⚠️ WARNING: Do NOT call Password() on entities returned by this mapper — it will
+// return an empty string. credential_adapter.go has an explicit guard for this.
+// Any new caller that needs the password MUST use GetByEmail (toDomain, which includes password).
 func toDomainFromGetRow(row sqlcgen.GetUserByIDRow) *domain.User {
 	return domain.Reconstitute(
 		domain.UserID(row.ID.String()),

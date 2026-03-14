@@ -42,6 +42,17 @@ func NewHandler(sender Sender, rdb *redis.Client) *Handler {
 func (h *Handler) HandleUserCreated(msg *message.Message) error {
 	ctx := msg.Context()
 
+	// Unmarshal first — dedup key is only consumed for well-formed messages.
+	// Consuming the dedup slot before unmarshal would permanently block redelivery
+	// of a valid message with the same UUID if the payload was malformed on first delivery.
+	var event contracts.UserCreatedEvent
+	if err := json.Unmarshal(msg.Payload, &event); err != nil {
+		slog.ErrorContext(ctx, "notification: failed to unmarshal event",
+			"module", "notification", "err", err, "msg_id", msg.UUID,
+			"error_code", "unmarshal_failed", "retryable", false)
+		return nil // ack — schema mismatch is permanent, retrying won't help
+	}
+
 	// Dedup: SET NX with 24h TTL — skip if already processed.
 	// Skipped entirely when rdb is nil (dedup disabled).
 	if h.rdb != nil {
@@ -56,14 +67,6 @@ func (h *Handler) HandleUserCreated(msg *message.Message) error {
 				"module", "notification", "msg_id", msg.UUID)
 			return nil
 		}
-	}
-
-	var event contracts.UserCreatedEvent
-	if err := json.Unmarshal(msg.Payload, &event); err != nil {
-		slog.ErrorContext(ctx, "notification: failed to unmarshal event",
-			"module", "notification", "err", err, "msg_id", msg.UUID,
-			"error_code", "unmarshal_failed", "retryable", false)
-		return nil // ack — schema mismatch is permanent, retrying won't help
 	}
 
 	var buf bytes.Buffer

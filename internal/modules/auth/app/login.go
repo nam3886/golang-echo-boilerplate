@@ -101,6 +101,11 @@ func (h *LoginHandler) Handle(ctx context.Context, cmd LoginCmd) (_ LoginResult,
 		return LoginResult{}, fmt.Errorf("generating access token: %w", err)
 	}
 
+	// Durable audit log before event publish — logged regardless of bus availability.
+	slog.InfoContext(ctx, "login success",
+		"module", "auth", "operation", "LoginHandler",
+		"user_id", userID, "ip", netutil.GetClientIP(ctx))
+
 	// Publish event after successful authentication (fail-open).
 	if pubErr := h.bus.Publish(ctx, contracts.TopicUserLoggedIn, contracts.UserLoggedInEvent{
 		Version:   1,

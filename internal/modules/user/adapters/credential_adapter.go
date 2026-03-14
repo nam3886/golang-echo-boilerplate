@@ -33,5 +33,9 @@ func (a *CredentialAdapter) GetByEmail(ctx context.Context, email string) (userI
 		}
 		return "", "", "", fmt.Errorf("credential lookup: %w", err)
 	}
-	return string(user.ID()), user.Password(), string(user.Role()), nil
+	pwd := user.Password()
+	if pwd == "" {
+		return "", "", "", fmt.Errorf("credential lookup: password not loaded (query may exclude password column)")
+	}
+	return string(user.ID()), pwd, string(user.Role()), nil
 }

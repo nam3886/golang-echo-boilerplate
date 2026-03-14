@@ -7,7 +7,6 @@ package domain
 
 import (
 	"testing"
-	"time"
 
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/testutil"
 )
@@ -104,7 +103,6 @@ func TestUser_ChangeName_Empty(t *testing.T) {
 func TestUser_ChangeName_NoOp(t *testing.T) {
 	user, _ := NewUser("test@example.com", "Same", "hashed_pwd", RoleMember)
 	old := user.UpdatedAt()
-	time.Sleep(time.Millisecond) // ensure clock moves
 	if err := user.ChangeName("Same"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -135,7 +133,6 @@ func TestUser_ChangeRole_Invalid(t *testing.T) {
 func TestUser_ChangeRole_NoOp(t *testing.T) {
 	user, _ := NewUser("test@example.com", "Test", "hashed_pwd", RoleMember)
 	old := user.UpdatedAt()
-	time.Sleep(time.Millisecond)
 	if err := user.ChangeRole(RoleMember); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -166,7 +163,6 @@ func TestUser_ChangeEmail_Invalid(t *testing.T) {
 func TestUser_ChangeEmail_NoOp(t *testing.T) {
 	user, _ := NewUser("test@example.com", "Test", "hashed_pwd", RoleMember)
 	old := user.UpdatedAt()
-	time.Sleep(time.Millisecond)
 	if err := user.ChangeEmail("test@example.com"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

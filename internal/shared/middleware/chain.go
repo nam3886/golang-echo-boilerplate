@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"log"
 	"log/slog"
+	"os"
 	"slices"
 	"strings"
 
@@ -27,8 +27,10 @@ func SetupMiddleware(e *echo.Echo, cfg *config.Config, rdb *redis.Client) {
 	// Fatal if non-dev uses default IP extraction — spoofable X-Forwarded-For breaks
 	// rate limiting scope and audit IP attribution.
 	if !cfg.IsDevelopment() && e.IPExtractor == nil {
-		log.Fatal("FATAL: rate limiter uses default IPExtractor in staging/production; " +
-			"set e.IPExtractor = echo.ExtractIPFromXFFHeader() for accurate client IP behind reverse proxy")
+		slog.Error("rate limiter uses default IPExtractor in staging/production; "+
+			"set e.IPExtractor = echo.ExtractIPFromXFFHeader() for accurate client IP behind reverse proxy",
+			"module", "middleware", "operation", "SetupMiddleware")
+		os.Exit(1)
 	}
 
 	// 0. HTTPS redirect — enabled in staging and production. Use e.Pre() so the redirect

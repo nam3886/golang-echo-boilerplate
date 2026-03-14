@@ -56,6 +56,11 @@ func (h *LogoutHandler) Handle(ctx context.Context, claims *auth.TokenClaims) (e
 		return fmt.Errorf("blacklisting token: %w", err)
 	}
 
+	// Durable audit log before event publish — logged regardless of bus availability.
+	slog.InfoContext(ctx, "logout success",
+		"module", "auth", "operation", "LogoutHandler",
+		"user_id", claims.UserID, "token_id", claims.ID)
+
 	// Publish event after successful blacklist (fail-open).
 	if pubErr := h.bus.Publish(ctx, contracts.TopicUserLoggedOut, contracts.UserLoggedOutEvent{
 		Version:   1,

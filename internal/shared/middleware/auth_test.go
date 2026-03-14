@@ -168,6 +168,29 @@ func TestAuth_RedisFailure_Returns401(t *testing.T) {
 	}
 }
 
+func TestAuth_RedisFailure_FailOpen_Passes(t *testing.T) {
+	// Point Redis at nothing — simulates Redis being unavailable.
+	rdb := redis.NewClient(&redis.Options{Addr: "localhost:19999"})
+
+	cfg := testConfig()
+	cfg.BlacklistFailOpen = true // allow requests through when Redis is down
+
+	token, err := auth.GenerateAccessToken(cfg, "user-1", "admin", nil)
+	if err != nil {
+		t.Fatalf("generate token: %v", err)
+	}
+
+	e := newEchoWithAuth(cfg, rdb)
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected 200 with fail-open on Redis failure, got %d", rec.Code)
+	}
+}
+
 func TestAuth_SetsUserInContext(t *testing.T) {
 	mr, _ := miniredis.Run()
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})

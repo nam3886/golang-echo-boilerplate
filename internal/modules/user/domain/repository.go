@@ -50,11 +50,14 @@ type UserRepository interface {
 	// current state, then persists the result. The fn callback may mutate the user
 	// or return sharederr.ErrNoChange() to skip the SQL UPDATE.
 	// MUST return nil when fn returns ErrNoChange (no fields modified).
+	// NOTE: When ErrNoChange is returned, the entity passed to fn retains
+	// application-layer timestamps, not DB-authoritative ones (no RETURNING row).
 	// Returns ErrUserNotFound if no active user exists with the given ID.
 	//
-	// ⚠️ WARNING: fn may be retried on serialization failure. The closure MUST be
-	// idempotent and reset any accumulated state (e.g., changedFields slice) at
-	// the start of each invocation. See update_user.go for the reference pattern.
+	// NOTE: fn is currently called once. If serialization-failure retry is added
+	// in the future, the closure MUST be idempotent and reset any accumulated
+	// state (e.g., changedFields slice) at the start of each invocation.
+	// See update_user.go for the defensive reset pattern already in place.
 	Update(ctx context.Context, id UserID, fn func(*User) error) error
 
 	// SoftDelete marks the user as deleted by setting deleted_at.

@@ -748,6 +748,9 @@ Before creating, check for existing email. Return domain error if found:
 
 ```go
 existing, err := h.repo.GetByEmail(ctx, cmd.Email)
+if err != nil && !errors.Is(err, domain.ErrProductNotFound()) {
+    return nil, fmt.Errorf("checking email uniqueness: %w", err)
+}
 if existing != nil {
     return nil, domain.ErrEmailTaken()
 }

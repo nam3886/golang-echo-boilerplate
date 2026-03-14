@@ -23,9 +23,27 @@
 
 ## Important: Error Matching Behavior
 
-`DomainError.Is()` matches by error **code** (category), not by identity.
-This means `errors.Is(ErrUserNotFound(), ErrOrderNotFound())` returns `true`
-because both use `CodeNotFound`.
+`DomainError.Is()` uses **two-tier matching** based on whether both errors carry a Key:
 
-For HTTP status mapping, this is correct. For distinguishing between specific
-errors of the same category, use `errors.As()` and check the `Message` field.
+1. **Both errors have a Key** → matches by `Code == Code && Key == Key` (precise)
+2. **Either error has empty Key** → matches by `Code == Code` only (category)
+
+Examples:
+- `errors.Is(ErrUserNotFound(), ErrUserNotFound())` → `true` (same Code + Key)
+- `errors.Is(ErrUserNotFound(), ErrOrderNotFound())` → `false` (same Code, different Key)
+- `errors.Is(err, &DomainError{Code: CodeNotFound})` → `true` (category match — no Key on target)
+
+**Correct patterns:**
+```go
+// Exact match — use the keyed sentinel from the module's errors.go
+if errors.Is(err, domain.ErrUserNotFound()) { ... }
+
+// Category match — use a key-less shared sentinel
+if errors.Is(err, sharederr.ErrNotFound()) { ... } // only matches if sharederr.ErrNotFound() has Key=""
+```
+
+> ⚠️ `sharederr.ErrNotFound()` has `Key="not_found"` — so it does NOT category-match against
+> keyed module errors like `ErrUserNotFound()` (Key="user.not_found"). For category-only matching,
+> construct `sharederr.New(sharederr.CodeNotFound, "", "")` or check `errors.As` + `.Code`.
+
+For HTTP status mapping, `DomainError.HTTPStatus()` uses the Code field directly — Key is irrelevant.
