@@ -34,7 +34,17 @@ type CreateUserHandler struct {
 }
 
 // NewCreateUserHandler constructs the handler.
+// Panics if any required dependency is nil.
 func NewCreateUserHandler(repo domain.UserRepository, hasher auth.PasswordHasher, bus events.EventPublisher) *CreateUserHandler {
+	if repo == nil {
+		panic("NewCreateUserHandler: repo must not be nil")
+	}
+	if hasher == nil {
+		panic("NewCreateUserHandler: hasher must not be nil")
+	}
+	if bus == nil {
+		panic("NewCreateUserHandler: bus must not be nil")
+	}
 	return &CreateUserHandler{repo: repo, hasher: hasher, bus: bus}
 }
 

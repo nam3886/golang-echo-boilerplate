@@ -26,8 +26,10 @@ func deletedUserFixture() *domain.User {
 }
 
 func TestDeleteUserHandler_EmptyID_ReturnsError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMockUserRepository(ctrl)
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
-	h := NewDeleteUserHandler(nil, bus)
+	h := NewDeleteUserHandler(mockRepo, bus)
 	err := h.Handle(context.Background(), "")
 	if err == nil {
 		t.Fatal("expected error for empty ID")
@@ -121,8 +123,10 @@ func TestDeleteUserHandler_RepoError(t *testing.T) {
 // TestDeleteUserHandler_Forbidden_NonOwner verifies that a caller who is neither
 // the owner nor has user:delete permission receives ErrForbidden.
 func TestDeleteUserHandler_Forbidden_NonOwner(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMockUserRepository(ctrl)
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
-	handler := NewDeleteUserHandler(nil, bus)
+	handler := NewDeleteUserHandler(mockRepo, bus)
 
 	// caller is "other-user-id", target is "user-id-1"
 	ctx := auth.WithUser(context.Background(), &auth.TokenClaims{

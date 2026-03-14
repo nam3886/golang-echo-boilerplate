@@ -343,8 +343,10 @@ func memberCtx(userID string) context.Context {
 // TestUpdateUserHandler_Forbidden_NonOwnerNonAdmin verifies that a caller who is
 // neither the owner nor has user:write permission receives ErrForbidden.
 func TestUpdateUserHandler_Forbidden_NonOwnerNonAdmin(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMockUserRepository(ctrl)
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
-	handler := NewUpdateUserHandler(nil, bus)
+	handler := NewUpdateUserHandler(mockRepo, bus)
 
 	// caller is "other-user-id", target is "00000000-0000-0000-0000-000000000001"
 	_, err := handler.Handle(memberCtx("other-user-id"), UpdateUserCmd{
@@ -362,8 +364,10 @@ func TestUpdateUserHandler_Forbidden_NonOwnerNonAdmin(t *testing.T) {
 // TestUpdateUserHandler_RoleChange_Forbidden_NonAdmin verifies that a non-admin
 // caller cannot change their own role (privilege escalation guard).
 func TestUpdateUserHandler_RoleChange_Forbidden_NonAdmin(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMockUserRepository(ctrl)
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
-	handler := NewUpdateUserHandler(nil, bus)
+	handler := NewUpdateUserHandler(mockRepo, bus)
 
 	// caller is the owner ("00000000-0000-0000-0000-000000000001") but not admin
 	_, err := handler.Handle(memberCtx("00000000-0000-0000-0000-000000000001"), UpdateUserCmd{

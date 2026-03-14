@@ -23,7 +23,14 @@ type DeleteUserHandler struct {
 }
 
 // NewDeleteUserHandler constructs the handler.
+// Panics if any required dependency is nil.
 func NewDeleteUserHandler(repo domain.UserRepository, bus events.EventPublisher) *DeleteUserHandler {
+	if repo == nil {
+		panic("NewDeleteUserHandler: repo must not be nil")
+	}
+	if bus == nil {
+		panic("NewDeleteUserHandler: bus must not be nil")
+	}
 	return &DeleteUserHandler{repo: repo, bus: bus}
 }
 

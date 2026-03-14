@@ -31,7 +31,14 @@ type UpdateUserHandler struct {
 }
 
 // NewUpdateUserHandler constructs the handler.
+// Panics if any required dependency is nil.
 func NewUpdateUserHandler(repo domain.UserRepository, bus events.EventPublisher) *UpdateUserHandler {
+	if repo == nil {
+		panic("NewUpdateUserHandler: repo must not be nil")
+	}
+	if bus == nil {
+		panic("NewUpdateUserHandler: bus must not be nil")
+	}
 	return &UpdateUserHandler{repo: repo, bus: bus}
 }
 

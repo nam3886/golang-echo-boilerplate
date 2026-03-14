@@ -75,7 +75,10 @@ func NewUser(email, name, hashedPassword string, role Role) (*User, error) {
 }
 
 // Reconstitute rebuilds a User from persistence data (no validation).
-// For persistence adapters ONLY. Do not call from application code.
+//
+// ⚠️ WARNING: For persistence adapters ONLY. Bypasses all domain validation
+// (email format, name length, role validity). Calling from application code
+// will create entities in potentially invalid states.
 func Reconstitute(id UserID, email, name, password string, role Role, createdAt, updatedAt time.Time, deletedAt *time.Time) *User {
 	return &User{
 		id: id, email: email, name: name, password: password, role: role,

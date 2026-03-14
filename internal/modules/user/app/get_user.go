@@ -17,7 +17,11 @@ type GetUserHandler struct {
 }
 
 // NewGetUserHandler constructs the handler.
+// Panics if repo is nil.
 func NewGetUserHandler(repo domain.UserRepository) *GetUserHandler {
+	if repo == nil {
+		panic("NewGetUserHandler: repo must not be nil")
+	}
 	return &GetUserHandler{repo: repo}
 }
 

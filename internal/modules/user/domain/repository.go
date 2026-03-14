@@ -6,9 +6,11 @@ import "context"
 
 // ListResult holds paginated query results.
 // Users is always non-nil; empty slice for no results.
+// PageSize carries the effective (clamped) page size used for the query.
 type ListResult struct {
-	Users []*User
-	Total int
+	Users    []*User
+	Total    int
+	PageSize int
 }
 
 // TotalPages computes the total number of pages for the given page size.
@@ -48,6 +50,11 @@ type UserRepository interface {
 	// current state, then persists the result. The fn callback may mutate the user
 	// or return sharederr.ErrNoChange() to skip the SQL UPDATE.
 	// MUST return nil when fn returns ErrNoChange (no fields modified).
+	// Returns ErrUserNotFound if no active user exists with the given ID.
+	//
+	// ⚠️ WARNING: fn may be retried on serialization failure. The closure MUST be
+	// idempotent and reset any accumulated state (e.g., changedFields slice) at
+	// the start of each invocation. See update_user.go for the reference pattern.
 	Update(ctx context.Context, id UserID, fn func(*User) error) error
 
 	// SoftDelete marks the user as deleted by setting deleted_at.

@@ -232,8 +232,10 @@ func TestCreateUserHandler_EventPublishFailure_DoesNotFail(t *testing.T) {
 // TestCreateUserHandler_AdminRole_Forbidden_WithoutAdminCaller verifies that
 // creating an admin-role user without an admin caller returns ErrForbidden.
 func TestCreateUserHandler_AdminRole_Forbidden_WithoutAdminCaller(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockRepo := mocks.NewMockUserRepository(ctrl)
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
-	handler := NewCreateUserHandler(nil, &testutil.StubHasher{}, bus)
+	handler := NewCreateUserHandler(mockRepo, &testutil.StubHasher{}, bus)
 
 	// context.Background() has no caller — must be rejected before any DB call
 	_, err := handler.Handle(context.Background(), CreateUserCmd{

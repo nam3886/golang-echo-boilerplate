@@ -23,7 +23,11 @@ type ListUsersHandler struct {
 }
 
 // NewListUsersHandler constructs the handler.
+// Panics if repo is nil.
 func NewListUsersHandler(repo domain.UserRepository) *ListUsersHandler {
+	if repo == nil {
+		panic("NewListUsersHandler: repo must not be nil")
+	}
 	return &ListUsersHandler{repo: repo}
 }
 
@@ -55,5 +59,6 @@ func (h *ListUsersHandler) Handle(ctx context.Context, page, pageSize int) (_ do
 	if err != nil {
 		return domain.ListResult{}, fmt.Errorf("listing users: %w", err)
 	}
+	result.PageSize = pageSize
 	return result, nil
 }
