@@ -42,7 +42,7 @@ func (r *Repository) Search(ctx context.Context, query string, limit, offset int
 		"query": map[string]any{
 			"multi_match": map[string]any{
 				"query":     query,
-				"fields":    []string{"name", "email"},
+				"fields":    []string{"searchable"}, // mapping copies name+email into this field
 				"fuzziness": "AUTO",
 			},
 		},

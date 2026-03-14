@@ -46,7 +46,7 @@ func (ix *Indexer) HandleUserCreated(msg *message.Message) error {
 	if ev.Version != contracts.EventSchemaVersion {
 		slog.WarnContext(msg.Context(), "search: unexpected event schema version",
 			"module", "search", "operation", "HandleUserCreated",
-			"expected", contracts.EventSchemaVersion, "got", ev.Version)
+			"expected", contracts.EventSchemaVersion, "got", ev.Version, "retryable", false)
 	}
 
 	doc := UserDocument{
@@ -106,7 +106,7 @@ func (ix *Indexer) HandleUserUpdated(msg *message.Message) error {
 	if ev.Version != contracts.EventSchemaVersion {
 		slog.WarnContext(msg.Context(), "search: unexpected event schema version",
 			"module", "search", "operation", "HandleUserUpdated",
-			"expected", contracts.EventSchemaVersion, "got", ev.Version)
+			"expected", contracts.EventSchemaVersion, "got", ev.Version, "retryable", false)
 	}
 
 	doc := map[string]any{
@@ -166,7 +166,7 @@ func (ix *Indexer) HandleUserDeleted(msg *message.Message) error {
 	if ev.Version != contracts.EventSchemaVersion {
 		slog.WarnContext(msg.Context(), "search: unexpected event schema version",
 			"module", "search", "operation", "HandleUserDeleted",
-			"expected", contracts.EventSchemaVersion, "got", ev.Version)
+			"expected", contracts.EventSchemaVersion, "got", ev.Version, "retryable", false)
 	}
 
 	res, err := ix.client.ES.Delete(

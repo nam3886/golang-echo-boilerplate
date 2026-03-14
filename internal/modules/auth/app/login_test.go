@@ -154,13 +154,3 @@ func TestLoginHandler_NilPanics(t *testing.T) {
 	assertPanics(t, "nil cfg", func() { NewLoginHandler(lookup, &testutil.StubHasher{}, nil, bus) })
 	assertPanics(t, "nil bus", func() { NewLoginHandler(lookup, &testutil.StubHasher{}, cfg, nil) })
 }
-
-func assertPanics(t *testing.T, label string, fn func()) {
-	t.Helper()
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("%s: expected panic, got none", label)
-		}
-	}()
-	fn()
-}

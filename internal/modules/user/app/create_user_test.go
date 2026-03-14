@@ -253,7 +253,9 @@ func TestCreateUserHandler_AdminRole_Forbidden_WithoutAdminCaller(t *testing.T) 
 }
 
 // TestCreateUserHandler_InvalidEmail verifies that a malformed email address
-// is rejected by domain validation (NewUser) before any DB write.
+// is rejected by domain validation (NewUser) before any DB write occurs.
+// Note: GetByEmail runs first for uniqueness (a read); only then does NewUser
+// reject the malformed email — so no Create (write) is ever called.
 func TestCreateUserHandler_InvalidEmail(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockRepo := mocks.NewMockUserRepository(ctrl)

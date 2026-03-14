@@ -102,6 +102,7 @@ func TestLogoutHandler_EventPublishFailure_DoesNotFail(t *testing.T) {
 func TestLogoutHandler_RedisWriteFailure_ReturnsError(t *testing.T) {
 	mr, _ := miniredis.Run()
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = rdb.Close() })
 
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	h := NewLogoutHandler(auth.NewRedisBlacklister(rdb), bus)
