@@ -96,9 +96,60 @@ Source: `internal/shared/events/dlq.go`
 Always ack (`return nil`) on unrecoverable errors (bad schema, missing data).
 Only return errors for transient failures (network, DB, ES unavailable).
 
+## Idempotency Patterns
+
+Some event handlers require idempotency to safely handle message retries without side effects.
+
+### Notification Handler (Redis-backed Deduplication)
+
+The notification subscriber deduplicates messages using Redis SET NX:
+
+```go
+const dedupTTL = 24 * time.Hour
+
+// Set a key `notification:dedup:{msg_uuid}` with 24h TTL
+// If key already exists (message was processed before), skip processing
+inserted, err := h.rdb.SetNX(ctx, "notification:dedup:"+msg.UUID, "1", dedupTTL).Result()
+if err != nil {
+    // Fail-open: Redis issue should not block email delivery
+    slog.WarnContext(ctx, "notification: dedup check failed, proceeding to send", ...)
+} else if !inserted {
+    // Message already processed — return nil to ack
+    slog.InfoContext(ctx, "notification: duplicate message, skipping", ...)
+    return nil
+}
+```
+
+**Strategy:** Use Watermill's message UUID as the dedup key. When a message is retried, the same UUID is used and SET NX returns false, allowing the handler to skip processing and return `nil` (ack).
+
+**Fail-open behavior:** If Redis is unavailable, the error is logged as a warning and email delivery proceeds. This prioritizes availability over strict at-most-once semantics. Enable only if email duplication is acceptable and Redis HA is not available.
+
+### Audit Handler (Database-backed Idempotency)
+
+The audit subscriber uses the database's primary key constraint for idempotency:
+
+```go
+// Use Watermill message UUID as audit log primary key
+msgID, err := uuid.Parse(msg.UUID)
+if err != nil {
+    slog.WarnContext(ctx, "audit: invalid msg UUID, idempotency compromised — retry may insert duplicate row", ...)
+    msgID = uuid.New()
+}
+
+return h.writer.CreateAuditLog(msg.Context(), sqlcgen.CreateAuditLogParams{
+    ID: msgID,  // Primary key — ON CONFLICT (id) DO NOTHING silently deduplicates
+    // ...
+})
+```
+
+The SQL query includes `ON CONFLICT (id) DO NOTHING`, which silently ignores duplicate inserts when a retry has the same Watermill UUID. This guarantees at-most-once semantics for audit logs without explicit dedup logic.
+
+**Advantage:** No separate dedup cache needed — the database enforces idempotency via primary key constraint.
+
 ## Creating New Event Types
 
 1. Add topic constants and event structs to `internal/shared/events/contracts/`.
 2. Publish from the owning module's app handler via `events.EventBus.Publish(ctx, topic, event)`.
 3. Subscribers import from `contracts`, never from the publishing module's `domain/`.
 4. Register handlers with `group:"event_handlers"` tag as shown above.
+5. If idempotency is required, use either Redis dedup (fail-open, requires HA) or database primary key (fail-closed, more reliable).

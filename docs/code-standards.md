@@ -184,6 +184,43 @@ return nil, domain.ErrEmailTaken()
 if errors.Is(err, sharederr.ErrNotFound()) { }
 ```
 
+### Structured Error Logging
+
+All error logs MUST include structured metadata for observability and debugging. Use `slog.ErrorContext` with:
+
+1. **Module name** (`"module"` key) — which service or module
+2. **Operation** (`"operation"` key) — what was being attempted
+3. **Error code** (`"error_code"` key) — machine-readable error classification
+4. **Retryable flag** (`"retryable"` key) — `true` for transient failures (network, timeout), `false` for permanent ones (schema mismatch, invalid data)
+5. **Error object** (`"err"` key) — the underlying error
+
+Example:
+```go
+// Transient error (retry on failure)
+slog.ErrorContext(ctx, "failed to send email",
+    "module", "notification",
+    "user_id", event.UserID,
+    "error_code", "smtp_transient",
+    "retryable", true,
+    "err", err)
+
+// Permanent error (ack on failure, no retry)
+slog.ErrorContext(ctx, "failed to unmarshal event",
+    "module", "audit",
+    "msg_id", msg.UUID,
+    "error_code", "unmarshal_failed",
+    "retryable", false,
+    "err", err)
+
+// Warning for recoverable issues
+slog.WarnContext(ctx, "dedup check failed, proceeding",
+    "module", "notification",
+    "msg_id", msg.UUID,
+    "err", err)
+```
+
+Use `slog.WarnContext` for recoverable issues that don't block operations (e.g., optional cache checks). Never use `log.Printf` or bare `fmt.Println` in app handlers or subscriber code.
+
 ### Domain vs App-Layer Errors
 
 - **Domain errors** (`domain/errors.go`): Business rule violations. Use named constructor
@@ -821,6 +858,34 @@ var Module = fx.Module("user",
     fx.Invoke(grpc.RegisterRoutes),
 )
 ```
+
+## Configuration Validation
+
+Environment variable validation happens at startup in `config.Load()`. Validations are **fail-fast and fatal in production**:
+
+```go
+// Validation examples:
+if cfg.IsProduction() && slices.Contains(cfg.CORSOrigins, "*") {
+    return nil, fmt.Errorf("CORS_ORIGINS=* is not allowed in production")
+}
+
+if cfg.IsProduction() && e.IPExtractor == nil {
+    log.Fatal("FATAL: rate limiter uses default IPExtractor in production; " +
+        "set e.IPExtractor = echo.ExtractIPFromXFFHeader() for accurate client IP")
+}
+```
+
+**Key validations:**
+- `APP_ENV` must be one of: development, staging, production
+- `JWT_SECRET` minimum 32 characters
+- All URLs (DATABASE_URL, REDIS_URL, RABBITMQ_URL) must be valid
+- `DB_MIN_CONNS` cannot exceed `DB_MAX_CONNS`
+- `CORS_ORIGINS=*` rejected in production (use explicit origins)
+- IP extractor must be explicitly configured in production (prevents rate-limit bypass via spoofed X-Forwarded-For)
+- `OTEL_SAMPLING_RATIO` must be between 0 and 1
+- `RATE_LIMIT_RPM` must be > 0
+
+**Philosophy:** Production environments must be explicitly secure — defaults are safe for development but insufficient for production. Configuration mismatches (e.g., wildcard CORS, missing IP extractor) are fatal startup errors, not warnings.
 
 ## Code Quality Guidelines
 

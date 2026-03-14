@@ -91,11 +91,93 @@ viewer@example.com / Viewer@123456 (role: viewer)
 
 Navigate to `http://localhost:8080/swagger/` (after starting the dev server with `task dev`). Use the "Authorize" button to enter a Bearer token and test endpoints interactively.
 
-### Login/Logout Not Included — Building Blocks Only
+## Login & Logout Endpoints
 
-This boilerplate provides JWT infrastructure as building blocks. There are **no `/login` or `/logout` endpoints** built in — these are intentionally left for application-specific implementation.
+The auth module provides two RPC endpoints for user authentication.
 
-Provided building blocks:
+### Login Endpoint
+
+**POST /auth.v1.AuthService/Login**
+
+Authenticates a user by email and password, returning an access token + refresh token pair.
+
+Request:
+```json
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+```
+
+Response (success):
+```json
+{
+  "access_token": "eyJhbGci...",
+  "refresh_token": "abc123...",
+  "expires_in": 900
+}
+```
+
+Error responses:
+- `UNAUTHENTICATED` (401) — Invalid email or password
+- `INVALID_ARGUMENT` (400) — Email format invalid or password too short
+
+**Flow:**
+1. Look up user by email via `CredentialLookup.GetByEmail()` — returns userID, hashedPassword, role
+2. Verify password with `PasswordHasher.Verify()`
+3. Generate access token with `auth.GenerateAccessToken(cfg, userID, role, permissions)`
+4. Generate refresh token with `auth.GenerateRefreshToken()`
+5. Publish `UserLoggedInEvent` to audit trail (fail-open — event publishing failures don't fail the request)
+6. Return tokens + expiry
+
+Source: `internal/modules/auth/app/login.go`
+
+### Logout Endpoint
+
+**POST /auth.v1.AuthService/Logout**
+
+Revokes the caller's current access token by blacklisting it in Redis.
+
+Request: `{}` (empty body)
+
+Response (success): `{}` (empty body)
+
+Error responses:
+- `UNAUTHENTICATED` (401) — No valid token in Authorization header
+- `INTERNAL` (500) — Redis unavailable (fail-closed — blacklist failure rejects request)
+
+**Flow:**
+1. Extract token claims from request context (populated by Auth middleware)
+2. Blacklist token by JTI in Redis with TTL = remaining token lifetime
+3. Publish `UserLoggedOutEvent` to audit trail (fail-open)
+4. Return success
+
+Source: `internal/modules/auth/app/logout.go`
+
+## CredentialLookup Interface
+
+The auth module decouples authentication from user storage via the `CredentialLookup` interface:
+
+```go
+type CredentialLookup interface {
+    GetByEmail(ctx context.Context, email string) (userID, hashedPassword, role string, err error)
+}
+```
+
+The user module provides the implementation in `adapters/credential_adapter.go`:
+
+```go
+func (r *PgUserRepository) GetByEmail(ctx context.Context, email string) (string, string, string, error) {
+    // Query: SELECT id, password, role FROM users WHERE email = ? AND deleted_at IS NULL
+    // Returns userID, hashedPassword, role
+}
+```
+
+**Why this pattern?** Auth module needs user credentials but must not import from user module (no cross-module imports). The interface is defined in `internal/shared/auth/` (shared layer) and implemented by the user module, breaking the circular dependency.
+
+## Provided Building Blocks
+
+For custom authentication flows, use these lower-level functions:
 - `auth.GenerateAccessToken(cfg, userID, role, permissions)` — mint a signed JWT
 - `auth.GenerateRefreshToken()` — generate a random refresh token string
 - `auth.BlacklistToken(ctx, rdb, jti, expiry)` — revoke a token on logout

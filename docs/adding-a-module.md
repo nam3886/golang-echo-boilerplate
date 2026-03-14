@@ -605,7 +605,9 @@ if err := h.bus.Publish(ctx, domain.TopicProductCreated, domain.ProductCreatedEv
     IPAddress: netutil.GetClientIP(ctx),
     At:        time.Now(),
 }); err != nil {
-    slog.ErrorContext(ctx, "failed to publish event", "err", err)
+    slog.ErrorContext(ctx, "failed to publish event",
+        "module", "product", "operation", "CreateProductHandler",
+        "error_code", "event_publish_failed", "retryable", true, "err", err)
 }
 ```
 
