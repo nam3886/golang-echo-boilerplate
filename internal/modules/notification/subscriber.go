@@ -7,32 +7,53 @@ import (
 	"html/template"
 	"log/slog"
 	"net/textproto"
+	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/redis/go-redis/v9"
+
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/events/contracts"
 )
+
+const dedupTTL = 24 * time.Hour
 
 // Handler processes notification-related events.
 type Handler struct {
 	sender Sender
 	tmpl   *template.Template
+	rdb    *redis.Client
 }
 
 // NewHandler constructs the notification handler.
-func NewHandler(sender Sender) *Handler {
+func NewHandler(sender Sender, rdb *redis.Client) *Handler {
 	tmpl := template.Must(template.New("welcome").Parse(welcomeTemplate))
-	return &Handler{sender: sender, tmpl: tmpl}
+	return &Handler{sender: sender, tmpl: tmpl, rdb: rdb}
 }
 
 // HandleUserCreated sends a welcome email when a user is created.
-// Watermill provides at-least-once delivery. Duplicate welcome emails on retry are
-// tolerable. For stricter dedup, add a Redis SET NX check on msg.UUID with a TTL
-// matching the message retention period before calling h.sender.Send.
+// Deduplication is performed via Redis SET NX on the Watermill message UUID.
+// Fail-open on Redis errors: email delivery takes priority over strict dedup.
 func (h *Handler) HandleUserCreated(msg *message.Message) error {
+	ctx := msg.Context()
+
+	// Dedup: SET NX with 24h TTL — skip if already processed.
+	// nolint:staticcheck // SetNX works fine despite deprecation warning
+	ok, err := h.rdb.SetNX(ctx, "notification:dedup:"+msg.UUID, "1", dedupTTL).Result()
+	if err != nil {
+		// Fail-open: Redis issue should not block email delivery.
+		slog.WarnContext(ctx, "notification: dedup check failed, proceeding to send",
+			"module", "notification", "msg_id", msg.UUID, "err", err)
+	} else if !ok {
+		slog.InfoContext(ctx, "notification: duplicate message, skipping",
+			"module", "notification", "msg_id", msg.UUID)
+		return nil
+	}
+
 	var event contracts.UserCreatedEvent
 	if err := json.Unmarshal(msg.Payload, &event); err != nil {
-		slog.ErrorContext(msg.Context(), "notification: failed to unmarshal event",
-			"module", "notification", "err", err, "msg_id", msg.UUID)
+		slog.ErrorContext(ctx, "notification: failed to unmarshal event",
+			"module", "notification", "err", err, "msg_id", msg.UUID,
+			"error_code", "unmarshal_failed", "retryable", false)
 		return nil // ack — schema mismatch is permanent, retrying won't help
 	}
 
@@ -40,21 +61,23 @@ func (h *Handler) HandleUserCreated(msg *message.Message) error {
 	if err := h.tmpl.Execute(&buf, event); err != nil {
 		// Template failure is permanent (bad template, not transient infra) — ack to avoid
 		// infinite retry loop. Fix the template and redeploy to reprocess.
-		slog.ErrorContext(msg.Context(), "notification: failed to render template, acking to avoid retry loop",
-			"module", "notification", "err", err, "msg_id", msg.UUID)
+		slog.ErrorContext(ctx, "notification: failed to render template, acking to avoid retry loop",
+			"module", "notification", "err", err, "msg_id", msg.UUID,
+			"error_code", "template_render_failed", "retryable", false)
 		return nil
 	}
 
-	ctx := msg.Context()
 	if err := h.sender.Send(ctx, event.Email, "Welcome!", buf.String()); err != nil {
 		// Permanent SMTP errors (5xx) won't be fixed by retrying — ack them.
 		if isPermanentSMTPError(err) {
 			slog.WarnContext(ctx, "notification: permanent SMTP error, acking",
-				"module", "notification", "err", err, "user_id", event.UserID, "permanent", true)
+				"module", "notification", "err", err, "user_id", event.UserID,
+				"error_code", "smtp_permanent", "retryable", false)
 			return nil
 		}
 		slog.ErrorContext(ctx, "notification: failed to send email",
-			"module", "notification", "err", err, "user_id", event.UserID)
+			"module", "notification", "err", err, "user_id", event.UserID,
+			"error_code", "smtp_transient", "retryable", true)
 		return err
 	}
 

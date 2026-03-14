@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/alicebob/miniredis/v2"
+	"github.com/redis/go-redis/v9"
 )
 
 // stubSender is a configurable Sender stub for unit tests.
@@ -18,8 +20,20 @@ func (s *stubSender) Send(_ context.Context, _, _, _ string) error {
 	return s.err
 }
 
-func newTestHandler(senderErr error) *Handler {
-	return NewHandler(&stubSender{err: senderErr})
+// newTestRedis starts an in-memory Redis for unit tests.
+func newTestRedis(t *testing.T) *redis.Client {
+	t.Helper()
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("miniredis: %v", err)
+	}
+	t.Cleanup(mr.Close)
+	return redis.NewClient(&redis.Options{Addr: mr.Addr()})
+}
+
+func newTestHandler(t *testing.T, senderErr error) *Handler {
+	t.Helper()
+	return NewHandler(&stubSender{err: senderErr}, newTestRedis(t))
 }
 
 func newMsg(payload string) *message.Message {
@@ -31,7 +45,7 @@ func newMsg(payload string) *message.Message {
 const validUserCreatedPayload = `{"user_id":"00000000-0000-0000-0000-000000000001","actor_id":"00000000-0000-0000-0000-000000000002","email":"user@example.com","name":"Test User","role":"member"}`
 
 func TestHandleUserCreated_ValidPayload(t *testing.T) {
-	h := newTestHandler(nil)
+	h := newTestHandler(t, nil)
 	err := h.HandleUserCreated(newMsg(validUserCreatedPayload))
 	if err != nil {
 		t.Errorf("expected nil error, got %v", err)
@@ -39,7 +53,7 @@ func TestHandleUserCreated_ValidPayload(t *testing.T) {
 }
 
 func TestHandleUserCreated_InvalidJSON(t *testing.T) {
-	h := newTestHandler(nil)
+	h := newTestHandler(t, nil)
 	// Invalid JSON must ack (return nil) — schema mismatch is permanent.
 	err := h.HandleUserCreated(newMsg(`not-json`))
 	if err != nil {
@@ -49,7 +63,7 @@ func TestHandleUserCreated_InvalidJSON(t *testing.T) {
 
 func TestHandleUserCreated_SenderError_Transient(t *testing.T) {
 	// A transient error (non-5xx) should be returned so Watermill retries.
-	h := newTestHandler(errors.New("connection refused"))
+	h := newTestHandler(t, errors.New("connection refused"))
 	err := h.HandleUserCreated(newMsg(validUserCreatedPayload))
 	if err == nil {
 		t.Error("expected non-nil error for transient sender failure")
@@ -58,7 +72,7 @@ func TestHandleUserCreated_SenderError_Transient(t *testing.T) {
 
 func TestHandleUserCreated_SenderError_Permanent(t *testing.T) {
 	// A permanent SMTP 5xx error should ack (return nil) — retrying won't help.
-	h := newTestHandler(&textproto.Error{Code: 550, Msg: "user unknown"})
+	h := newTestHandler(t, &textproto.Error{Code: 550, Msg: "user unknown"})
 	err := h.HandleUserCreated(newMsg(validUserCreatedPayload))
 	if err != nil {
 		t.Errorf("expected nil error for permanent SMTP error, got %v", err)
