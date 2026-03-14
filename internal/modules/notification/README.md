@@ -20,7 +20,7 @@ module.go        — fx.Module wiring
 
 ## Idempotency
 
-Watermill provides at-least-once delivery. Duplicate welcome emails on retry are tolerable (low frequency, low impact). For stricter dedup, add a Redis `SET NX` check on `msg.UUID` with TTL matching the message retention period before calling `sender.Send`.
+Watermill provides at-least-once delivery. `HandleUserCreated` deduplicates using Redis `SET NX` on `msg.UUID` (TTL = 24h) before calling `sender.Send`. Duplicate welcome emails on Redis miss are tolerable (low frequency, low impact).
 
 ## Dependencies
 
@@ -40,10 +40,8 @@ Watermill provides at-least-once delivery. Duplicate welcome emails on retry are
 
 ## Design Decisions
 
-### Non-Idempotent Welcome Email (C4 Exception)
+### Welcome Email Idempotency
 
-Welcome emails use fire-and-forget delivery. Duplicate emails on Watermill retry are tolerated.
+`HandleUserCreated` uses Redis `SET NX msg.UUID` dedup (implemented in `subscriber.go`). On Redis miss or Redis unavailability, a duplicate email may be sent — acceptable for welcome emails (no financial/compliance impact).
 
-**Rationale:** Welcome emails have no financial or compliance impact. Adding Redis `SET NX` dedup would introduce infra complexity disproportionate to the risk.
-
-**⚠️ Do NOT copy this pattern for financial, billing, or compliance-sensitive notifications.** Those must use Redis `SET NX msg.UUID` dedup before calling `sender.Send`.
+**⚠️ Do NOT skip Redis dedup for financial, billing, or compliance-sensitive notifications.**
