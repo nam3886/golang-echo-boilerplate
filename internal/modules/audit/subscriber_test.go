@@ -124,3 +124,61 @@ func TestHandleUserDeleted_DBError(t *testing.T) {
 		t.Error("expected DB error to propagate for retry, got nil")
 	}
 }
+
+func TestHandleUserLoggedIn_ValidPayload(t *testing.T) {
+	h := newTestHandler(nil)
+	msg := newMsg(`{"version":1,"user_id":"00000000-0000-0000-0000-000000000001","ip_address":"192.168.1.1","at":"2026-03-14T00:00:00Z"}`)
+	err := h.HandleUserLoggedIn(msg)
+	if err != nil {
+		t.Errorf("expected nil error, got %v", err)
+	}
+}
+
+func TestHandleUserLoggedIn_InvalidJSON(t *testing.T) {
+	h := newTestHandler(nil)
+	msg := newMsg(`not-json`)
+	err := h.HandleUserLoggedIn(msg)
+	// Invalid JSON should ack (return nil), not block the queue.
+	if err != nil {
+		t.Errorf("expected nil error on bad payload, got %v", err)
+	}
+}
+
+func TestHandleUserLoggedIn_DBError(t *testing.T) {
+	dbErr := fmt.Errorf("connection reset by peer")
+	h := newTestHandler(dbErr)
+	msg := newMsg(`{"version":1,"user_id":"00000000-0000-0000-0000-000000000001","ip_address":"10.0.0.1","at":"2026-03-14T00:00:00Z"}`)
+	err := h.HandleUserLoggedIn(msg)
+	if err == nil {
+		t.Error("expected DB error to propagate for retry, got nil")
+	}
+}
+
+func TestHandleUserLoggedOut_ValidPayload(t *testing.T) {
+	h := newTestHandler(nil)
+	msg := newMsg(`{"version":1,"user_id":"00000000-0000-0000-0000-000000000001","token_id":"tok-abc","ip_address":"192.168.1.1","at":"2026-03-14T00:00:00Z"}`)
+	err := h.HandleUserLoggedOut(msg)
+	if err != nil {
+		t.Errorf("expected nil error, got %v", err)
+	}
+}
+
+func TestHandleUserLoggedOut_InvalidJSON(t *testing.T) {
+	h := newTestHandler(nil)
+	msg := newMsg(`{bad}`)
+	err := h.HandleUserLoggedOut(msg)
+	// Invalid JSON should ack (return nil), not block the queue.
+	if err != nil {
+		t.Errorf("expected nil error on bad payload, got %v", err)
+	}
+}
+
+func TestHandleUserLoggedOut_DBError(t *testing.T) {
+	dbErr := fmt.Errorf("deadlock detected")
+	h := newTestHandler(dbErr)
+	msg := newMsg(`{"version":1,"user_id":"00000000-0000-0000-0000-000000000001","token_id":"tok-abc","at":"2026-03-14T00:00:00Z"}`)
+	err := h.HandleUserLoggedOut(msg)
+	if err == nil {
+		t.Error("expected DB error to propagate for retry, got nil")
+	}
+}
