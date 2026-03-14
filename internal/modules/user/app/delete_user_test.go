@@ -67,7 +67,7 @@ func TestDeleteUserHandler_NotFound(t *testing.T) {
 
 	mockRepo.EXPECT().
 		SoftDelete(gomock.Any(), domain.UserID("missing-id")).
-		Return(nil, sharederr.ErrNotFound())
+		Return(nil, domain.ErrUserNotFound())
 
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewDeleteUserHandler(mockRepo, bus)
@@ -76,7 +76,7 @@ func TestDeleteUserHandler_NotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected not found error, got nil")
 	}
-	if !errors.Is(err, sharederr.ErrNotFound()) {
+	if !errors.Is(err, domain.ErrUserNotFound()) {
 		t.Errorf("expected ErrNotFound, got %v", err)
 	}
 }
@@ -89,7 +89,7 @@ func TestDeleteUserHandler_AlreadyDeleted(t *testing.T) {
 
 	mockRepo.EXPECT().
 		SoftDelete(gomock.Any(), domain.UserID("already-deleted-id")).
-		Return(nil, sharederr.ErrNotFound())
+		Return(nil, domain.ErrUserNotFound())
 
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewDeleteUserHandler(mockRepo, bus)
@@ -98,7 +98,7 @@ func TestDeleteUserHandler_AlreadyDeleted(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for already-deleted user")
 	}
-	if !errors.Is(err, sharederr.ErrNotFound()) {
+	if !errors.Is(err, domain.ErrUserNotFound()) {
 		t.Errorf("expected ErrNotFound, got %v", err)
 	}
 }

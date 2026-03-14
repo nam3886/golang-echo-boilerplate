@@ -260,7 +260,7 @@ func TestUpdateUserHandler_NotFound(t *testing.T) {
 
 	mockRepo.EXPECT().
 		Update(gomock.Any(), domain.UserID("missing-id"), gomock.Any()).
-		Return(sharederr.ErrNotFound())
+		Return(domain.ErrUserNotFound())
 
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewUpdateUserHandler(mockRepo, bus)
@@ -273,7 +273,7 @@ func TestUpdateUserHandler_NotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected not found error")
 	}
-	if !errors.Is(err, sharederr.ErrNotFound()) {
+	if !errors.Is(err, domain.ErrUserNotFound()) {
 		t.Errorf("expected ErrNotFound, got %v", err)
 	}
 }

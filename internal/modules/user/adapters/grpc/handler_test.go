@@ -12,7 +12,6 @@ import (
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/app"
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
-	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/events"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/mocks"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/testutil"
@@ -56,7 +55,7 @@ func TestHandler_CreateUser_Success(t *testing.T) {
 
 	mockRepo.EXPECT().
 		GetByEmail(gomock.Any(), "new@example.com").
-		Return(nil, sharederr.ErrNotFound())
+		Return(nil, domain.ErrUserNotFound())
 	mockRepo.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		Return(nil)
@@ -84,7 +83,7 @@ func TestHandler_GetUser_NotFound(t *testing.T) {
 
 	mockRepo.EXPECT().
 		GetByID(gomock.Any(), domain.UserID("missing-id")).
-		Return(nil, sharederr.ErrNotFound())
+		Return(nil, domain.ErrUserNotFound())
 
 	_, err := h.GetUser(context.Background(), connect.NewRequest(&userv1.GetUserRequest{
 		Id: "missing-id",
@@ -197,7 +196,7 @@ func TestHandler_DeleteUser_NotFound(t *testing.T) {
 
 	mockRepo.EXPECT().
 		SoftDelete(gomock.Any(), domain.UserID("no-such-id")).
-		Return(nil, sharederr.ErrNotFound())
+		Return(nil, domain.ErrUserNotFound())
 
 	_, err := h.DeleteUser(callerCtx("no-such-id"), connect.NewRequest(&userv1.DeleteUserRequest{
 		Id: "no-such-id",
@@ -277,7 +276,7 @@ func TestHandler_CreateUser_InvalidArgument(t *testing.T) {
 
 	mockRepo.EXPECT().
 		GetByEmail(gomock.Any(), "not-an-email").
-		Return(nil, sharederr.ErrNotFound())
+		Return(nil, domain.ErrUserNotFound())
 
 	_, err := h.CreateUser(context.Background(), connect.NewRequest(&userv1.CreateUserRequest{
 		Email:    "not-an-email",
