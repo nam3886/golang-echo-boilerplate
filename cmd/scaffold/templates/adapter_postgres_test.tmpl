@@ -81,6 +81,77 @@ func TestPg{{.NameTitle}}Repository_SoftDelete(t *testing.T) {
 	}
 }
 
+// TestPg{{.NameTitle}}Repository_Create_DuplicateConstraint verifies that inserting a duplicate
+// entity returns the module-specific domain error (e.g. domain.ErrAlreadyExists()).
+// TODO: If this entity has a unique constraint (e.g. slug, email), replace the test body
+// with the specific duplicate scenario. See user/adapters/postgres/repository_test.go
+// TestPgUserRepository_Create_DuplicateEmail for the reference pattern.
+//
+// func TestPg{{.NameTitle}}Repository_Create_DuplicateConstraint(t *testing.T) {
+//     repo := setupRepo(t)
+//     ctx := context.Background()
+//     entity := createTest{{.NameTitle}}(t, "unique-value")
+//     if err := repo.Create(ctx, entity); err != nil {
+//         t.Fatalf("Create first: %v", err)
+//     }
+//     dup := createTest{{.NameTitle}}(t, "unique-value")
+//     err := repo.Create(ctx, dup)
+//     if err == nil {
+//         t.Fatal("expected duplicate constraint error")
+//     }
+//     if !errors.Is(err, domain.ErrAlreadyExists()) {
+//         t.Errorf("expected ErrAlreadyExists, got %v", err)
+//     }
+// }
+
+func TestPg{{.NameTitle}}Repository_Update_Success(t *testing.T) {
+	repo := setupRepo(t)
+	ctx := context.Background()
+
+	entity := createTest{{.NameTitle}}(t, "Original Name")
+	if err := repo.Create(ctx, entity); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	newName := "Updated Name"
+	// TODO: Replace ChangeName with your entity's actual mutation method if different.
+	err := repo.Update(ctx, entity.ID(), func(e *domain.{{.NameTitle}}) error {
+		return e.ChangeName(newName)
+	})
+	if err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+
+	got, err := repo.GetByID(ctx, entity.ID())
+	if err != nil {
+		t.Fatalf("GetByID after Update: %v", err)
+	}
+	if got.Name() != newName {
+		t.Errorf("expected name=%q, got %q", newName, got.Name())
+	}
+}
+
+func TestPg{{.NameTitle}}Repository_Update_NotFound(t *testing.T) {
+	repo := setupRepo(t)
+	ctx := context.Background()
+
+	// TODO: Replace ChangeName with your entity's actual mutation method if different.
+	err := repo.Update(ctx, domain.{{.NameID}}("00000000-0000-0000-0000-000000000000"), func(e *domain.{{.NameTitle}}) error {
+		return e.ChangeName("Should Not Reach")
+	})
+	if err == nil {
+		t.Fatal("expected not found error")
+	}
+	if !errors.Is(err, sharederr.ErrNotFound()) {
+		t.Errorf("expected ErrNotFound, got %v", err)
+	}
+}
+
+// TestPg{{.NameTitle}}Repository_Update_DuplicateConstraint verifies that updating an entity
+// to collide with another entity's unique field returns the correct domain error.
+// TODO: Implement if this entity has unique constraints. Reference:
+// user/adapters/postgres/repository_test.go TestPgUserRepository_Update_DuplicateEmail.
+
 func TestPg{{.NameTitle}}Repository_List_Pagination(t *testing.T) {
 	repo := setupRepo(t)
 	ctx := context.Background()
