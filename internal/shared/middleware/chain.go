@@ -24,16 +24,16 @@ func SetupMiddleware(e *echo.Echo, cfg *config.Config, rdb *redis.Client) {
 	// Behind a reverse proxy, set: e.IPExtractor = echo.ExtractIPFromXFFHeader()
 	// Without this, X-Forwarded-For can be spoofed to bypass rate limiting.
 
-	// Fatal if production uses default IP extraction — spoofable X-Forwarded-For breaks
+	// Fatal if non-dev uses default IP extraction — spoofable X-Forwarded-For breaks
 	// rate limiting scope and audit IP attribution.
-	if cfg.IsProduction() && e.IPExtractor == nil {
-		log.Fatal("FATAL: rate limiter uses default IPExtractor in production; " +
+	if !cfg.IsDevelopment() && e.IPExtractor == nil {
+		log.Fatal("FATAL: rate limiter uses default IPExtractor in staging/production; " +
 			"set e.IPExtractor = echo.ExtractIPFromXFFHeader() for accurate client IP behind reverse proxy")
 	}
 
-	// 0. HTTPS redirect — production only. Use e.Pre() so the redirect fires before
-	// routing. Not enabled in dev/staging to avoid breaking local HTTP connections.
-	if cfg.IsProduction() {
+	// 0. HTTPS redirect — enabled in staging and production. Use e.Pre() so the redirect
+	// fires before routing. Not enabled in development to avoid breaking local HTTP.
+	if !cfg.IsDevelopment() {
 		e.Pre(echomw.HTTPSRedirect())
 	}
 
