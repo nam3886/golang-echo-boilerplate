@@ -1,10 +1,15 @@
 package {{.NamePackage}}
 
 import (
+	"context"
+
 	"{{.GoModule}}/internal/modules/{{.Name}}/adapters/grpc"
 	"{{.GoModule}}/internal/modules/{{.Name}}/adapters/postgres"
 	"{{.GoModule}}/internal/modules/{{.Name}}/app"
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
+	"{{.GoModule}}/internal/shared/config"
+	"github.com/labstack/echo/v4"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/fx"
 )
 
@@ -23,7 +28,7 @@ var Module = fx.Module("{{.Name}}",
 	fx.Provide(app.NewUpdate{{.NameTitle}}Handler),
 	fx.Provide(app.NewDelete{{.NameTitle}}Handler),
 	fx.Provide(grpc.New{{.NameTitle}}ServiceHandler),
-	fx.Invoke(grpc.RegisterRoutes),
+	fx.Invoke(register{{.NameTitle}}Routes),
 	// TODO: Add event subscribers when needed. Example:
 	// fx.Provide(fx.Annotate(
 	//     provideEventHandlers,
@@ -31,3 +36,17 @@ var Module = fx.Module("{{.Name}}",
 	// )),
 	// See internal/modules/user/module.go for subscriber wiring reference.
 )
+
+// register{{.NameTitle}}Routes creates a shutdown-aware context for the Auth middleware
+// and delegates to grpc.RegisterRoutes. The context is cancelled during fx shutdown,
+// ensuring the Auth middleware's background eviction goroutine exits cleanly.
+func register{{.NameTitle}}Routes(lc fx.Lifecycle, e *echo.Echo, handler *grpc.{{.NameTitle}}ServiceHandler, cfg *config.Config, rdb *redis.Client) {
+	ctx, cancel := context.WithCancel(context.Background())
+	lc.Append(fx.Hook{
+		OnStop: func(_ context.Context) error {
+			cancel()
+			return nil
+		},
+	})
+	grpc.RegisterRoutes(ctx, e, handler, cfg, rdb)
+}

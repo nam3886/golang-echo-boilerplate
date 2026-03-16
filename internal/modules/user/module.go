@@ -10,7 +10,10 @@ import (
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/app"
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/config"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/events"
+	"github.com/labstack/echo/v4"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/fx"
 )
 
@@ -34,7 +37,7 @@ var Module = fx.Module("user",
 	fx.Provide(app.NewUpdateUserHandler),
 	fx.Provide(app.NewDeleteUserHandler),
 	fx.Provide(grpc.NewUserServiceHandler),
-	fx.Invoke(grpc.RegisterRoutes),
+	fx.Invoke(registerUserRoutes),
 	// Search (optional — no-op when Elasticsearch is disabled)
 	fx.Provide(usersearch.NewIndexer),
 	fx.Provide(usersearch.NewRepository),
@@ -54,6 +57,20 @@ func provideSearchHandlers(ix *usersearch.Indexer) []events.HandlerRegistration 
 		{Name: "search.user_updated", Topic: domain.TopicUserUpdated, HandlerFunc: ix.HandleUserUpdated},
 		{Name: "search.user_deleted", Topic: domain.TopicUserDeleted, HandlerFunc: ix.HandleUserDeleted},
 	}
+}
+
+// registerUserRoutes creates a shutdown-aware context for the Auth middleware
+// and delegates to grpc.RegisterRoutes. The context is cancelled during fx shutdown,
+// ensuring the Auth middleware's background eviction goroutine exits cleanly.
+func registerUserRoutes(lc fx.Lifecycle, e *echo.Echo, handler *grpc.UserServiceHandler, cfg *config.Config, rdb *redis.Client) {
+	ctx, cancel := context.WithCancel(context.Background()) //nolint:gosec // G118: cancel is called in OnStop hook below
+	lc.Append(fx.Hook{
+		OnStop: func(_ context.Context) error {
+			cancel()
+			return nil
+		},
+	})
+	grpc.RegisterRoutes(ctx, e, handler, cfg, rdb)
 }
 
 // registerSearchLifecycle registers the search index creation as an Fx lifecycle

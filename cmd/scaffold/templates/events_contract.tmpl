@@ -2,6 +2,10 @@ package contracts
 
 import "time"
 
+// EventSchemaVersion is the current event schema version for {{.Name}} domain events.
+// Increment when making breaking changes; deploy subscribers before publishers.
+const {{.NameTitle}}EventSchemaVersion = "v1"
+
 // {{.NameTitle}} event topics.
 const (
 	Topic{{.NameTitle}}Created = "{{.Name}}.created"
@@ -12,7 +16,11 @@ const (
 // {{.NameTitle}}CreatedEvent is published when a {{.Name}} is created.
 // TODO: Add module-specific fields (e.g. Email, Role) as needed.
 type {{.NameTitle}}CreatedEvent struct {
-	Version         int       `json:"version"`
+	// EventID is a UUID v4 uniquely identifying this event for deduplication.
+	// Subscribers MUST use this field to detect and skip replays.
+	EventID         string    `json:"event_id"`
+	// Version is the schema version (e.g. "v1"). Breaking changes require a new version.
+	Version         string    `json:"version"`
 	{{.NameTitle}}ID string    `json:"{{.Name}}_id"`
 	ActorID         string    `json:"actor_id"`
 	Name            string    `json:"name"`
@@ -22,7 +30,10 @@ type {{.NameTitle}}CreatedEvent struct {
 
 // {{.NameTitle}}UpdatedEvent is published when a {{.Name}} is updated.
 type {{.NameTitle}}UpdatedEvent struct {
-	Version         int       `json:"version"`
+	// EventID is a UUID v4 uniquely identifying this event for deduplication.
+	EventID         string    `json:"event_id"`
+	// Version is the schema version.
+	Version         string    `json:"version"`
 	{{.NameTitle}}ID string    `json:"{{.Name}}_id"`
 	Name            string    `json:"name"`
 	ActorID         string    `json:"actor_id"`
@@ -33,7 +44,10 @@ type {{.NameTitle}}UpdatedEvent struct {
 
 // {{.NameTitle}}DeletedEvent is published when a {{.Name}} is soft-deleted.
 type {{.NameTitle}}DeletedEvent struct {
-	Version         int       `json:"version"`
+	// EventID is a UUID v4 uniquely identifying this event for deduplication.
+	EventID         string    `json:"event_id"`
+	// Version is the schema version.
+	Version         string    `json:"version"`
 	{{.NameTitle}}ID string    `json:"{{.Name}}_id"`
 	ActorID         string    `json:"actor_id"`
 	IPAddress       string    `json:"ip_address,omitempty"`

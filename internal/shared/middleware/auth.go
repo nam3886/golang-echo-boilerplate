@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"log/slog"
@@ -19,27 +20,31 @@ import (
 // Blacklist cache is initialised once per middleware instance using cfg.BlacklistCacheTTL
 // (default 30s). The cache acts as a fallback when Redis is unreachable and
 // BLACKLIST_FAIL_OPEN=true — previously-seen blacklisted JTIs are still denied.
-func Auth(cfg *config.Config, rdb *redis.Client) echo.MiddlewareFunc {
+//
+// shutdownCtx controls the lifetime of the background eviction goroutine.
+// When shutdownCtx is cancelled (e.g. during fx shutdown), the goroutine exits cleanly.
+// Pass context.Background() in tests where shutdown is not a concern.
+func Auth(shutdownCtx context.Context, cfg *config.Config, rdb *redis.Client) echo.MiddlewareFunc {
 	// Initialise the local blacklist cache once per middleware instance.
-	// A 30s default is used when BlacklistCacheTTL is zero (e.g. in unit tests
-	// that construct Config directly without going through config.Load).
-	cacheTTL := cfg.BlacklistCacheTTL
-	if cacheTTL <= 0 {
-		cacheTTL = 30 * time.Second
-	}
 	var (
 		once  sync.Once
 		cache *auth.BlacklistCache
 	)
 	initCache := func() *auth.BlacklistCache {
 		once.Do(func() {
-			cache = auth.NewBlacklistCache(cacheTTL)
+			cache = auth.NewBlacklistCache()
 			// Periodically evict expired entries to prevent unbounded memory growth.
+			// Goroutine exits when shutdownCtx is cancelled.
 			go func() {
 				ticker := time.NewTicker(5 * time.Minute)
 				defer ticker.Stop()
-				for range ticker.C {
-					cache.Evict()
+				for {
+					select {
+					case <-shutdownCtx.Done():
+						return
+					case <-ticker.C:
+						cache.Evict()
+					}
 				}
 			}()
 		})

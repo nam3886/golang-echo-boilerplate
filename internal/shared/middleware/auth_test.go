@@ -30,7 +30,7 @@ func newEchoWithAuth(cfg *config.Config, rdb *redis.Client) *echo.Echo {
 	e.HTTPErrorHandler = ErrorHandler
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "ok")
-	}, Auth(cfg, rdb))
+	}, Auth(context.Background(), cfg, rdb))
 	return e
 }
 
@@ -211,7 +211,7 @@ func TestAuth_SetsUserInContext(t *testing.T) {
 			capturedUserID = u.UserID
 		}
 		return c.String(http.StatusOK, "ok")
-	}, Auth(cfg, rdb))
+	}, Auth(context.Background(), cfg, rdb))
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "Bearer "+token)

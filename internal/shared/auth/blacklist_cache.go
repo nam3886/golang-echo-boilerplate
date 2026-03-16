@@ -12,12 +12,11 @@ import (
 type BlacklistCache struct {
 	mu      sync.RWMutex
 	entries map[string]time.Time // jti → token expiry time
-	ttl     time.Duration
 }
 
-// NewBlacklistCache creates a new in-memory blacklist cache with the given TTL.
-func NewBlacklistCache(ttl time.Duration) *BlacklistCache {
-	return &BlacklistCache{entries: make(map[string]time.Time), ttl: ttl}
+// NewBlacklistCache creates a new in-memory blacklist cache.
+func NewBlacklistCache() *BlacklistCache {
+	return &BlacklistCache{entries: make(map[string]time.Time)}
 }
 
 // Set stores a JTI with its token expiry time.

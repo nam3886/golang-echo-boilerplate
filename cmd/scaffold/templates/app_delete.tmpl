@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
 
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
@@ -39,28 +40,30 @@ func (h *Delete{{.NameTitle}}Handler) Handle(ctx context.Context, id string) err
 	defer span.End()
 
 	if id == "" {
-		return sharederr.New(sharederr.CodeInvalidArgument, "{{.Name}}.id_required", "{{.Name}} ID is required")
+		return domain.Err{{.NameTitle}}IDRequired()
 	}
 	entity, err := h.repo.SoftDelete(ctx, domain.{{.NameID}}(id))
 	if err != nil {
 		return fmt.Errorf("deleting {{.Name}} %s: %w", id, err)
 	}
 
-	// Use DB-authoritative deletion timestamp; fall back to UpdatedAt if nil (defensive).
-	deletedAt := entity.UpdatedAt()
-	if entity.IsDeleted() {
-		deletedAt = *entity.DeletedAt()
+	if !entity.IsDeleted() {
+		return fmt.Errorf("soft delete returned non-deleted {{.Name}} %s: adapter bug", id)
 	}
+	deletedAt := *entity.DeletedAt()
 
 	if err := h.bus.Publish(ctx, domain.Topic{{.NameTitle}}Deleted, domain.{{.NameTitle}}DeletedEvent{
-		Version:         1,
+		EventID:         uuid.NewString(),
+		Version:         domain.EventSchemaVersion,
 		{{.NameTitle}}ID: id,
 		ActorID:         auth.ActorIDFromContext(ctx),
 		IPAddress:       netutil.GetClientIP(ctx),
-		At:              deletedAt, // DB-authoritative deletion timestamp
+		At:              deletedAt,
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to publish {{.Name}}.deleted event",
-			"{{.Name}}_id", id, "err", err)
+			"module", "{{.Name}}", "operation", "Delete{{.NameTitle}}Handler",
+			"{{.Name}}_id", id, "error_code", "event_publish_failed",
+			"retryable", true, "err", err)
 	}
 
 	return nil

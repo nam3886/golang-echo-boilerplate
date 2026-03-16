@@ -22,11 +22,18 @@ type List{{.NamePluralTitle}}Handler struct {
 }
 
 // NewList{{.NamePluralTitle}}Handler constructs the handler.
+// Panics if repo is nil.
 func NewList{{.NamePluralTitle}}Handler(repo domain.{{.NameTitle}}Repository) *List{{.NamePluralTitle}}Handler {
+	if repo == nil {
+		panic("NewList{{.NamePluralTitle}}Handler: repo must not be nil")
+	}
 	return &List{{.NamePluralTitle}}Handler{repo: repo}
 }
 
 // Handle returns a paginated list of {{.NamePlural}}.
+// ⚠️ pageSize=0 is silently clamped to 20; pageSize>100 is silently clamped to 100.
+// ⚠️ page<=0 is silently clamped to 1; page>10000 is silently clamped to 10000.
+// The effective pageSize used is returned in ListResult.PageSize.
 func (h *List{{.NamePluralTitle}}Handler) Handle(ctx context.Context, page, pageSize int) (domain.ListResult, error) {
 	ctx, span := otel.Tracer("{{.Name}}").Start(ctx, "List{{.NamePluralTitle}}Handler.Handle")
 	defer span.End()
@@ -48,5 +55,6 @@ func (h *List{{.NamePluralTitle}}Handler) Handle(ctx context.Context, page, page
 	if err != nil {
 		return domain.ListResult{}, fmt.Errorf("listing {{.NamePlural}}: %w", err)
 	}
+	result.PageSize = pageSize
 	return result, nil
 }

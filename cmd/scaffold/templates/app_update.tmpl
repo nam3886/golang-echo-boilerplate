@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
 
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
@@ -76,7 +77,10 @@ func (h *Update{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Update{{.N
 		return nil, fmt.Errorf("update_{{.Name}}: %w", err)
 	}
 	if updated == nil {
-		return nil, fmt.Errorf("update_{{.Name}}: repository did not populate entity")
+		slog.ErrorContext(ctx, "repository did not populate entity after update",
+			"module", "{{.Name}}", "operation", "Update{{.NameTitle}}Handler",
+			"{{.Name}}_id", cmd.ID, "error_code", "nil_entity_after_update", "retryable", false)
+		return nil, sharederr.ErrInternal()
 	}
 
 	// Skip event if nothing was actually changed.
@@ -85,7 +89,8 @@ func (h *Update{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Update{{.N
 	}
 
 	if pubErr := h.bus.Publish(ctx, domain.Topic{{.NameTitle}}Updated, domain.{{.NameTitle}}UpdatedEvent{
-		Version:         1,
+		EventID:         uuid.NewString(),
+		Version:         domain.EventSchemaVersion,
 		{{.NameTitle}}ID: cmd.ID,
 		Name:            updated.Name(),
 		ActorID:         auth.ActorIDFromContext(ctx),

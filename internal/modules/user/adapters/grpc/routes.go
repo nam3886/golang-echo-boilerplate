@@ -1,6 +1,7 @@
 package grpc
 
 import (
+	"context"
 	"net/http"
 
 	"connectrpc.com/connect"
@@ -24,7 +25,8 @@ var userProcedurePerms = map[string]appmw.Permission{
 }
 
 // RegisterRoutes mounts the Connect RPC UserService handler on Echo with auth.
-func RegisterRoutes(e *echo.Echo, handler *UserServiceHandler, cfg *config.Config, rdb *redis.Client) {
+// shutdownCtx controls the lifetime of the Auth middleware's background goroutine.
+func RegisterRoutes(shutdownCtx context.Context, e *echo.Echo, handler *UserServiceHandler, cfg *config.Config, rdb *redis.Client) {
 	path, h := userv1connect.NewUserServiceHandler(handler,
 		connect.WithInterceptors(
 			appmw.RBACInterceptor(userProcedurePerms),
@@ -34,6 +36,6 @@ func RegisterRoutes(e *echo.Echo, handler *UserServiceHandler, cfg *config.Confi
 
 	// Mount Connect handler under auth. All permission checks are handled
 	// by RBACInterceptor per procedure (fail-closed).
-	g := e.Group(path, appmw.Auth(cfg, rdb))
+	g := e.Group(path, appmw.Auth(shutdownCtx, cfg, rdb))
 	g.Any("*", echo.WrapHandler(http.StripPrefix(path, h)))
 }

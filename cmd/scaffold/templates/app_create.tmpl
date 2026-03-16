@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
 
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
@@ -53,7 +54,8 @@ func (h *Create{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Create{{.N
 
 	// Publish domain event after successful DB write (fire-and-forget: log but don't fail).
 	if err := h.bus.Publish(ctx, domain.Topic{{.NameTitle}}Created, domain.{{.NameTitle}}CreatedEvent{
-		Version:         1,
+		EventID:         uuid.NewString(),
+		Version:         domain.EventSchemaVersion,
 		{{.NameTitle}}ID: string(entity.ID()),
 		Name:            entity.Name(),
 		ActorID:         auth.ActorIDFromContext(ctx),
@@ -61,7 +63,9 @@ func (h *Create{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Create{{.N
 		At:              entity.CreatedAt(),
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to publish {{.Name}}.created event",
-			"{{.Name}}_id", string(entity.ID()), "err", err)
+			"module", "{{.Name}}", "operation", "Create{{.NameTitle}}Handler",
+			"{{.Name}}_id", string(entity.ID()), "error_code", "event_publish_failed",
+			"retryable", true, "err", err)
 	}
 
 	return entity, nil

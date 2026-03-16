@@ -8,12 +8,14 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
 	sharedsearch "github.com/gnha/golang-echo-boilerplate/internal/shared/search"
 )
 
-// Compile-time check: Repository must satisfy domain.UserSearch.
-var _ domain.UserSearch = (*Repository)(nil)
+// SearchResult holds results from a full-text user search.
+type SearchResult struct {
+	UserIDs []string
+	Total   int64
+}
 
 // Repository provides search operations against the users index.
 // Required: client (nil client -> nil Repository returned by constructor)
@@ -34,9 +36,9 @@ func NewRepository(client *sharedsearch.Client) *Repository {
 }
 
 // Search performs a multi_match query on name+email with fuzziness.
-func (r *Repository) Search(ctx context.Context, query string, limit, offset int) (*domain.UserSearchResult, error) {
+func (r *Repository) Search(ctx context.Context, query string, limit, offset int) (*SearchResult, error) {
 	if r == nil {
-		return &domain.UserSearchResult{}, nil
+		return &SearchResult{}, nil
 	}
 
 	q := map[string]any{
@@ -91,7 +93,7 @@ func (r *Repository) Search(ctx context.Context, query string, limit, offset int
 		ids[i] = hit.ID
 	}
 
-	return &domain.UserSearchResult{
+	return &SearchResult{
 		UserIDs: ids,
 		Total:   result.Hits.Total.Value,
 	}, nil

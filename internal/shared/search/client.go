@@ -62,6 +62,7 @@ func (c *Client) IndexName(suffix string) string {
 }
 
 // HealthCheck pings Elasticsearch and returns an error if unreachable.
+// Used by the /readyz endpoint for readiness probes.
 func (c *Client) HealthCheck(ctx context.Context) error {
 	res, err := c.ES.Ping(c.ES.Ping.WithContext(ctx))
 	if err != nil {
@@ -73,3 +74,4 @@ func (c *Client) HealthCheck(ctx context.Context) error {
 	}
 	return nil
 }
+
