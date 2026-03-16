@@ -656,7 +656,8 @@ All domain events follow a consistent structure with ActorID for audit trails:
 ```go
 // UserCreatedEvent is published when a user is created
 type UserCreatedEvent struct {
-    Version   int       `json:"version"`              // Schema version, currently 1
+    EventID   string    `json:"event_id"`             // UUID v4 for deduplication
+    Version   string    `json:"version"`              // Schema version, currently "v1"
     UserID    string    `json:"user_id"`              // Resource ID
     ActorID   string    `json:"actor_id"`             // User who initiated action
     Email     string    `json:"email"`
@@ -668,7 +669,8 @@ type UserCreatedEvent struct {
 
 // UserUpdatedEvent is published when a user is updated
 type UserUpdatedEvent struct {
-    Version       int      `json:"version"`
+    EventID       string   `json:"event_id"`
+    Version       string   `json:"version"`
     UserID        string   `json:"user_id"`
     ActorID       string   `json:"actor_id"`
     Name          string   `json:"name"`
@@ -681,7 +683,8 @@ type UserUpdatedEvent struct {
 
 // UserDeletedEvent is published when a user is soft-deleted
 type UserDeletedEvent struct {
-    Version   int       `json:"version"`
+    EventID   string    `json:"event_id"`
+    Version   string    `json:"version"`
     UserID    string    `json:"user_id"`
     ActorID   string    `json:"actor_id"`
     IPAddress string    `json:"ip_address,omitempty"`
@@ -863,7 +866,7 @@ var Module = fx.Module("user",
     fx.Provide(app.NewGetUserHandler),
     // ...
     fx.Provide(grpc.NewUserServiceHandler),
-    fx.Invoke(grpc.RegisterRoutes),
+    fx.Invoke(registerUserRoutes), // wrapper creates shutdown-aware context for Auth middleware
 )
 ```
 

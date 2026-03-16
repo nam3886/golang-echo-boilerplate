@@ -9,6 +9,7 @@ import "context"
 type ListResult struct {
 	{{.NamePluralTitle}} []*{{.NameTitle}}
 	Total               int
+	PageSize            int
 }
 
 // TotalPages computes the total number of pages for the given page size.

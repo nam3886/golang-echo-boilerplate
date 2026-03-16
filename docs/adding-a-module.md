@@ -387,7 +387,7 @@ func (r *PgProductRepository) GetByID(ctx context.Context, id domain.ProductID) 
     row, err := q.GetProductByID(ctx, uid)
     if err != nil {
         if errors.Is(err, pgx.ErrNoRows) {
-            return nil, sharederr.ErrNotFound()
+            return nil, domain.ErrProductNotFound()
         }
         return nil, fmt.Errorf("getting product by id: %w", err)
     }
@@ -581,7 +581,8 @@ const (
 
 // ProductCreatedEvent is published when a product is created.
 type ProductCreatedEvent struct {
-    Version   int       `json:"version"`
+    EventID   string    `json:"event_id"`
+    Version   string    `json:"version"`
     ProductID string    `json:"product_id"`
     ActorID   string    `json:"actor_id"`
     Name      string    `json:"name"`
@@ -591,7 +592,8 @@ type ProductCreatedEvent struct {
 
 // ProductUpdatedEvent is published when a product is updated.
 type ProductUpdatedEvent struct {
-    Version       int       `json:"version"`
+    EventID       string    `json:"event_id"`
+    Version       string    `json:"version"`
     ProductID     string    `json:"product_id"`
     ActorID       string    `json:"actor_id"`
     Name          string    `json:"name"`
@@ -602,7 +604,8 @@ type ProductUpdatedEvent struct {
 
 // ProductDeletedEvent is published when a product is soft-deleted.
 type ProductDeletedEvent struct {
-    Version   int       `json:"version"`
+    EventID   string    `json:"event_id"`
+    Version   string    `json:"version"`
     ProductID string    `json:"product_id"`
     ActorID   string    `json:"actor_id"`
     IPAddress string    `json:"ip_address,omitempty"`

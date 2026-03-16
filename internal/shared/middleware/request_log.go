@@ -23,6 +23,8 @@ func RequestLogger() echo.MiddlewareFunc {
 			latency := time.Since(start)
 
 			attrs := []any{
+				"module", "middleware",
+				"operation", "RequestLogger",
 				"method", req.Method,
 				"path", req.URL.Path,
 				"status", res.Status,

@@ -3,11 +3,10 @@
 ## Token Generation
 
 `auth.GenerateAccessToken(cfg, userID, role, permissions)` — returns a signed HS256 JWT.
-`auth.GenerateRefreshToken()` — returns a 32-byte cryptographically random base64 string.
 
-> **Note:** `GenerateRefreshToken` is a placeholder. It generates a random token string but has
-> **no server-side storage, rotation, or revocation** implemented. Storing refresh tokens,
-> rotating them on use, and revoking them on logout is left to application-specific implementation.
+> **Note:** Refresh tokens are **not yet implemented**. The current auth flow uses short-lived
+> access tokens only. Adding refresh token generation, storage, rotation, and revocation
+> is left to application-specific implementation.
 
 Source: `internal/shared/auth/jwt.go`
 
@@ -46,7 +45,7 @@ Source: `internal/shared/auth/blacklist.go`
 
 ## Middleware Flow
 
-`middleware.Auth(cfg, rdb)` (Echo middleware):
+`middleware.Auth(shutdownCtx, cfg, rdb)` (Echo middleware):
 
 1. Extract `Bearer <token>` from `Authorization` header.
 2. Call `auth.ValidateAccessToken` — reject if invalid/expired.
@@ -99,7 +98,7 @@ The auth module provides two RPC endpoints for user authentication.
 
 **POST /auth.v1.AuthService/Login**
 
-Authenticates a user by email and password, returning an access token + refresh token pair.
+Authenticates a user by email and password, returning an access token.
 
 Request:
 ```json
@@ -113,7 +112,6 @@ Response (success):
 ```json
 {
   "access_token": "eyJhbGci...",
-  "refresh_token": "abc123...",
   "expires_in": 900
 }
 ```
@@ -126,9 +124,8 @@ Error responses:
 1. Look up user by email via `CredentialLookup.GetByEmail()` — returns userID, hashedPassword, role
 2. Verify password with `PasswordHasher.Verify()`
 3. Generate access token with `auth.GenerateAccessToken(cfg, userID, role, permissions)`
-4. Generate refresh token with `auth.GenerateRefreshToken()`
-5. Publish `UserLoggedInEvent` to audit trail (fail-open — event publishing failures don't fail the request)
-6. Return tokens + expiry
+4. Publish `UserLoggedInEvent` to audit trail (fail-open — event publishing failures don't fail the request)
+5. Return token + expiry
 
 Source: `internal/modules/auth/app/login.go`
 
@@ -167,9 +164,9 @@ type CredentialLookup interface {
 The user module provides the implementation in `adapters/credential_adapter.go`:
 
 ```go
-func (r *PgUserRepository) GetByEmail(ctx context.Context, email string) (string, string, string, error) {
-    // Query: SELECT id, password, role FROM users WHERE email = ? AND deleted_at IS NULL
-    // Returns userID, hashedPassword, role
+// CredentialAdapter wraps user.UserRepository, implementing auth.CredentialLookup.
+func (a *CredentialAdapter) GetByEmail(ctx context.Context, email string) (userID, hashedPassword, role string, err error) {
+    // Delegates to repo.GetByEmail, translates domain.ErrUserNotFound → sharederr.ErrNotFound
 }
 ```
 
@@ -179,9 +176,8 @@ func (r *PgUserRepository) GetByEmail(ctx context.Context, email string) (string
 
 For custom authentication flows, use these lower-level functions:
 - `auth.GenerateAccessToken(cfg, userID, role, permissions)` — mint a signed JWT
-- `auth.GenerateRefreshToken()` — generate a random refresh token string
 - `auth.BlacklistToken(ctx, rdb, jti, expiry)` — revoke a token on logout
-- `middleware.Auth(cfg, rdb)` — validate + blacklist-check on every protected route
+- `middleware.Auth(shutdownCtx, cfg, rdb)` — validate + blacklist-check on every protected route
 
 ### Example: Generate a Token Programmatically for Testing
 

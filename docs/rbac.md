@@ -21,7 +21,7 @@ The Echo route group applies only `Auth` (JWT validation); permission checks hap
 
 ### Echo Route Group: Auth Only
 
-`Auth(cfg, rdb)` — validates the JWT and injects `AuthUser` into the request context.
+`Auth(shutdownCtx, cfg, rdb)` — validates the JWT and injects `AuthUser` into the request context.
 Returns 401 if the token is missing, expired, or invalid.
 
 No Echo-level permission middleware is applied. All permission enforcement
@@ -77,7 +77,7 @@ Role alone is insufficient — the wildcard must appear in the permissions slice
 
 2. Mount the service on an auth-protected Echo route group:
    ```go
-   g := e.Group(path, appmw.Auth(cfg, rdb))
+   g := e.Group(path, appmw.Auth(shutdownCtx, cfg, rdb))
    // Permission checks are handled by RBACInterceptor, not the group middleware.
    ```
 
@@ -92,14 +92,14 @@ Role alone is insufficient — the wildcard must appear in the permissions slice
        orderv1connect.OrderServiceDeleteOrderProcedure: appmw.PermOrderDelete,
    }
 
-   func RegisterRoutes(e *echo.Echo, handler *OrderServiceHandler, cfg *config.Config, rdb *redis.Client) {
+   func RegisterRoutes(shutdownCtx context.Context, e *echo.Echo, handler *OrderServiceHandler, cfg *config.Config, rdb *redis.Client) {
        path, h := orderv1connect.NewOrderServiceHandler(handler,
            connect.WithInterceptors(
                appmw.RBACInterceptor(orderProcedurePerms),
                validate.NewInterceptor(),
            ),
        )
-       g := e.Group(path, appmw.Auth(cfg, rdb))
+       g := e.Group(path, appmw.Auth(shutdownCtx, cfg, rdb))
        g.Any("*", echo.WrapHandler(http.StripPrefix(path, h)))
    }
    ```
