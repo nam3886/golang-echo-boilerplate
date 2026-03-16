@@ -14,6 +14,7 @@ import (
 )
 
 // Indexer handles indexing user documents into Elasticsearch.
+// Required: client (nil client -> nil Indexer returned by constructor)
 type Indexer struct {
 	client    *sharedsearch.Client
 	indexName string
@@ -31,6 +32,7 @@ func NewIndexer(client *sharedsearch.Client) *Indexer {
 }
 
 // HandleUserCreated indexes a full user document on creation.
+// Idempotent: ES Index with explicit document ID is an upsert.
 func (ix *Indexer) HandleUserCreated(msg *message.Message) error {
 	if ix == nil {
 		return nil
@@ -91,6 +93,7 @@ func (ix *Indexer) HandleUserCreated(msg *message.Message) error {
 }
 
 // HandleUserUpdated performs a partial update of name/email/role/updated_at.
+// Idempotent: ES Update with same payload produces the same document state.
 func (ix *Indexer) HandleUserUpdated(msg *message.Message) error {
 	if ix == nil {
 		return nil
@@ -151,6 +154,7 @@ func (ix *Indexer) HandleUserUpdated(msg *message.Message) error {
 }
 
 // HandleUserDeleted removes a user document from the index.
+// Idempotent: ES Delete returns 404 for already-deleted docs (tolerated).
 func (ix *Indexer) HandleUserDeleted(msg *message.Message) error {
 	if ix == nil {
 		return nil

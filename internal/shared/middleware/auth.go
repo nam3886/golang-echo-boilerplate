@@ -32,7 +32,17 @@ func Auth(cfg *config.Config, rdb *redis.Client) echo.MiddlewareFunc {
 		cache *auth.BlacklistCache
 	)
 	initCache := func() *auth.BlacklistCache {
-		once.Do(func() { cache = auth.NewBlacklistCache(cacheTTL) })
+		once.Do(func() {
+			cache = auth.NewBlacklistCache(cacheTTL)
+			// Periodically evict expired entries to prevent unbounded memory growth.
+			go func() {
+				ticker := time.NewTicker(5 * time.Minute)
+				defer ticker.Stop()
+				for range ticker.C {
+					cache.Evict()
+				}
+			}()
+		})
 		return cache
 	}
 

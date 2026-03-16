@@ -330,7 +330,7 @@ func NewCreateUserHandler(
 func (h *CreateUserHandler) Handle(ctx context.Context, cmd CreateUserCmd) (*domain.User, error) {
     // Validation
     existing, err := h.repo.GetByEmail(ctx, cmd.Email)
-    if err != nil && !errors.Is(err, sharederr.ErrNotFound()) {
+    if err != nil && !errors.Is(err, domain.ErrUserNotFound()) {
         return nil, fmt.Errorf("checking email: %w", err)
     }
     if existing != nil {
@@ -474,7 +474,9 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*dom
         At:            updated.UpdatedAt(),
     }); err != nil {
         slog.ErrorContext(ctx, "failed to publish user.updated event",
-            "user_id", string(updated.ID()), "err", err)
+            "module", "user", "operation", "UpdateUserHandler",
+            "user_id", string(updated.ID()), "error_code", "event_publish_failed",
+            "retryable", true, "err", err)
     }
 
     return updated, nil
@@ -488,18 +490,18 @@ type DeleteUserHandler struct {
 
 func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
     if id == "" {
-        return sharederr.New(sharederr.CodeInvalidArgument, "user.id_required", "user ID is required")
+        return domain.ErrUserIDRequired()
     }
     user, err := h.repo.SoftDelete(ctx, domain.UserID(id))
     if err != nil {
         return fmt.Errorf("deleting user %s: %w", id, err)
     }
 
-    // Use DB-authoritative deletion timestamp; fall back to UpdatedAt if nil (defensive).
-    deletedAt := user.UpdatedAt()
-    if user.IsDeleted() {
-        deletedAt = *user.DeletedAt()
+    // Guard: SoftDelete must return a deleted user — adapter bug if not.
+    if !user.IsDeleted() {
+        return fmt.Errorf("soft delete returned non-deleted user %s: adapter bug", id)
     }
+    deletedAt := *user.DeletedAt()
 
     if err := h.bus.Publish(ctx, domain.TopicUserDeleted, domain.UserDeletedEvent{
         Version:   1,
@@ -509,7 +511,9 @@ func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
         At:        deletedAt,
     }); err != nil {
         slog.ErrorContext(ctx, "failed to publish user.deleted event",
-            "user_id", id, "err", err)
+            "module", "user", "operation", "DeleteUserHandler",
+            "user_id", id, "error_code", "event_publish_failed",
+            "retryable", true, "err", err)
     }
 
     return nil

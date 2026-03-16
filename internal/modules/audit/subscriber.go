@@ -64,7 +64,8 @@ func (h *Handler) handleAuditEvent(msg *message.Message, userID, actorID, ipAddr
 	entityID, err := uuid.Parse(userID)
 	if err != nil {
 		slog.ErrorContext(msg.Context(), "audit: invalid user ID in event",
-			"module", "audit", "user_id", userID, "err", err,
+			"module", "audit", "operation", "handleAuditEvent",
+			"user_id", userID, "err", err,
 			"error_code", "invalid_user_id", "retryable", false)
 		return nil // ack — retrying won't fix bad data
 	}
@@ -99,7 +100,8 @@ func (h *Handler) HandleUserCreated(msg *message.Message) error {
 	var ev contracts.UserCreatedEvent
 	if err := json.Unmarshal(msg.Payload, &ev); err != nil {
 		slog.ErrorContext(msg.Context(), "audit: failed to unmarshal user.created event",
-			"module", "audit", "err", err, "msg_id", msg.UUID,
+			"module", "audit", "operation", "HandleUserCreated",
+			"err", err, "msg_id", msg.UUID,
 			"error_code", "unmarshal_failed", "retryable", false)
 		return nil // ack — schema mismatch is permanent, retrying won't help
 	}
@@ -111,7 +113,8 @@ func (h *Handler) HandleUserUpdated(msg *message.Message) error {
 	var ev contracts.UserUpdatedEvent
 	if err := json.Unmarshal(msg.Payload, &ev); err != nil {
 		slog.ErrorContext(msg.Context(), "audit: failed to unmarshal user.updated event",
-			"module", "audit", "err", err, "msg_id", msg.UUID,
+			"module", "audit", "operation", "HandleUserUpdated",
+			"err", err, "msg_id", msg.UUID,
 			"error_code", "unmarshal_failed", "retryable", false)
 		return nil // ack — schema mismatch is permanent, retrying won't help
 	}
@@ -123,7 +126,8 @@ func (h *Handler) HandleUserDeleted(msg *message.Message) error {
 	var ev contracts.UserDeletedEvent
 	if err := json.Unmarshal(msg.Payload, &ev); err != nil {
 		slog.ErrorContext(msg.Context(), "audit: failed to unmarshal user.deleted event",
-			"module", "audit", "err", err, "msg_id", msg.UUID,
+			"module", "audit", "operation", "HandleUserDeleted",
+			"err", err, "msg_id", msg.UUID,
 			"error_code", "unmarshal_failed", "retryable", false)
 		return nil // ack — schema mismatch is permanent, retrying won't help
 	}
@@ -135,7 +139,8 @@ func (h *Handler) HandleUserLoggedIn(msg *message.Message) error {
 	var ev contracts.UserLoggedInEvent
 	if err := json.Unmarshal(msg.Payload, &ev); err != nil {
 		slog.ErrorContext(msg.Context(), "audit: failed to unmarshal user.logged_in event",
-			"module", "audit", "err", err, "msg_id", msg.UUID,
+			"module", "audit", "operation", "HandleUserLoggedIn",
+			"err", err, "msg_id", msg.UUID,
 			"error_code", "unmarshal_failed", "retryable", false)
 		return nil // ack — schema mismatch is permanent, retrying won't help
 	}
@@ -147,7 +152,8 @@ func (h *Handler) HandleUserLoggedOut(msg *message.Message) error {
 	var ev contracts.UserLoggedOutEvent
 	if err := json.Unmarshal(msg.Payload, &ev); err != nil {
 		slog.ErrorContext(msg.Context(), "audit: failed to unmarshal user.logged_out event",
-			"module", "audit", "err", err, "msg_id", msg.UUID,
+			"module", "audit", "operation", "HandleUserLoggedOut",
+			"err", err, "msg_id", msg.UUID,
 			"error_code", "unmarshal_failed", "retryable", false)
 		return nil // ack — schema mismatch is permanent, retrying won't help
 	}

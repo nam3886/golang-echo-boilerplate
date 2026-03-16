@@ -1,14 +1,13 @@
 package app
 
-import "testing"
+import (
+	"testing"
 
-// assertPanics verifies that fn panics. Used across multiple test files in this package.
+	"github.com/gnha/golang-echo-boilerplate/internal/shared/testutil"
+)
+
+// assertPanics delegates to testutil.AssertPanics for backward compatibility.
 func assertPanics(t *testing.T, label string, fn func()) {
 	t.Helper()
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("%s: expected panic, got none", label)
-		}
-	}()
-	fn()
+	testutil.AssertPanics(t, label, fn)
 }

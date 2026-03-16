@@ -16,6 +16,7 @@ import (
 var _ domain.UserSearch = (*Repository)(nil)
 
 // Repository provides search operations against the users index.
+// Required: client (nil client -> nil Repository returned by constructor)
 type Repository struct {
 	client    *sharedsearch.Client
 	indexName string

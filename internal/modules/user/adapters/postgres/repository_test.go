@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
-	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/testutil"
 )
 
@@ -79,8 +78,8 @@ func TestPgUserRepository_GetByID_NotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for not found")
 	}
-	if !errors.Is(err, sharederr.ErrNotFound()) {
-		t.Errorf("expected ErrNotFound, got %v", err)
+	if !errors.Is(err, domain.ErrUserNotFound()) {
+		t.Errorf("expected ErrUserNotFound, got %v", err)
 	}
 }
 
@@ -103,8 +102,8 @@ func TestPgUserRepository_SoftDelete(t *testing.T) {
 
 	// GetByID should return not found after soft delete
 	_, err = repo.GetByID(ctx, user.ID())
-	if !errors.Is(err, sharederr.ErrNotFound()) {
-		t.Errorf("expected ErrNotFound after soft delete, got %v", err)
+	if !errors.Is(err, domain.ErrUserNotFound()) {
+		t.Errorf("expected ErrUserNotFound after soft delete, got %v", err)
 	}
 }
 
@@ -143,8 +142,8 @@ func TestPgUserRepository_Update_NotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected not found error")
 	}
-	if !errors.Is(err, sharederr.ErrNotFound()) {
-		t.Errorf("expected ErrNotFound, got %v", err)
+	if !errors.Is(err, domain.ErrUserNotFound()) {
+		t.Errorf("expected ErrUserNotFound, got %v", err)
 	}
 }
 
@@ -177,8 +176,8 @@ func TestPgUserRepository_GetByEmail_NotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected not found error")
 	}
-	if !errors.Is(err, sharederr.ErrNotFound()) {
-		t.Errorf("expected ErrNotFound, got %v", err)
+	if !errors.Is(err, domain.ErrUserNotFound()) {
+		t.Errorf("expected ErrUserNotFound, got %v", err)
 	}
 }
 
