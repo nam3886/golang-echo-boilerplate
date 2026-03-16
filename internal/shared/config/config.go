@@ -70,10 +70,8 @@ type Config struct {
 	// Rate limiting (IP-based sliding-window, Redis-backed).
 	// Scope is fixed to per-ip: this middleware runs before Auth, so user identity is unavailable.
 	// Algorithm is fixed to sliding-window. Redis is a required dep for distributed enforcement.
-	RateLimitRPM       int           `env:"RATE_LIMIT_RPM" envDefault:"100"`
-	RateLimitWindow    time.Duration `env:"RATE_LIMIT_WINDOW" envDefault:"1m"`
-	RateLimitScope     string        `env:"RATE_LIMIT_SCOPE" envDefault:"per-ip"`
-	RateLimitAlgorithm string        `env:"RATE_LIMIT_ALGORITHM" envDefault:"sliding-window"`
+	RateLimitRPM    int           `env:"RATE_LIMIT_RPM" envDefault:"100"`
+	RateLimitWindow time.Duration `env:"RATE_LIMIT_WINDOW" envDefault:"1m"`
 
 	// CORS
 	CORSOrigins []string `env:"CORS_ORIGINS" envSeparator:"," envDefault:"http://localhost:3000"`
@@ -109,12 +107,6 @@ func Load() (*Config, error) {
 	}
 	if cfg.RateLimitRPM <= 0 {
 		return nil, fmt.Errorf("RATE_LIMIT_RPM must be greater than 0 (got %d)", cfg.RateLimitRPM)
-	}
-	if cfg.RateLimitScope != "per-ip" {
-		return nil, fmt.Errorf("RATE_LIMIT_SCOPE only supports 'per-ip' (got %q)", cfg.RateLimitScope)
-	}
-	if cfg.RateLimitAlgorithm != "sliding-window" {
-		return nil, fmt.Errorf("RATE_LIMIT_ALGORITHM only supports 'sliding-window' (got %q)", cfg.RateLimitAlgorithm)
 	}
 	if cfg.BlacklistFailOpen && cfg.BlacklistCacheTTL <= 0 {
 		return nil, fmt.Errorf("BLACKLIST_CACHE_TTL must be positive when BLACKLIST_FAIL_OPEN=true")
@@ -176,8 +168,6 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "BlacklistCacheTTL:%s ", c.BlacklistCacheTTL)
 	fmt.Fprintf(&b, "RateLimitRPM:%d ", c.RateLimitRPM)
 	fmt.Fprintf(&b, "RateLimitWindow:%s ", c.RateLimitWindow)
-	fmt.Fprintf(&b, "RateLimitScope:%s ", c.RateLimitScope)
-	fmt.Fprintf(&b, "RateLimitAlgorithm:%s ", c.RateLimitAlgorithm)
 	fmt.Fprintf(&b, "CORSOrigins:%v", c.CORSOrigins)
 	b.WriteByte('}')
 	return b.String()

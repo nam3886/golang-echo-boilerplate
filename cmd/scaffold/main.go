@@ -305,6 +305,10 @@ func validateIdentifier(s, label string) {
 		fmt.Fprintf(os.Stderr, "error: %s must use snake_case (e.g. order_item), got %q\n", label, s)
 		os.Exit(1)
 	}
+	if strings.HasSuffix(s, "_test") {
+		fmt.Fprintf(os.Stderr, "error: %s must not end with _test (Go treats *_test.go as test files), got %q\n", label, s)
+		os.Exit(1)
+	}
 }
 
 // readGoModule extracts the module path from go.mod.

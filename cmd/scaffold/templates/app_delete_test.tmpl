@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
-	sharederr "{{.GoModule}}/internal/shared/errors"
 	"{{.GoModule}}/internal/shared/events"
 	"{{.GoModule}}/internal/shared/mocks"
 	"{{.GoModule}}/internal/shared/testutil"
@@ -45,7 +44,7 @@ func TestDelete{{.NameTitle}}Handler_NotFound(t *testing.T) {
 
 	mockRepo.EXPECT().
 		SoftDelete(gomock.Any(), domain.{{.NameID}}("missing-id")).
-		Return(nil, sharederr.ErrNotFound())
+		Return(nil, domain.Err{{.NameTitle}}NotFound())
 
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewDelete{{.NameTitle}}Handler(mockRepo, bus)

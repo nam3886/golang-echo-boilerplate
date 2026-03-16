@@ -38,7 +38,7 @@ All notable changes to Golang Echo Boilerplate are documented here.
 
 **I9: Router Godoc** — Added retry policy documentation to `NewRouter()`: "3 retries, 1s initial interval, 2x multiplier (max 10s), 0.5 randomization factor; messages dead-lettered to {topic}.dlq after exhaustion".
 
-**M11: Rate Limit Config Documentation** — Added `RateLimitScope` and `RateLimitAlgorithm` config fields as validated constants (currently hardcoded to "per-ip" and "sliding-window" respectively).
+**M11: Rate Limit Config Cleanup** — Removed unused `RateLimitScope` and `RateLimitAlgorithm` config fields (YAGNI — rate limiter is hardcoded to IP-based sliding-window). Config comments document the fixed behavior.
 
 **M12: Error Handling** — `SetupMiddleware` now returns `error` instead of calling `os.Exit(1)`; callers handle returned error properly.
 

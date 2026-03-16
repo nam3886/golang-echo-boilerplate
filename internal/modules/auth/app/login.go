@@ -89,6 +89,7 @@ func (h *LoginHandler) Handle(ctx context.Context, cmd LoginCmd) (_ LoginResult,
 				"module", "auth", "operation", "LoginHandler",
 				"error_code", "invalid_credentials", "ip", netutil.GetClientIP(ctx),
 				"retryable", false)
+			h.publishLoginFailed(ctx, cmd.Email, "unknown_email")
 			return LoginResult{}, ErrInvalidCredentials()
 		}
 		return LoginResult{}, fmt.Errorf("credential lookup: %w", err)
@@ -100,6 +101,7 @@ func (h *LoginHandler) Handle(ctx context.Context, cmd LoginCmd) (_ LoginResult,
 			"module", "auth", "operation", "LoginHandler",
 			"error_code", "invalid_credentials", "ip", netutil.GetClientIP(ctx),
 			"retryable", false)
+		h.publishLoginFailed(ctx, cmd.Email, "wrong_password")
 		return LoginResult{}, ErrInvalidCredentials()
 	}
 
@@ -133,4 +135,21 @@ func (h *LoginHandler) Handle(ctx context.Context, cmd LoginCmd) (_ LoginResult,
 		AccessToken: accessToken,
 		ExpiresIn:   int64(h.cfg.JWTAccessTTL.Seconds()),
 	}, nil
+}
+
+// publishLoginFailed publishes a login_failed event for audit persistence (fail-open).
+func (h *LoginHandler) publishLoginFailed(ctx context.Context, email, reason string) {
+	if pubErr := h.bus.Publish(ctx, contracts.TopicUserLoginFailed, contracts.UserLoginFailedEvent{
+		EventID:   uuid.NewString(),
+		Version:   contracts.UserEventSchemaVersion,
+		Email:     email,
+		Reason:    reason,
+		IPAddress: netutil.GetClientIP(ctx),
+		At:        time.Now(),
+	}); pubErr != nil {
+		slog.ErrorContext(ctx, "failed to publish user.login_failed event",
+			"module", "auth", "operation", "LoginHandler",
+			"error_code", "event_publish_failed",
+			"retryable", true, "err", pubErr)
+	}
 }

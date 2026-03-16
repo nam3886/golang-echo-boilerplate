@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
-	sharederr "{{.GoModule}}/internal/shared/errors"
 	"{{.GoModule}}/internal/shared/mocks"
 	"go.uber.org/mock/gomock"
 )
@@ -38,7 +37,7 @@ func TestGet{{.NameTitle}}Handler_NotFound(t *testing.T) {
 
 	mockRepo.EXPECT().
 		GetByID(gomock.Any(), domain.{{.NameID}}("missing-id")).
-		Return(nil, sharederr.ErrNotFound())
+		Return(nil, domain.Err{{.NameTitle}}NotFound())
 
 	handler := NewGet{{.NameTitle}}Handler(mockRepo)
 	_, err := handler.Handle(context.Background(), "missing-id")

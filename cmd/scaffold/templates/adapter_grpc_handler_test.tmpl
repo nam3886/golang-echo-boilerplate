@@ -13,7 +13,6 @@ import (
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
 	"{{.GoModule}}/internal/shared/events"
 	"{{.GoModule}}/internal/shared/mocks"
-	sharederr "{{.GoModule}}/internal/shared/errors"
 	"{{.GoModule}}/internal/shared/testutil"
 	"go.uber.org/mock/gomock"
 )
@@ -113,7 +112,7 @@ func TestHandler_Get{{.NameTitle}}_NotFound(t *testing.T) {
 
 	mockRepo.EXPECT().
 		GetByID(gomock.Any(), gomock.Any()).
-		Return(nil, sharederr.ErrNotFound())
+		Return(nil, domain.Err{{.NameTitle}}NotFound())
 
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	create := app.NewCreate{{.NameTitle}}Handler(mockRepo, bus)
@@ -174,7 +173,7 @@ func TestHandler_Update{{.NameTitle}}_NotFound(t *testing.T) {
 
 	mockRepo.EXPECT().
 		Update(gomock.Any(), gomock.Any(), gomock.Any()).
-		Return(sharederr.ErrNotFound())
+		Return(domain.Err{{.NameTitle}}NotFound())
 
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	create := app.NewCreate{{.NameTitle}}Handler(mockRepo, bus)
@@ -234,7 +233,7 @@ func TestHandler_Delete{{.NameTitle}}_NotFound(t *testing.T) {
 
 	mockRepo.EXPECT().
 		SoftDelete(gomock.Any(), gomock.Any()).
-		Return(nil, sharederr.ErrNotFound())
+		Return(nil, domain.Err{{.NameTitle}}NotFound())
 
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	create := app.NewCreate{{.NameTitle}}Handler(mockRepo, bus)

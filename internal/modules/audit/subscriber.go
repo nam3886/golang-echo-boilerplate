@@ -156,6 +156,42 @@ func (h *Handler) HandleUserLoggedIn(msg *message.Message) error {
 	return h.handleAuditEvent(msg, ev.UserID, ev.UserID, ev.IPAddress, "logged_in")
 }
 
+// HandleUserLoginFailed logs a failed login attempt to the audit trail.
+// Uses uuid.Nil as entity_id since the user may not exist; email is captured in changes JSON.
+func (h *Handler) HandleUserLoginFailed(msg *message.Message) error {
+	var ev contracts.UserLoginFailedEvent
+	if err := json.Unmarshal(msg.Payload, &ev); err != nil {
+		slog.ErrorContext(msg.Context(), "audit: failed to unmarshal user.login_failed event",
+			"module", "audit", "operation", "HandleUserLoginFailed",
+			"err", err, "msg_id", msg.UUID,
+			"error_code", "unmarshal_failed", "retryable", false)
+		return nil // ack — schema mismatch is permanent, retrying won't help
+	}
+
+	msgID, err := uuid.Parse(msg.UUID)
+	if err != nil {
+		var baseEvent struct {
+			EventID string `json:"event_id"`
+		}
+		if jsonErr := json.Unmarshal(msg.Payload, &baseEvent); jsonErr == nil && baseEvent.EventID != "" {
+			msgID = uuid.NewSHA1(uuid.NameSpaceOID, []byte(baseEvent.EventID))
+		} else {
+			msgID = uuid.NewSHA1(uuid.NameSpaceOID, msg.Payload)
+		}
+	}
+
+	return h.writer.CreateAuditLog(msg.Context(), sqlcgen.CreateAuditLogParams{
+		ID:         msgID,
+		EntityType: "auth",
+		EntityID:   uuid.Nil,
+		Action:     "login_failed",
+		ActorID:    uuid.Nil,
+		Changes:    json.RawMessage(msg.Payload),
+		IpAddress:  parseIPAddress(ev.IPAddress),
+		Status:     "failure",
+	})
+}
+
 // HandleUserLoggedOut logs a logout event to the audit trail.
 func (h *Handler) HandleUserLoggedOut(msg *message.Message) error {
 	var ev contracts.UserLoggedOutEvent

@@ -39,7 +39,8 @@ Returns `*TokenClaims` or an error.
 Tokens are blacklisted by `jti` in Redis to support logout before expiry.
 
 - `auth.BlacklistToken(ctx, rdb, jti, tokenExpiry)` — writes `blacklist:{jti}` with TTL = remaining token lifetime. No-ops if already expired.
-- `auth.IsBlacklisted(ctx, rdb, jti)` — checks existence of the Redis key.
+- `auth.IsBlacklisted(ctx, rdb, jti)` — simple Redis EXISTS check (used in tests).
+- `auth.IsBlacklistedWithCache(ctx, rdb, cache, jti, tokenExpiry)` — production check with local cache fallback for Redis outages.
 
 Source: `internal/shared/auth/blacklist.go`
 
@@ -49,7 +50,7 @@ Source: `internal/shared/auth/blacklist.go`
 
 1. Extract `Bearer <token>` from `Authorization` header.
 2. Call `auth.ValidateAccessToken` — reject if invalid/expired.
-3. Call `auth.IsBlacklisted` — **fail closed**: any Redis error rejects the request.
+3. Call `auth.IsBlacklistedWithCache` — **fail closed** (default): any Redis error rejects the request. Fail-open mode available via `BLACKLIST_FAIL_OPEN=true` with local cache.
 4. Call `auth.WithUser(ctx, claims)` to inject `AuthUser` into request context.
 5. Pass to next handler.
 

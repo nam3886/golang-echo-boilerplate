@@ -62,9 +62,23 @@ type UserDeletedEvent struct {
 
 // Auth event topics.
 const (
-	TopicUserLoggedIn  = "user.logged_in"
-	TopicUserLoggedOut = "user.logged_out"
+	TopicUserLoggedIn    = "user.logged_in"
+	TopicUserLoginFailed = "user.login_failed"
+	TopicUserLoggedOut   = "user.logged_out"
 )
+
+// UserLoginFailedEvent is published when a login attempt fails (wrong email or password).
+// Persisted to audit_logs for queryable security investigation.
+type UserLoginFailedEvent struct {
+	// EventID is a UUID v4 uniquely identifying this event for deduplication.
+	EventID string `json:"event_id"`
+	// Version is the schema version.
+	Version   string    `json:"version"`
+	Email     string    `json:"email"`
+	Reason    string    `json:"reason"` // "unknown_email" or "wrong_password"
+	IPAddress string    `json:"ip_address,omitempty"`
+	At        time.Time `json:"at"`
+}
 
 // UserLoggedInEvent is published when a user successfully authenticates.
 type UserLoggedInEvent struct {

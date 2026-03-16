@@ -26,6 +26,7 @@ func provideHandlers(h *Handler) []events.HandlerRegistration {
 		{Name: "audit.user_updated", Topic: contracts.TopicUserUpdated, HandlerFunc: h.HandleUserUpdated},
 		{Name: "audit.user_deleted", Topic: contracts.TopicUserDeleted, HandlerFunc: h.HandleUserDeleted},
 		{Name: "audit.user_logged_in", Topic: contracts.TopicUserLoggedIn, HandlerFunc: h.HandleUserLoggedIn},
+		{Name: "audit.user_login_failed", Topic: contracts.TopicUserLoginFailed, HandlerFunc: h.HandleUserLoginFailed},
 		{Name: "audit.user_logged_out", Topic: contracts.TopicUserLoggedOut, HandlerFunc: h.HandleUserLoggedOut},
 	}
 }
