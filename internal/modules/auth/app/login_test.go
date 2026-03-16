@@ -41,7 +41,7 @@ func testConfig(t *testing.T) *config.Config {
 func TestLoginHandler_Success(t *testing.T) {
 	lookup := &stubLookup{
 		userID:  "00000000-0000-0000-0000-000000000001",
-		hashPwd: "hashed_password123",
+		hashPwd: "$argon2id$v=19$test$hashed_password123",
 		role:    "member",
 	}
 	cfg := testConfig(t)
@@ -125,7 +125,7 @@ func TestLoginHandler_LookupError_PropagatesError(t *testing.T) {
 func TestLoginHandler_EventPublishFailure_DoesNotFail(t *testing.T) {
 	lookup := &stubLookup{
 		userID:  "00000000-0000-0000-0000-000000000001",
-		hashPwd: "hashed_password123",
+		hashPwd: "$argon2id$v=19$test$hashed_password123",
 		role:    "member",
 	}
 	cfg := testConfig(t)

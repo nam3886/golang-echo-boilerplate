@@ -31,7 +31,7 @@ func registerOTelShutdown(lc fx.Lifecycle, tp *sdktrace.TracerProvider, mp *sdkm
 	lc.Append(fx.Hook{
 		OnStop: func(ctx context.Context) error {
 			if err := mp.Shutdown(ctx); err != nil {
-				slog.Warn("meter provider shutdown error", "err", err)
+				slog.WarnContext(ctx, "meter provider shutdown error", "err", err)
 			}
 			if err := tp.Shutdown(ctx); err != nil {
 				slog.ErrorContext(ctx, "tracer shutdown failed", "err", err)
@@ -46,11 +46,11 @@ func registerDBShutdown(lc fx.Lifecycle, pool *pgxpool.Pool, rdb *redis.Client) 
 	lc.Append(fx.Hook{
 		OnStop: func(ctx context.Context) error {
 			pool.Close()
-			slog.Info("postgres pool closed")
+			slog.InfoContext(ctx, "postgres pool closed")
 			if err := rdb.Close(); err != nil {
-				slog.Warn("redis close error", "err", err)
+				slog.WarnContext(ctx, "redis close error", "err", err)
 			} else {
-				slog.Info("redis client closed")
+				slog.InfoContext(ctx, "redis client closed")
 			}
 			return nil
 		},

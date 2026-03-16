@@ -20,7 +20,7 @@ func setupRepo(t *testing.T) *PgUserRepository {
 
 func createTestUser(t *testing.T, email string) *domain.User {
 	t.Helper()
-	user, err := domain.NewUser(email, "Test User", "hashed_pwd", domain.RoleMember)
+	user, err := domain.NewUser(email, "Test User", testutil.FakeArgon2Hash, domain.RoleMember)
 	if err != nil {
 		t.Fatalf("creating test user: %v", err)
 	}

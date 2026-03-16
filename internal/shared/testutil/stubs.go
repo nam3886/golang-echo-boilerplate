@@ -9,12 +9,15 @@ import (
 // StubHasher returns a deterministic hash for testing.
 type StubHasher struct{}
 
-// Hash returns a deterministic hashed value for testing.
-func (s *StubHasher) Hash(password string) (string, error) { return "hashed_" + password, nil }
+// Hash returns a deterministic argon2id-prefixed hash for testing.
+// The prefix satisfies domain validation that requires "$argon2id$" format.
+func (s *StubHasher) Hash(password string) (string, error) {
+	return "$argon2id$v=19$test$hashed_" + password, nil
+}
 
 // Verify returns true only when encoded matches the Hash output pattern.
 func (s *StubHasher) Verify(password, encoded string) (bool, error) {
-	return encoded == "hashed_"+password, nil
+	return encoded == "$argon2id$v=19$test$hashed_"+password, nil
 }
 
 // FailHasher always returns an error from Hash.

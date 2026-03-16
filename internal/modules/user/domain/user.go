@@ -58,9 +58,13 @@ func NewUser(email, name, hashedPassword string, role Role) (*User, error) {
 	}
 	// hashedPassword is expected to be pre-hashed by the app layer via PasswordHasher.
 	// Raw password validation (length 8-72, complexity) is enforced in the hasher,
-	// not here. The domain only checks for empty to catch wiring errors.
+	// not here. The domain checks for empty and structural prefix to catch wiring errors
+	// that would silently persist plaintext passwords.
 	if hashedPassword == "" {
 		return nil, ErrPasswordRequired()
+	}
+	if len(hashedPassword) < 20 || hashedPassword[:10] != "$argon2id$" {
+		return nil, ErrInvalidHashedPassword()
 	}
 	now := time.Now()
 	return &User{

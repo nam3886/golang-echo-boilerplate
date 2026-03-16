@@ -53,16 +53,17 @@ func (h *Handler) HandleUserCreated(msg *message.Message) error {
 		return nil // ack — schema mismatch is permanent, retrying won't help
 	}
 
-	// Dedup: SET NX with 24h TTL — skip if already processed.
-	// Skipped entirely when rdb is nil (dedup disabled).
+	// Dedup check: skip if already sent. Performed BEFORE send to avoid duplicate work.
+	// The dedup key is only committed AFTER successful send to prevent silent message loss
+	// (crash between SetNX and Send would permanently silence the message).
 	if h.rdb != nil {
 		// nolint:staticcheck // SetNX works fine despite deprecation warning
-		ok, err := h.rdb.SetNX(ctx, "notification:dedup:"+msg.UUID, "1", dedupTTL).Result()
+		exists, err := h.rdb.Exists(ctx, "notification:dedup:"+msg.UUID).Result()
 		if err != nil {
 			// Fail-open: Redis issue should not block email delivery.
 			slog.WarnContext(ctx, "notification: dedup check failed, proceeding to send",
 				"module", "notification", "msg_id", msg.UUID, "err", err)
-		} else if !ok {
+		} else if exists > 0 {
 			slog.InfoContext(ctx, "notification: duplicate message, skipping",
 				"module", "notification", "msg_id", msg.UUID)
 			return nil
@@ -91,6 +92,15 @@ func (h *Handler) HandleUserCreated(msg *message.Message) error {
 			"module", "notification", "err", err, "user_id", event.UserID,
 			"error_code", "smtp_transient", "retryable", true)
 		return err
+	}
+
+	// Commit dedup key AFTER successful send — crash before this point allows redelivery.
+	if h.rdb != nil {
+		// nolint:staticcheck // SetNX works fine despite deprecation warning
+		if _, err := h.rdb.SetNX(ctx, "notification:dedup:"+msg.UUID, "1", dedupTTL).Result(); err != nil {
+			slog.WarnContext(ctx, "notification: failed to set dedup key after send, may get duplicate",
+				"module", "notification", "msg_id", msg.UUID, "err", err)
+		}
 	}
 
 	slog.InfoContext(ctx, "notification: welcome email sent", "user_id", event.UserID)

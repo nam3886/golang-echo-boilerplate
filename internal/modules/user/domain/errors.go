@@ -37,6 +37,12 @@ func ErrPasswordRequired() *sharederr.DomainError {
 	return sharederr.New(sharederr.CodeInvalidArgument, "user.password_required", "hashed password is required")
 }
 
+// ErrInvalidHashedPassword indicates the password is not a valid argon2id hash.
+// This catches wiring bugs where plaintext leaks through to the domain layer.
+func ErrInvalidHashedPassword() *sharederr.DomainError {
+	return sharederr.New(sharederr.CodeInvalidArgument, "user.invalid_hashed_password", "password must be a valid argon2id hash")
+}
+
 // ErrUserNotFound indicates the requested user does not exist.
 func ErrUserNotFound() *sharederr.DomainError {
 	return sharederr.New(sharederr.CodeNotFound, "user.not_found", "user not found")

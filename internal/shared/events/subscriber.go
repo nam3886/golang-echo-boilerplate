@@ -102,13 +102,16 @@ func StartRouter(lc fx.Lifecycle, router *message.Router, shutdowner fx.Shutdown
 					slog.Error("watermill router fatal error, initiating shutdown",
 						"module", "events", "operation", "RouterRun",
 						"error_code", "router_fatal", "retryable", false, "err", err)
-					cancel()
+					// Only trigger Fx shutdown — do NOT call cancel() or router.Close() here.
+					// OnStop is the single shutdown coordinator to avoid racing with this goroutine.
 					_ = shutdowner.Shutdown(fx.ExitCode(1))
 				}
 			}()
 			return nil
 		},
 		OnStop: func(_ context.Context) error {
+			// Single shutdown coordinator: cancel context first (signals router.Run to stop),
+			// then close the router. No other goroutine should call these.
 			cancel()
 			return router.Close()
 		},

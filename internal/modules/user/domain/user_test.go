@@ -12,7 +12,7 @@ import (
 )
 
 func TestNewUser_Success(t *testing.T) {
-	user, err := NewUser("test@example.com", "Test User", "hashed_pwd", RoleMember)
+	user, err := NewUser("test@example.com", "Test User", testutil.FakeArgon2Hash, RoleMember)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -34,7 +34,7 @@ func TestNewUser_Success(t *testing.T) {
 }
 
 func TestNewUser_InvalidEmail(t *testing.T) {
-	_, err := NewUser("", "Test User", "hashed_pwd", RoleMember)
+	_, err := NewUser("", "Test User", testutil.FakeArgon2Hash, RoleMember)
 	if err == nil {
 		t.Fatal("expected error for empty email")
 	}
@@ -42,7 +42,7 @@ func TestNewUser_InvalidEmail(t *testing.T) {
 }
 
 func TestNewUser_InvalidName(t *testing.T) {
-	_, err := NewUser("test@example.com", "", "hashed_pwd", RoleMember)
+	_, err := NewUser("test@example.com", "", testutil.FakeArgon2Hash, RoleMember)
 	if err == nil {
 		t.Fatal("expected error for empty name")
 	}
@@ -51,7 +51,7 @@ func TestNewUser_InvalidName(t *testing.T) {
 
 func TestNewUser_NameTooLong(t *testing.T) {
 	longName := string(make([]byte, 256))
-	_, err := NewUser("test@example.com", longName, "hashed_pwd", RoleMember)
+	_, err := NewUser("test@example.com", longName, testutil.FakeArgon2Hash, RoleMember)
 	if err == nil {
 		t.Fatal("expected error for name exceeding 255 chars")
 	}
@@ -59,7 +59,7 @@ func TestNewUser_NameTooLong(t *testing.T) {
 }
 
 func TestUser_ChangeName_TooLong(t *testing.T) {
-	user, _ := NewUser("test@example.com", "Test", "hashed_pwd", RoleMember)
+	user, _ := NewUser("test@example.com", "Test", testutil.FakeArgon2Hash, RoleMember)
 	longName := string(make([]byte, 256))
 	err := user.ChangeName(longName)
 	if err == nil {
@@ -69,7 +69,7 @@ func TestUser_ChangeName_TooLong(t *testing.T) {
 }
 
 func TestNewUser_InvalidRole(t *testing.T) {
-	_, err := NewUser("test@example.com", "Test User", "hashed_pwd", Role("superadmin"))
+	_, err := NewUser("test@example.com", "Test User", testutil.FakeArgon2Hash, Role("superadmin"))
 	if err == nil {
 		t.Fatal("expected error for invalid role")
 	}
@@ -77,7 +77,7 @@ func TestNewUser_InvalidRole(t *testing.T) {
 }
 
 func TestUser_ChangeName(t *testing.T) {
-	user, _ := NewUser("test@example.com", "Old Name", "hashed_pwd", RoleMember)
+	user, _ := NewUser("test@example.com", "Old Name", testutil.FakeArgon2Hash, RoleMember)
 	oldUpdated := user.UpdatedAt()
 
 	if err := user.ChangeName("New Name"); err != nil {
@@ -92,7 +92,7 @@ func TestUser_ChangeName(t *testing.T) {
 }
 
 func TestUser_ChangeName_Empty(t *testing.T) {
-	user, _ := NewUser("test@example.com", "Test User", "hashed_pwd", RoleMember)
+	user, _ := NewUser("test@example.com", "Test User", testutil.FakeArgon2Hash, RoleMember)
 	err := user.ChangeName("")
 	if err == nil {
 		t.Fatal("expected error for empty name")
@@ -101,7 +101,7 @@ func TestUser_ChangeName_Empty(t *testing.T) {
 }
 
 func TestUser_ChangeName_NoOp(t *testing.T) {
-	user, _ := NewUser("test@example.com", "Same", "hashed_pwd", RoleMember)
+	user, _ := NewUser("test@example.com", "Same", testutil.FakeArgon2Hash, RoleMember)
 	old := user.UpdatedAt()
 	if err := user.ChangeName("Same"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -112,7 +112,7 @@ func TestUser_ChangeName_NoOp(t *testing.T) {
 }
 
 func TestUser_ChangeRole(t *testing.T) {
-	user, _ := NewUser("test@example.com", "Test User", "hashed_pwd", RoleMember)
+	user, _ := NewUser("test@example.com", "Test User", testutil.FakeArgon2Hash, RoleMember)
 	if err := user.ChangeRole(RoleAdmin); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -122,7 +122,7 @@ func TestUser_ChangeRole(t *testing.T) {
 }
 
 func TestUser_ChangeRole_Invalid(t *testing.T) {
-	user, _ := NewUser("test@example.com", "Test User", "hashed_pwd", RoleMember)
+	user, _ := NewUser("test@example.com", "Test User", testutil.FakeArgon2Hash, RoleMember)
 	err := user.ChangeRole(Role("superadmin"))
 	if err == nil {
 		t.Fatal("expected error for invalid role")
@@ -131,7 +131,7 @@ func TestUser_ChangeRole_Invalid(t *testing.T) {
 }
 
 func TestUser_ChangeRole_NoOp(t *testing.T) {
-	user, _ := NewUser("test@example.com", "Test", "hashed_pwd", RoleMember)
+	user, _ := NewUser("test@example.com", "Test", testutil.FakeArgon2Hash, RoleMember)
 	old := user.UpdatedAt()
 	if err := user.ChangeRole(RoleMember); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -142,7 +142,7 @@ func TestUser_ChangeRole_NoOp(t *testing.T) {
 }
 
 func TestUser_ChangeEmail(t *testing.T) {
-	user, _ := NewUser("old@example.com", "Test User", "hashed_pwd", RoleMember)
+	user, _ := NewUser("old@example.com", "Test User", testutil.FakeArgon2Hash, RoleMember)
 	if err := user.ChangeEmail("new@example.com"); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -152,7 +152,7 @@ func TestUser_ChangeEmail(t *testing.T) {
 }
 
 func TestUser_ChangeEmail_Invalid(t *testing.T) {
-	user, _ := NewUser("old@example.com", "Test User", "hashed_pwd", RoleMember)
+	user, _ := NewUser("old@example.com", "Test User", testutil.FakeArgon2Hash, RoleMember)
 	err := user.ChangeEmail("not-an-email")
 	if err == nil {
 		t.Fatal("expected error for invalid email")
@@ -161,7 +161,7 @@ func TestUser_ChangeEmail_Invalid(t *testing.T) {
 }
 
 func TestUser_ChangeEmail_NoOp(t *testing.T) {
-	user, _ := NewUser("test@example.com", "Test", "hashed_pwd", RoleMember)
+	user, _ := NewUser("test@example.com", "Test", testutil.FakeArgon2Hash, RoleMember)
 	old := user.UpdatedAt()
 	if err := user.ChangeEmail("test@example.com"); err != nil {
 		t.Fatalf("unexpected error: %v", err)

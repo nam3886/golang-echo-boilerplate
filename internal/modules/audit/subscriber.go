@@ -74,11 +74,20 @@ func (h *Handler) handleAuditEvent(msg *message.Message, userID, actorID, ipAddr
 	// ON CONFLICT (id) DO NOTHING in the query silently deduplicates retries.
 	msgID, err := uuid.Parse(msg.UUID)
 	if err != nil {
-		// Fallback: derive a deterministic UUID from the raw payload so retries of the
-		// same message still collide with ON CONFLICT (id) DO NOTHING.
-		// uuid.New() (random) would defeat dedup — never use it here.
-		msgID = uuid.NewSHA1(uuid.NameSpaceOID, msg.Payload)
-		slog.WarnContext(msg.Context(), "audit: invalid msg UUID, using payload-derived deterministic ID",
+		// Fallback: derive a deterministic UUID from the event's EventID (extracted from
+		// payload) so publisher-side retries with different Watermill UUIDs but same EventID
+		// still collide with ON CONFLICT (id) DO NOTHING.
+		// Using raw payload would fail dedup when Watermill wraps the same event in different envelopes.
+		var baseEvent struct {
+			EventID string `json:"event_id"`
+		}
+		if jsonErr := json.Unmarshal(msg.Payload, &baseEvent); jsonErr == nil && baseEvent.EventID != "" {
+			msgID = uuid.NewSHA1(uuid.NameSpaceOID, []byte(baseEvent.EventID))
+		} else {
+			// Last resort: payload-derived ID (same payload = same ID)
+			msgID = uuid.NewSHA1(uuid.NameSpaceOID, msg.Payload)
+		}
+		slog.WarnContext(msg.Context(), "audit: invalid msg UUID, using event-derived deterministic ID",
 			"module", "audit", "operation", "InsertAuditLog",
 			"msg_uuid", msg.UUID, "derived_id", msgID, "err", err)
 	}
