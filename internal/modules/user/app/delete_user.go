@@ -70,7 +70,7 @@ func (h *DeleteUserHandler) Handle(ctx context.Context, id string) (err error) {
 
 	if err := h.bus.Publish(ctx, domain.TopicUserDeleted, domain.UserDeletedEvent{
 		EventID:   uuid.NewString(),
-		Version:   contracts.EventSchemaVersion,
+		Version:   contracts.UserEventSchemaVersion,
 		UserID:    id,
 		ActorID:   auth.ActorIDFromContext(ctx),
 		IPAddress: netutil.GetClientIP(ctx),

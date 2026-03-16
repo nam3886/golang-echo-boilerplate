@@ -22,4 +22,4 @@ type UserUpdatedEvent = contracts.UserUpdatedEvent
 type UserDeletedEvent = contracts.UserDeletedEvent
 
 // EventSchemaVersion is the current event schema version for user domain events.
-const EventSchemaVersion = contracts.EventSchemaVersion
+const EventSchemaVersion = contracts.UserEventSchemaVersion

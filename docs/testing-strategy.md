@@ -26,7 +26,7 @@ Test **logic** without infrastructure.
 func TestCreateUserHandler_Success(t *testing.T) {
     ctrl := gomock.NewController(t)
     mockRepo := mocks.NewMockUserRepository(ctrl)
-    mockRepo.EXPECT().GetByEmail(gomock.Any(), "new@example.com").Return(nil, sharederr.ErrNotFound())
+    mockRepo.EXPECT().GetByEmail(gomock.Any(), "new@example.com").Return(nil, domain.ErrUserNotFound())
     mockRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 
     bus := events.NewEventBus(&testutil.NoopPublisher{})

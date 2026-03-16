@@ -110,7 +110,7 @@ func (h *LoginHandler) Handle(ctx context.Context, cmd LoginCmd) (_ LoginResult,
 	// Publish event after successful authentication (fail-open).
 	if pubErr := h.bus.Publish(ctx, contracts.TopicUserLoggedIn, contracts.UserLoggedInEvent{
 		EventID:   uuid.NewString(),
-		Version:   contracts.EventSchemaVersion,
+		Version:   contracts.UserEventSchemaVersion,
 		UserID:    userID,
 		IPAddress: netutil.GetClientIP(ctx),
 		At:        time.Now(),

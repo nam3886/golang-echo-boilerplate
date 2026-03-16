@@ -475,7 +475,7 @@ var productProcedurePerms = map[string]appmw.Permission{
     productv1connect.ProductServiceDeleteProductProcedure: appmw.PermProductDelete,
 }
 
-func RegisterRoutes(e *echo.Echo, handler *ProductServiceHandler, cfg *config.Config, rdb *redis.Client) {
+func RegisterRoutes(shutdownCtx context.Context, e *echo.Echo, handler *ProductServiceHandler, cfg *config.Config, rdb *redis.Client) {
     path, h := productv1connect.NewProductServiceHandler(handler,
         connect.WithInterceptors(
             appmw.RBACInterceptor(productProcedurePerms),
@@ -484,7 +484,7 @@ func RegisterRoutes(e *echo.Echo, handler *ProductServiceHandler, cfg *config.Co
     )
     // Mount Connect handler under auth. All permission checks are handled
     // by RBACInterceptor per procedure (fail-closed).
-    g := e.Group(path, appmw.Auth(cfg, rdb))
+    g := e.Group(path, appmw.Auth(shutdownCtx, cfg, rdb))
     g.Any("*", echo.WrapHandler(http.StripPrefix(path, h)))
 }
 ```
@@ -539,8 +539,21 @@ var Module = fx.Module("product",
     fx.Provide(app.NewUpdateProductHandler),
     fx.Provide(app.NewDeleteProductHandler),
     fx.Provide(grpc.NewProductServiceHandler),
-    fx.Invoke(grpc.RegisterRoutes),
+    fx.Invoke(registerProductRoutes),
 )
+
+// registerProductRoutes creates a shutdown-aware context for the Auth middleware
+// and delegates to grpc.RegisterRoutes. See internal/modules/user/module.go for reference.
+func registerProductRoutes(lc fx.Lifecycle, e *echo.Echo, handler *grpc.ProductServiceHandler, cfg *config.Config, rdb *redis.Client) {
+    ctx, cancel := context.WithCancel(context.Background())
+    lc.Append(fx.Hook{
+        OnStop: func(_ context.Context) error {
+            cancel()
+            return nil
+        },
+    })
+    grpc.RegisterRoutes(ctx, e, handler, cfg, rdb)
+}
 ```
 
 ## 5. Event Publishing (optional)

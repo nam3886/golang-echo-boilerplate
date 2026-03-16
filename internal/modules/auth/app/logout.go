@@ -2,8 +2,6 @@ package app
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"time"
@@ -61,12 +59,12 @@ func (h *LogoutHandler) Handle(ctx context.Context, claims *auth.TokenClaims) (e
 	// Durable audit log before event publish — logged regardless of bus availability.
 	slog.InfoContext(ctx, "logout success",
 		"module", "auth", "operation", "LogoutHandler",
-		"user_id", claims.UserID, "jti_hash", hashJTI(claims.ID))
+		"user_id", claims.UserID, "jti_hash", auth.HashJTI(claims.ID))
 
 	// Publish event after successful blacklist (fail-open).
 	if pubErr := h.bus.Publish(ctx, contracts.TopicUserLoggedOut, contracts.UserLoggedOutEvent{
 		EventID:   uuid.NewString(),
-		Version:   contracts.EventSchemaVersion,
+		Version:   contracts.UserEventSchemaVersion,
 		UserID:    claims.UserID,
 		TokenID:   claims.ID,
 		IPAddress: netutil.GetClientIP(ctx),
@@ -81,9 +79,3 @@ func (h *LogoutHandler) Handle(ctx context.Context, claims *auth.TokenClaims) (e
 	return nil
 }
 
-// hashJTI returns the first 8 hex characters of the SHA-256 hash of jti.
-// Safe to include in logs — identifies the token for correlation without exposing the raw ID.
-func hashJTI(jti string) string {
-	h := sha256.Sum256([]byte(jti))
-	return hex.EncodeToString(h[:4])
-}

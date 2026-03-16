@@ -134,7 +134,7 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (_ *d
 
 	if err := h.bus.Publish(ctx, domain.TopicUserUpdated, domain.UserUpdatedEvent{
 		EventID:       uuid.NewString(),
-		Version:       contracts.EventSchemaVersion,
+		Version:       contracts.UserEventSchemaVersion,
 		UserID:        string(updated.ID()),
 		ActorID:       auth.ActorIDFromContext(ctx),
 		Name:          updated.Name(),

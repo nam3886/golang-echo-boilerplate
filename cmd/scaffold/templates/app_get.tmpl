@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
 	sharederr "{{.GoModule}}/internal/shared/errors"
@@ -26,9 +27,15 @@ func NewGet{{.NameTitle}}Handler(repo domain.{{.NameTitle}}Repository) *Get{{.Na
 }
 
 // Handle returns a {{.Name}} by ID.
-func (h *Get{{.NameTitle}}Handler) Handle(ctx context.Context, id string) (*domain.{{.NameTitle}}, error) {
+func (h *Get{{.NameTitle}}Handler) Handle(ctx context.Context, id string) (_ *domain.{{.NameTitle}}, err error) {
 	ctx, span := otel.Tracer("{{.Name}}").Start(ctx, "Get{{.NameTitle}}Handler.Handle")
-	defer span.End()
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		}
+		span.End()
+	}()
 
 	if id == "" {
 		return nil, sharederr.New(sharederr.CodeInvalidArgument, "{{.Name}}.id_required", "{{.Name}} ID is required")

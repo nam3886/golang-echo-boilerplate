@@ -2,8 +2,6 @@ package middleware
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"log/slog"
 	"strings"
 	"sync"
@@ -74,7 +72,7 @@ func Auth(shutdownCtx context.Context, cfg *config.Config, rdb *redis.Client) ec
 			if checkErr != nil {
 				slog.ErrorContext(ctx, "blacklist check failed",
 					"module", "auth", "operation", "blacklist_check",
-					"user_id", claims.UserID, "jti_hash", hashJTI(claims.ID),
+					"user_id", claims.UserID, "jti_hash", auth.HashJTI(claims.ID),
 					"error_code", "blacklist_unavailable", "retryable", true, "err", checkErr)
 				if !cfg.BlacklistFailOpen {
 					return sharederr.ErrUnauthorized()
@@ -91,13 +89,6 @@ func Auth(shutdownCtx context.Context, cfg *config.Config, rdb *redis.Client) ec
 			return next(c)
 		}
 	}
-}
-
-// hashJTI returns the first 8 hex characters of the SHA-256 hash of jti.
-// Safe to include in logs — identifies the token for correlation without exposing the raw ID.
-func hashJTI(jti string) string {
-	h := sha256.Sum256([]byte(jti))
-	return hex.EncodeToString(h[:4]) // 4 bytes → 8 hex chars
 }
 
 func extractBearerToken(c echo.Context) string {

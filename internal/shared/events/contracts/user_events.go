@@ -5,9 +5,9 @@ package contracts
 
 import "time"
 
-// EventSchemaVersion is the current event schema version.
+// UserEventSchemaVersion is the current event schema version for user domain events.
 // Increment when making breaking changes; deploy subscribers before publishers.
-const EventSchemaVersion = "v1"
+const UserEventSchemaVersion = "v1"
 
 // User event topics.
 const (

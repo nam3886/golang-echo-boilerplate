@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
 	"{{.GoModule}}/internal/shared/auth"
@@ -42,9 +43,15 @@ func NewUpdate{{.NameTitle}}Handler(repo domain.{{.NameTitle}}Repository, bus ev
 
 // Handle applies partial updates to a {{.NameTitle}} within a transaction.
 // If no fields are provided (all nil), returns current state without acquiring lock.
-func (h *Update{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Update{{.NameTitle}}Cmd) (*domain.{{.NameTitle}}, error) {
+func (h *Update{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Update{{.NameTitle}}Cmd) (_ *domain.{{.NameTitle}}, err error) {
 	ctx, span := otel.Tracer("{{.Name}}").Start(ctx, "Update{{.NameTitle}}Handler.Handle")
-	defer span.End()
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		}
+		span.End()
+	}()
 
 	if cmd.ID == "" {
 		return nil, domain.Err{{.NameTitle}}IDRequired()

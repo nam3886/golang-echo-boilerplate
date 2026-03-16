@@ -96,7 +96,7 @@ func (h *CreateUserHandler) Handle(ctx context.Context, cmd CreateUserCmd) (_ *d
 	// Publish event after successful DB write
 	if err := h.bus.Publish(ctx, domain.TopicUserCreated, domain.UserCreatedEvent{
 		EventID:   uuid.NewString(),
-		Version:   contracts.EventSchemaVersion,
+		Version:   contracts.UserEventSchemaVersion,
 		UserID:    string(user.ID()),
 		ActorID:   auth.ActorIDFromContext(ctx),
 		Email:     user.Email(),

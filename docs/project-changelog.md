@@ -62,7 +62,7 @@ All notable changes to Golang Echo Boilerplate are documented here.
 - Other 400 errors returned as hard errors
 - All slog calls now include `module: "search"`, `operation: "EnsureIndex"`
 
-**M9: Event Version Validation** — All 3 indexer handlers (HandleUserCreated, HandleUserUpdated, HandleUserDeleted) now check `ev.Version != contracts.EventSchemaVersion` before processing; skips unknown versions with warning log.
+**M9: Event Version Validation** — All 3 indexer handlers (HandleUserCreated, HandleUserUpdated, HandleUserDeleted) now check `ev.Version != contracts.UserEventSchemaVersion` before processing; skips unknown versions with warning log.
 
 #### Phase 4 — App Layer + Tests (3 issues + 5 minor fixes)
 

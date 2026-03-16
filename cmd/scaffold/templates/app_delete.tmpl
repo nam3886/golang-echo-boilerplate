@@ -7,11 +7,11 @@ import (
 
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
 	"{{.GoModule}}/internal/shared/auth"
 	"{{.GoModule}}/internal/shared/events"
-	sharederr "{{.GoModule}}/internal/shared/errors"
 	"{{.GoModule}}/internal/shared/netutil"
 )
 
@@ -35,9 +35,15 @@ func NewDelete{{.NameTitle}}Handler(repo domain.{{.NameTitle}}Repository, bus ev
 }
 
 // Handle soft-deletes a {{.Name}} by ID.
-func (h *Delete{{.NameTitle}}Handler) Handle(ctx context.Context, id string) error {
+func (h *Delete{{.NameTitle}}Handler) Handle(ctx context.Context, id string) (err error) {
 	ctx, span := otel.Tracer("{{.Name}}").Start(ctx, "Delete{{.NameTitle}}Handler.Handle")
-	defer span.End()
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		}
+		span.End()
+	}()
 
 	if id == "" {
 		return domain.Err{{.NameTitle}}IDRequired()

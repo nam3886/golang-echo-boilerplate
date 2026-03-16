@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
 )
@@ -34,9 +35,15 @@ func NewList{{.NamePluralTitle}}Handler(repo domain.{{.NameTitle}}Repository) *L
 // ⚠️ pageSize=0 is silently clamped to 20; pageSize>100 is silently clamped to 100.
 // ⚠️ page<=0 is silently clamped to 1; page>10000 is silently clamped to 10000.
 // The effective pageSize used is returned in ListResult.PageSize.
-func (h *List{{.NamePluralTitle}}Handler) Handle(ctx context.Context, page, pageSize int) (domain.ListResult, error) {
+func (h *List{{.NamePluralTitle}}Handler) Handle(ctx context.Context, page, pageSize int) (_ domain.ListResult, err error) {
 	ctx, span := otel.Tracer("{{.Name}}").Start(ctx, "List{{.NamePluralTitle}}Handler.Handle")
-	defer span.End()
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		}
+		span.End()
+	}()
 
 	if page <= 0 {
 		page = 1

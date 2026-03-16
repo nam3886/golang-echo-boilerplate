@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 
 	"{{.GoModule}}/internal/modules/{{.Name}}/domain"
 	"{{.GoModule}}/internal/shared/auth"
@@ -39,9 +40,15 @@ func NewCreate{{.NameTitle}}Handler(repo domain.{{.NameTitle}}Repository, bus ev
 }
 
 // Handle creates a new {{.Name}}.
-func (h *Create{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Create{{.NameTitle}}Cmd) (*domain.{{.NameTitle}}, error) {
+func (h *Create{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Create{{.NameTitle}}Cmd) (_ *domain.{{.NameTitle}}, err error) {
 	ctx, span := otel.Tracer("{{.Name}}").Start(ctx, "Create{{.NameTitle}}Handler.Handle")
-	defer span.End()
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		}
+		span.End()
+	}()
 
 	entity, err := domain.New{{.NameTitle}}(cmd.Name)
 	if err != nil {
