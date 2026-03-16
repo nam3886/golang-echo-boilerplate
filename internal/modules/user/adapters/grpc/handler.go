@@ -21,6 +21,7 @@ type UserServiceHandler struct {
 }
 
 // NewUserServiceHandler constructs the handler.
+// Panics if any required dependency is nil.
 func NewUserServiceHandler(
 	createUser *app.CreateUserHandler,
 	getUser *app.GetUserHandler,
@@ -28,6 +29,21 @@ func NewUserServiceHandler(
 	updateUser *app.UpdateUserHandler,
 	deleteUser *app.DeleteUserHandler,
 ) *UserServiceHandler {
+	if createUser == nil {
+		panic("NewUserServiceHandler: createUser must not be nil")
+	}
+	if getUser == nil {
+		panic("NewUserServiceHandler: getUser must not be nil")
+	}
+	if listUsers == nil {
+		panic("NewUserServiceHandler: listUsers must not be nil")
+	}
+	if updateUser == nil {
+		panic("NewUserServiceHandler: updateUser must not be nil")
+	}
+	if deleteUser == nil {
+		panic("NewUserServiceHandler: deleteUser must not be nil")
+	}
 	return &UserServiceHandler{
 		createUser: createUser,
 		getUser:    getUser,

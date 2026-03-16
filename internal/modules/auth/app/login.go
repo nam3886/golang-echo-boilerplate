@@ -24,6 +24,11 @@ func ErrInvalidCredentials() *sharederr.DomainError {
 	return sharederr.New(sharederr.CodeUnauthenticated, "invalid_credentials", "invalid email or password")
 }
 
+// dummyArgon2Hash is a pre-computed argon2id hash used to equalize response time
+// when an unknown email is provided. Without this, the unknown-email path returns
+// instantly while the wrong-password path runs argon2id, leaking email registration status.
+const dummyArgon2Hash = "$argon2id$v=19$m=65536,t=3,p=4$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+
 // LoginCmd holds input for user login.
 type LoginCmd struct {
 	Email    string
@@ -77,6 +82,9 @@ func (h *LoginHandler) Handle(ctx context.Context, cmd LoginCmd) (_ LoginResult,
 	userID, hashedPwd, role, err := h.lookup.GetByEmail(ctx, cmd.Email)
 	if err != nil {
 		if errors.Is(err, sharederr.ErrNotFound()) {
+			// Run dummy verification to equalize timing with the wrong-password path,
+			// preventing email enumeration via response time side-channel.
+			_, _ = h.hasher.Verify(cmd.Password, dummyArgon2Hash)
 			slog.WarnContext(ctx, "login failed: unknown email",
 				"module", "auth", "operation", "LoginHandler",
 				"error_code", "invalid_credentials", "ip", netutil.GetClientIP(ctx),

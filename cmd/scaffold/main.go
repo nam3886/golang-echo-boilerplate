@@ -195,9 +195,9 @@ func main() {
 	rbacInjected := false
 	if err := injectRBACPermissions(data); err != nil {
 		fmt.Fprintf(os.Stderr, "warning: could not auto-inject RBAC: %v\n", err)
-		fmt.Println("  Manual step: add permissions to rbac.go and procedure entries to rbac_interceptor.go")
+		fmt.Println("  Manual step: add permissions to rbac.go")
 	} else {
-		fmt.Printf("  registered: internal/shared/middleware/rbac.go + rbac_interceptor.go\n")
+		fmt.Printf("  registered: internal/shared/middleware/rbac.go\n")
 		rbacInjected = true
 	}
 
@@ -216,7 +216,7 @@ func main() {
 		step++
 	}
 	if !rbacInjected {
-		fmt.Printf("  %d. Add RBAC entries:             rbac.go + rbac_interceptor.go\n", step)
+		fmt.Printf("  %d. Add RBAC permissions:         rbac.go\n", step)
 		step++
 	}
 	fmt.Printf("  %d. Run:                          task migrate:up && task check\n", step)
@@ -256,11 +256,10 @@ func injectModuleRegistration(data ModuleData) error {
 	return nil
 }
 
-// injectRBACPermissions adds permission constants to rbac.go and procedure
-// mappings to rbac_interceptor.go using the ADD_PERMISSION_HERE and
-// ADD_PROCEDURE_PERMISSION_HERE markers.
+// injectRBACPermissions adds permission constants to rbac.go using the
+// ADD_PERMISSION_HERE marker. Procedure→permission mappings are defined
+// per-module in each module's generated routes.go (not centralized).
 func injectRBACPermissions(data ModuleData) error {
-	// 1. Inject permission constants into rbac.go
 	rbacPath := filepath.Join("internal", "shared", "middleware", "rbac.go")
 	content, err := os.ReadFile(rbacPath)
 	if err != nil {
@@ -279,44 +278,6 @@ func injectRBACPermissions(data ModuleData) error {
 	if err := os.WriteFile(rbacPath, []byte(src), 0600); err != nil {
 		return fmt.Errorf("writing %s: %w", rbacPath, err)
 	}
-
-	// 2. Inject procedure permission mappings into rbac_interceptor.go
-	interceptorPath := filepath.Join("internal", "shared", "middleware", "rbac_interceptor.go")
-	content, err = os.ReadFile(interceptorPath)
-	if err != nil {
-		return fmt.Errorf("reading %s: %w", interceptorPath, err)
-	}
-	src = string(content)
-	procMarker := "// ADD_PROCEDURE_PERMISSION_HERE"
-	if !strings.Contains(src, procMarker) {
-		return fmt.Errorf("marker %q not found in %s", procMarker, interceptorPath)
-	}
-
-	// Add import for the new module's connect package.
-	connectPkg := fmt.Sprintf("%sv1connect", data.Name)
-	connectImport := fmt.Sprintf("\t%s \"%s/gen/proto/%s/v1/%sv1connect\"", connectPkg, data.GoModule, data.Name, data.Name)
-	// Insert after the last v1connect import line.
-	lastConnect := strings.LastIndex(src, "v1connect\"")
-	if lastConnect >= 0 {
-		eol := strings.Index(src[lastConnect:], "\n")
-		insertAt := lastConnect + eol + 1
-		src = src[:insertAt] + connectImport + "\n" + src[insertAt:]
-	}
-
-	procBlock := fmt.Sprintf(
-		"%s.%sServiceGet%sProcedure:    Perm%sRead,\n\t%s.%sServiceList%sProcedure:  Perm%sRead,\n\t%s.%sServiceCreate%sProcedure: Perm%sWrite,\n\t%s.%sServiceUpdate%sProcedure: Perm%sWrite,\n\t%s.%sServiceDelete%sProcedure: Perm%sDelete,\n\t%s",
-		connectPkg, data.NameTitle, data.NameTitle, data.NameTitle,
-		connectPkg, data.NameTitle, data.NamePluralTitle, data.NameTitle,
-		connectPkg, data.NameTitle, data.NameTitle, data.NameTitle,
-		connectPkg, data.NameTitle, data.NameTitle, data.NameTitle,
-		connectPkg, data.NameTitle, data.NameTitle, data.NameTitle,
-		procMarker,
-	)
-	src = strings.Replace(src, procMarker, procBlock, 1)
-	if err := os.WriteFile(interceptorPath, []byte(src), 0600); err != nil {
-		return fmt.Errorf("writing %s: %w", interceptorPath, err)
-	}
-
 	return nil
 }
 

@@ -22,7 +22,17 @@ type AuthServiceHandler struct {
 }
 
 // NewAuthServiceHandler constructs the handler.
+// Panics if any required dependency is nil.
 func NewAuthServiceHandler(login *app.LoginHandler, logout *app.LogoutHandler, cfg *config.Config) *AuthServiceHandler {
+	if login == nil {
+		panic("NewAuthServiceHandler: login must not be nil")
+	}
+	if logout == nil {
+		panic("NewAuthServiceHandler: logout must not be nil")
+	}
+	if cfg == nil {
+		panic("NewAuthServiceHandler: cfg must not be nil")
+	}
 	return &AuthServiceHandler{login: login, logout: logout, cfg: cfg}
 }
 
@@ -57,6 +67,9 @@ func (h *AuthServiceHandler) Logout(ctx context.Context, req *connect.Request[au
 	if err != nil {
 		return nil, connectutil.DomainErrorToConnect(ctx, sharederr.ErrUnauthorized())
 	}
+
+	// Propagate user identity so request logger emits user_id for logout requests.
+	ctx = auth.WithUser(ctx, claims)
 
 	if err := h.logout.Handle(ctx, claims); err != nil {
 		return nil, connectutil.DomainErrorToConnect(ctx, err)

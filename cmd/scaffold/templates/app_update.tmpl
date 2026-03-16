@@ -66,7 +66,7 @@ func (h *Update{{.NameTitle}}Handler) Handle(ctx context.Context, cmd Update{{.N
 	}
 	var updated *domain.{{.NameTitle}}
 	var changedFields []string
-	err := h.repo.Update(ctx, domain.{{.NameID}}(cmd.ID), func(entity *domain.{{.NameTitle}}) error {
+	err = h.repo.Update(ctx, domain.{{.NameID}}(cmd.ID), func(entity *domain.{{.NameTitle}}) error {
 		changedFields = nil
 		if cmd.Name != nil && *cmd.Name != entity.Name() {
 			if err := entity.ChangeName(*cmd.Name); err != nil {
