@@ -209,11 +209,10 @@ SELECT id, name, created_at, updated_at, deleted_at FROM products WHERE id = $1 
 -- name: GetProductByIDForUpdate :one
 SELECT id, name, created_at, updated_at, deleted_at FROM products WHERE id = $1 AND deleted_at IS NULL FOR UPDATE;
 
--- name: CountProducts :one
-SELECT COUNT(*) FROM products WHERE deleted_at IS NULL;
-
--- name: ListProducts :many
-SELECT id, name, created_at, updated_at, deleted_at FROM products
+-- name: ListProductsWithTotal :many
+SELECT id, name, created_at, updated_at, deleted_at,
+       count(*) OVER() AS total_count
+FROM products
 WHERE deleted_at IS NULL
 ORDER BY created_at DESC, id DESC
 LIMIT $1 OFFSET $2;
@@ -641,7 +640,7 @@ In your app handler (e.g., `CreateProductHandler`), inject `events.EventPublishe
 
 ```go
 if err := h.bus.Publish(ctx, domain.TopicProductCreated, domain.ProductCreatedEvent{
-    Version:   1,
+    Version:   contracts.ProductEventSchemaVersion,
     ProductID: string(p.ID()),
     ActorID:   actorID,
     Name:      p.Name(),

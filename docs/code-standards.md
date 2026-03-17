@@ -301,7 +301,7 @@ type UserRepository interface {
 **Key Patterns:**
 
 - **Get methods** return `ErrNotFound` when resource doesn't exist
-- **List** returns `ListResult{Users, Total}` with offset-based pagination; accepts `page` and `pageSize`, executes LIMIT/OFFSET + COUNT query
+- **List** returns `ListResult{Users, Total}` with offset-based pagination; accepts `page` and `pageSize`, uses `count(*) OVER()` window function for single-query total count
 - **Create** may catch database constraint errors (e.g., Postgres 23505 for uniqueness) and map to domain errors
 - **Update** accepts a closure to apply mutations within a transaction; publishes events after successful persistence
 - **SoftDelete** marks record as deleted, returns the deleted entity for event publishing; returns `ErrNotFound` if the user doesn't exist
@@ -355,7 +355,7 @@ func (h *CreateUserHandler) Handle(ctx context.Context, cmd CreateUserCmd) (*dom
 
     // Events (after successful persistence)
     if err := h.bus.Publish(ctx, domain.TopicUserCreated, domain.UserCreatedEvent{
-        Version:   1,
+        Version:   contracts.UserEventSchemaVersion,
         UserID:    string(user.ID()),
         ActorID:   auth.ActorIDFromContext(ctx),
         Email:     user.Email(),
@@ -463,7 +463,7 @@ func (h *UpdateUserHandler) Handle(ctx context.Context, cmd UpdateUserCmd) (*dom
 
     // Publish event with ActorID from context
     if err := h.bus.Publish(ctx, domain.TopicUserUpdated, domain.UserUpdatedEvent{
-        Version:       1,
+        Version:       contracts.UserEventSchemaVersion,
         UserID:        string(updated.ID()),
         ActorID:       auth.ActorIDFromContext(ctx),
         Name:          updated.Name(),
@@ -504,7 +504,7 @@ func (h *DeleteUserHandler) Handle(ctx context.Context, id string) error {
     deletedAt := *user.DeletedAt()
 
     if err := h.bus.Publish(ctx, domain.TopicUserDeleted, domain.UserDeletedEvent{
-        Version:   1,
+        Version:   contracts.UserEventSchemaVersion,
         UserID:    id,
         ActorID:   auth.ActorIDFromContext(ctx),
         IPAddress: netutil.GetClientIP(ctx),
@@ -738,7 +738,7 @@ List(ctx context.Context, page, pageSize int) (ListResult, error)
 ```
 
 **Implementation Details:**
-- SQL: `LIMIT $1 OFFSET $2` with a separate `COUNT(*)` query
+- SQL: `count(*) OVER()` window function with `LIMIT $1 OFFSET $2` in a single query
 - `page` is 1-indexed; `pageSize` range 1–100
 - Caller derives `total_pages` as `ceil(Total / pageSize)`
 

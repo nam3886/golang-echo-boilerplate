@@ -42,7 +42,7 @@ func newMsg(payload string) *message.Message {
 	return msg
 }
 
-const validUserCreatedPayload = `{"user_id":"00000000-0000-0000-0000-000000000001","actor_id":"00000000-0000-0000-0000-000000000002","email":"user@example.com","name":"Test User","role":"member"}`
+const validUserCreatedPayload = `{"event_id":"evt-00000000-0000-0000-0000-000000000099","user_id":"00000000-0000-0000-0000-000000000001","actor_id":"00000000-0000-0000-0000-000000000002","email":"user@example.com","name":"Test User","role":"member"}`
 
 func TestHandleUserCreated_ValidPayload(t *testing.T) {
 	h := newTestHandler(t, nil)
@@ -132,6 +132,32 @@ func TestHandleUserCreated_Dedup_SkipsDuplicate(t *testing.T) {
 	}
 	if sendCount != 1 {
 		t.Errorf("expected still 1 send after duplicate, got %d (dedup failed)", sendCount)
+	}
+}
+
+func TestHandleUserCreated_Dedup_DifferentMsgUUID_SameEventID(t *testing.T) {
+	// Publisher retry creates a new Watermill UUID but the EventID stays the same.
+	// Dedup must still catch it since we key on EventID, not msg.UUID.
+	sendCount := 0
+	counter := &countingSender{count: &sendCount}
+	h := NewHandler(counter, newTestRedis(t))
+
+	msg1 := newMsg(validUserCreatedPayload) // UUID "550e8400-..."
+	if err := h.HandleUserCreated(msg1); err != nil {
+		t.Fatalf("first call: %v", err)
+	}
+	if sendCount != 1 {
+		t.Fatalf("expected 1 send, got %d", sendCount)
+	}
+
+	// Same payload (same EventID) but different Watermill UUID — must be deduped.
+	msg2 := message.NewMessage("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", []byte(validUserCreatedPayload))
+	msg2.SetContext(context.Background())
+	if err := h.HandleUserCreated(msg2); err != nil {
+		t.Fatalf("second call: %v", err)
+	}
+	if sendCount != 1 {
+		t.Errorf("expected still 1 send after retry with different UUID, got %d", sendCount)
 	}
 }
 
