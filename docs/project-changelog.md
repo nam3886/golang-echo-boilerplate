@@ -4,6 +4,41 @@ All notable changes to Golang Echo Boilerplate are documented here.
 
 ## [Unreleased]
 
+### Deep Review Fixes (2026-03-17)
+
+**Summary:** Completed 6-phase deep review addressing scaffold template consistency, security gaps, test coverage, docs accuracy, observability polish, and shared package tests. All phases tested and passing.
+
+#### Phase 1: Scaffold Template Sync
+- Added nil-dep panic checks to gRPC handler template
+- Switched scaffold postgres adapter to window-function List pattern
+- Fixed app_get template to use domain errors
+
+#### Phase 2: Security & Correctness
+- Added blacklist check in Logout handler (defense-in-depth)
+- Replaced os.Exit(1) with Fx-compatible error return in SetupMiddleware
+- Hashed email in login-failed events (PII protection)
+
+#### Phase 3: Critical-Path Test Coverage
+- Added auth gRPC handler tests (87.1% coverage)
+- Added PermissionsForRole + BlacklistCache unit tests
+- Created StubBlacklister in testutil, removed miniredis from logout tests
+
+#### Phase 4: Docs Accuracy
+- Fixed config.Validate() ghost reference in architecture.md
+- Updated notification dedup + audit fallback examples in event-subscribers.md
+
+#### Phase 5: Observability & Consistency
+- Added structured keys to ~10 startup/shutdown log sites
+- Added failure-mode godoc on ES indexer + Postgres pool
+- Added subscriber-side event version checks (audit + notification)
+
+#### Phase 6: Shared Package Tests
+- Added config.String() masking tests
+- Added uniqueTopics() tests
+- Added godoc warnings on Publish, BlacklistToken, JWTRefreshTTL
+
+---
+
 ### Code Review Fixes: All 25 Issues Complete (2026-03-15)
 
 **Summary:** Completed comprehensive fix session addressing 9 IMPORTANT + 16 MINOR issues across domain, shared infrastructure, search adapter, and app layers. All tests passing.

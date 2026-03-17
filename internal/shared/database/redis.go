@@ -34,6 +34,6 @@ func NewRedisClient(cfg *config.Config) (*redis.Client, error) {
 		_ = rdb.Close() // prevent goroutine/connection leak
 		return nil, err
 	}
-	slog.Info("redis connected", "addr", opt.Addr)
+	slog.Info("redis connected", "module", "infra", "operation", "startup", "addr", opt.Addr)
 	return rdb, nil
 }

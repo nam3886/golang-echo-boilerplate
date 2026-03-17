@@ -15,6 +15,9 @@ const blacklistPrefix = "blacklist:"
 // BlacklistToken adds a JWT token ID (jti) to the Redis blacklist.
 // The key expires when the token would have expired, preventing unbounded Redis growth.
 // Returns nil immediately if the token is already expired.
+//
+// WARNING: Redis MAXMEMORY eviction can silently remove blacklist entries.
+// Configure Redis with noeviction or allkeys-lfu policy for the blacklist keyspace.
 func BlacklistToken(ctx context.Context, rdb *redis.Client, jti string, tokenExpiry time.Time) error {
 	ttl := time.Until(tokenExpiry)
 	if ttl <= 0 {

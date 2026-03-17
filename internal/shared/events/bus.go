@@ -63,6 +63,9 @@ func NewEventBus(publisher message.Publisher) *EventBus {
 }
 
 // Publish marshals and publishes a domain event with OTel trace propagation.
+//
+// WARNING: Publish silently succeeds if the underlying Watermill publisher
+// is closed. Callers should treat publish errors as non-fatal (fire-and-forget).
 func (b *EventBus) Publish(ctx context.Context, topic string, event any) error {
 	payload, err := json.Marshal(event)
 	if err != nil {

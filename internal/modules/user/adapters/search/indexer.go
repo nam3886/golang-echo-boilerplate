@@ -1,4 +1,8 @@
 // Package search handles Elasticsearch indexing for user documents.
+//
+// Failure mode: Elasticsearch unavailability.
+// All indexer methods log errors and return nil (fire-and-forget).
+// Search results degrade but CRUD operations continue unaffected.
 package search
 
 import (

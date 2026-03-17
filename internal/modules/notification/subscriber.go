@@ -54,6 +54,12 @@ func (h *Handler) HandleUserCreated(msg *message.Message) error {
 			"error_code", "unmarshal_failed", "retryable", false)
 		return nil // ack — schema mismatch is permanent, retrying won't help
 	}
+	if event.Version != contracts.UserEventSchemaVersion {
+		slog.WarnContext(ctx, "notification: unknown event version, acking to prevent retry loop",
+			"module", "notification", "operation", "HandleUserCreated",
+			"got_version", event.Version, "expected_version", contracts.UserEventSchemaVersion)
+		return nil // ack — don't retry unknown versions
+	}
 
 	// Dedup check: skip if already sent. Uses event.EventID (not msg.UUID) so that
 	// publisher retries with a new Watermill UUID are still caught as duplicates.

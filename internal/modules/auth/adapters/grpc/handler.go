@@ -16,14 +16,15 @@ import (
 
 // AuthServiceHandler implements the Connect RPC AuthService.
 type AuthServiceHandler struct {
-	login  *app.LoginHandler
-	logout *app.LogoutHandler
-	cfg    *config.Config
+	login       *app.LoginHandler
+	logout      *app.LogoutHandler
+	cfg         *config.Config
+	blacklister auth.Blacklister
 }
 
 // NewAuthServiceHandler constructs the handler.
 // Panics if any required dependency is nil.
-func NewAuthServiceHandler(login *app.LoginHandler, logout *app.LogoutHandler, cfg *config.Config) *AuthServiceHandler {
+func NewAuthServiceHandler(login *app.LoginHandler, logout *app.LogoutHandler, cfg *config.Config, blacklister auth.Blacklister) *AuthServiceHandler {
 	if login == nil {
 		panic("NewAuthServiceHandler: login must not be nil")
 	}
@@ -33,7 +34,10 @@ func NewAuthServiceHandler(login *app.LoginHandler, logout *app.LogoutHandler, c
 	if cfg == nil {
 		panic("NewAuthServiceHandler: cfg must not be nil")
 	}
-	return &AuthServiceHandler{login: login, logout: logout, cfg: cfg}
+	if blacklister == nil {
+		panic("NewAuthServiceHandler: blacklister must not be nil")
+	}
+	return &AuthServiceHandler{login: login, logout: logout, cfg: cfg, blacklister: blacklister}
 }
 
 // Verify interface compliance at compile time.
@@ -67,6 +71,12 @@ func (h *AuthServiceHandler) Logout(ctx context.Context, req *connect.Request[au
 	if err != nil {
 		return nil, connectutil.DomainErrorToConnect(ctx, sharederr.ErrUnauthorized())
 	}
+
+	// Defense-in-depth: reject already-revoked tokens at transport layer.
+	if isBlacklisted, blErr := h.blacklister.IsBlacklisted(ctx, claims.ID); blErr == nil && isBlacklisted {
+		return nil, connectutil.DomainErrorToConnect(ctx, sharederr.ErrUnauthorized())
+	}
+	// On blacklist check error, fall through — the logout handler's replay guard handles it.
 
 	// Propagate user identity so request logger emits user_id for logout requests.
 	ctx = auth.WithUser(ctx, claims)

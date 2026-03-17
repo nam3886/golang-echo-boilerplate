@@ -32,7 +32,7 @@ func newMsg(payload string) *message.Message {
 
 func TestHandleUserCreated_ValidPayload(t *testing.T) {
 	h := newTestHandler(nil)
-	msg := newMsg(`{"user_id":"00000000-0000-0000-0000-000000000001","actor_id":"00000000-0000-0000-0000-000000000002","email":"user@example.com","name":"Test User","role":"member"}`)
+	msg := newMsg(`{"version":"v1","user_id":"00000000-0000-0000-0000-000000000001","actor_id":"00000000-0000-0000-0000-000000000002","email":"user@example.com","name":"Test User","role":"member"}`)
 	err := h.HandleUserCreated(msg)
 	if err != nil {
 		t.Errorf("expected nil error, got %v", err)
@@ -52,7 +52,7 @@ func TestHandleUserCreated_InvalidJSON(t *testing.T) {
 func TestHandleUserCreated_InvalidUserID(t *testing.T) {
 	h := newTestHandler(nil)
 	// Valid JSON but user_id is not a valid UUID.
-	msg := newMsg(`{"user_id":"not-a-uuid","actor_id":"00000000-0000-0000-0000-000000000002"}`)
+	msg := newMsg(`{"version":"v1","user_id":"not-a-uuid","actor_id":"00000000-0000-0000-0000-000000000002"}`)
 	err := h.HandleUserCreated(msg)
 	if err != nil {
 		t.Errorf("expected nil error on invalid user_id, got %v", err)
@@ -61,7 +61,7 @@ func TestHandleUserCreated_InvalidUserID(t *testing.T) {
 
 func TestHandleUserUpdated_ValidPayload(t *testing.T) {
 	h := newTestHandler(nil)
-	msg := newMsg(`{"user_id":"00000000-0000-0000-0000-000000000001","actor_id":"00000000-0000-0000-0000-000000000002"}`)
+	msg := newMsg(`{"version":"v1","user_id":"00000000-0000-0000-0000-000000000001","actor_id":"00000000-0000-0000-0000-000000000002"}`)
 	err := h.HandleUserUpdated(msg)
 	if err != nil {
 		t.Errorf("expected nil error, got %v", err)
@@ -71,6 +71,7 @@ func TestHandleUserUpdated_ValidPayload(t *testing.T) {
 func TestHandleUserUpdated_InvalidJSON(t *testing.T) {
 	h := newTestHandler(nil)
 	msg := newMsg(`{invalid}`)
+
 	err := h.HandleUserUpdated(msg)
 	if err != nil {
 		t.Errorf("expected nil error on bad payload, got %v", err)
@@ -79,7 +80,7 @@ func TestHandleUserUpdated_InvalidJSON(t *testing.T) {
 
 func TestHandleUserDeleted_ValidPayload(t *testing.T) {
 	h := newTestHandler(nil)
-	msg := newMsg(`{"user_id":"00000000-0000-0000-0000-000000000001","actor_id":"00000000-0000-0000-0000-000000000002"}`)
+	msg := newMsg(`{"version":"v1","user_id":"00000000-0000-0000-0000-000000000001","actor_id":"00000000-0000-0000-0000-000000000002"}`)
 	err := h.HandleUserDeleted(msg)
 	if err != nil {
 		t.Errorf("expected nil error, got %v", err)
@@ -98,7 +99,7 @@ func TestHandleUserDeleted_InvalidJSON(t *testing.T) {
 func TestHandleUserCreated_DBError(t *testing.T) {
 	dbErr := fmt.Errorf("connection reset by peer")
 	h := newTestHandler(dbErr)
-	msg := newMsg(`{"user_id":"00000000-0000-0000-0000-000000000001","actor_id":"00000000-0000-0000-0000-000000000002","email":"user@example.com","name":"Test User","role":"member"}`)
+	msg := newMsg(`{"version":"v1","user_id":"00000000-0000-0000-0000-000000000001","actor_id":"00000000-0000-0000-0000-000000000002","email":"user@example.com","name":"Test User","role":"member"}`)
 	err := h.HandleUserCreated(msg)
 	if err == nil {
 		t.Error("expected DB error to propagate for retry, got nil")
@@ -108,7 +109,7 @@ func TestHandleUserCreated_DBError(t *testing.T) {
 func TestHandleUserUpdated_DBError(t *testing.T) {
 	dbErr := fmt.Errorf("deadlock detected")
 	h := newTestHandler(dbErr)
-	msg := newMsg(`{"user_id":"00000000-0000-0000-0000-000000000001","actor_id":"00000000-0000-0000-0000-000000000002"}`)
+	msg := newMsg(`{"version":"v1","user_id":"00000000-0000-0000-0000-000000000001","actor_id":"00000000-0000-0000-0000-000000000002"}`)
 	err := h.HandleUserUpdated(msg)
 	if err == nil {
 		t.Error("expected DB error to propagate for retry, got nil")
@@ -118,7 +119,7 @@ func TestHandleUserUpdated_DBError(t *testing.T) {
 func TestHandleUserDeleted_DBError(t *testing.T) {
 	dbErr := fmt.Errorf("disk full")
 	h := newTestHandler(dbErr)
-	msg := newMsg(`{"user_id":"00000000-0000-0000-0000-000000000001","actor_id":"00000000-0000-0000-0000-000000000002"}`)
+	msg := newMsg(`{"version":"v1","user_id":"00000000-0000-0000-0000-000000000001","actor_id":"00000000-0000-0000-0000-000000000002"}`)
 	err := h.HandleUserDeleted(msg)
 	if err == nil {
 		t.Error("expected DB error to propagate for retry, got nil")

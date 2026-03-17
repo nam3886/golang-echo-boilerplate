@@ -107,20 +107,32 @@ The notification subscriber deduplicates messages using Redis SET NX:
 ```go
 const dedupTTL = 24 * time.Hour
 
-// Set a key `notification:dedup:{msg_uuid}` with 24h TTL
-// If key already exists (message was processed before), skip processing
-inserted, err := h.rdb.SetNX(ctx, "notification:dedup:"+msg.UUID, "1", dedupTTL).Result()
-if err != nil {
-    // Fail-open: Redis issue should not block email delivery
-    slog.WarnContext(ctx, "notification: dedup check failed, proceeding to send", ...)
-} else if !inserted {
-    // Message already processed — return nil to ack
-    slog.InfoContext(ctx, "notification: duplicate message, skipping", ...)
-    return nil
+// Dedup check uses event.EventID (not msg.UUID) so publisher retries
+// with a new Watermill message are still caught as duplicates.
+dedupKey := event.EventID
+if dedupKey == "" {
+    dedupKey = msg.UUID // fallback for legacy events without EventID
+}
+if h.rdb != nil {
+    exists, err := h.rdb.Exists(ctx, "notification:dedup:"+dedupKey).Result()
+    if err != nil {
+        // Fail-open: Redis issue should not block email delivery.
+        slog.WarnContext(ctx, "notification: dedup check failed, proceeding to send", ...)
+    } else if exists > 0 {
+        slog.InfoContext(ctx, "notification: duplicate message, skipping", ...)
+        return nil
+    }
+}
+
+// ... send email ...
+
+// Commit dedup key AFTER successful send — crash before this point allows redelivery.
+if h.rdb != nil {
+    h.rdb.SetNX(ctx, "notification:dedup:"+dedupKey, "1", dedupTTL)
 }
 ```
 
-**Strategy:** Use Watermill's message UUID as the dedup key. When a message is retried, the same UUID is used and SET NX returns false, allowing the handler to skip processing and return `nil` (ack).
+**Strategy:** Use `event.EventID` as the dedup key (not Watermill's `msg.UUID`). Publisher retries may produce a new Watermill UUID but always carry the same `EventID`, so duplicates are caught. The dedup key is committed **after** a successful send — a crash between send and commit allows redelivery, preventing silent message loss.
 
 **Fail-open behavior:** If Redis is unavailable, the error is logged as a warning and email delivery proceeds. This prioritizes availability over strict at-most-once semantics. Enable only if email duplication is acceptable and Redis HA is not available.
 
@@ -129,11 +141,21 @@ if err != nil {
 The audit subscriber uses the database's primary key constraint for idempotency:
 
 ```go
-// Use Watermill message UUID as audit log primary key
+// Use Watermill message UUID as audit log primary key.
+// Falls back to a deterministic UUID derived from event.EventID so that
+// publisher-side retries with different Watermill UUIDs still collide on
+// ON CONFLICT (id) DO NOTHING.
 msgID, err := uuid.Parse(msg.UUID)
 if err != nil {
-    slog.WarnContext(ctx, "audit: invalid msg UUID, idempotency compromised — retry may insert duplicate row", ...)
-    msgID = uuid.New()
+    var baseEvent struct {
+        EventID string `json:"event_id"`
+    }
+    if jsonErr := json.Unmarshal(msg.Payload, &baseEvent); jsonErr == nil && baseEvent.EventID != "" {
+        msgID = uuid.NewSHA1(uuid.NameSpaceOID, []byte(baseEvent.EventID))
+    } else {
+        msgID = uuid.NewSHA1(uuid.NameSpaceOID, msg.Payload)
+    }
+    slog.WarnContext(msg.Context(), "audit: invalid msg UUID, using event-derived deterministic ID", ...)
 }
 
 return h.writer.CreateAuditLog(msg.Context(), sqlcgen.CreateAuditLogParams{
@@ -142,7 +164,7 @@ return h.writer.CreateAuditLog(msg.Context(), sqlcgen.CreateAuditLogParams{
 })
 ```
 
-The SQL query includes `ON CONFLICT (id) DO NOTHING`, which silently ignores duplicate inserts when a retry has the same Watermill UUID. This guarantees at-most-once semantics for audit logs without explicit dedup logic.
+The SQL query includes `ON CONFLICT (id) DO NOTHING`, which silently ignores duplicate inserts when a retry has the same ID. The deterministic fallback (`uuid.NewSHA1`) ensures that even if the Watermill UUID changes between retries, the same `EventID` produces the same derived UUID — preserving idempotency.
 
 **Advantage:** No separate dedup cache needed — the database enforces idempotency via primary key constraint.
 

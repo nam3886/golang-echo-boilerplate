@@ -42,7 +42,7 @@ func newMsg(payload string) *message.Message {
 	return msg
 }
 
-const validUserCreatedPayload = `{"event_id":"evt-00000000-0000-0000-0000-000000000099","user_id":"00000000-0000-0000-0000-000000000001","actor_id":"00000000-0000-0000-0000-000000000002","email":"user@example.com","name":"Test User","role":"member"}`
+const validUserCreatedPayload = `{"event_id":"evt-00000000-0000-0000-0000-000000000099","version":"v1","user_id":"00000000-0000-0000-0000-000000000001","actor_id":"00000000-0000-0000-0000-000000000002","email":"user@example.com","name":"Test User","role":"member"}`
 
 func TestHandleUserCreated_ValidPayload(t *testing.T) {
 	h := newTestHandler(t, nil)

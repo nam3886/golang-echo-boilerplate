@@ -114,6 +114,12 @@ func (h *Handler) HandleUserCreated(msg *message.Message) error {
 			"error_code", "unmarshal_failed", "retryable", false)
 		return nil // ack — schema mismatch is permanent, retrying won't help
 	}
+	if ev.Version != contracts.UserEventSchemaVersion {
+		slog.WarnContext(msg.Context(), "audit: unknown event version, acking to prevent retry loop",
+			"module", "audit", "operation", "HandleUserCreated",
+			"got_version", ev.Version, "expected_version", contracts.UserEventSchemaVersion)
+		return nil // ack — don't retry unknown versions
+	}
 	return h.handleAuditEvent(msg, ev.UserID, ev.ActorID, ev.IPAddress, "created")
 }
 
@@ -126,6 +132,12 @@ func (h *Handler) HandleUserUpdated(msg *message.Message) error {
 			"err", err, "msg_id", msg.UUID,
 			"error_code", "unmarshal_failed", "retryable", false)
 		return nil // ack — schema mismatch is permanent, retrying won't help
+	}
+	if ev.Version != contracts.UserEventSchemaVersion {
+		slog.WarnContext(msg.Context(), "audit: unknown event version, acking to prevent retry loop",
+			"module", "audit", "operation", "HandleUserUpdated",
+			"got_version", ev.Version, "expected_version", contracts.UserEventSchemaVersion)
+		return nil // ack — don't retry unknown versions
 	}
 	return h.handleAuditEvent(msg, ev.UserID, ev.ActorID, ev.IPAddress, "updated")
 }
@@ -140,6 +152,12 @@ func (h *Handler) HandleUserDeleted(msg *message.Message) error {
 			"error_code", "unmarshal_failed", "retryable", false)
 		return nil // ack — schema mismatch is permanent, retrying won't help
 	}
+	if ev.Version != contracts.UserEventSchemaVersion {
+		slog.WarnContext(msg.Context(), "audit: unknown event version, acking to prevent retry loop",
+			"module", "audit", "operation", "HandleUserDeleted",
+			"got_version", ev.Version, "expected_version", contracts.UserEventSchemaVersion)
+		return nil // ack — don't retry unknown versions
+	}
 	return h.handleAuditEvent(msg, ev.UserID, ev.ActorID, ev.IPAddress, "deleted")
 }
 
@@ -152,6 +170,12 @@ func (h *Handler) HandleUserLoggedIn(msg *message.Message) error {
 			"err", err, "msg_id", msg.UUID,
 			"error_code", "unmarshal_failed", "retryable", false)
 		return nil // ack — schema mismatch is permanent, retrying won't help
+	}
+	if ev.Version != contracts.UserEventSchemaVersion {
+		slog.WarnContext(msg.Context(), "audit: unknown event version, acking to prevent retry loop",
+			"module", "audit", "operation", "HandleUserLoggedIn",
+			"got_version", ev.Version, "expected_version", contracts.UserEventSchemaVersion)
+		return nil // ack — don't retry unknown versions
 	}
 	return h.handleAuditEvent(msg, ev.UserID, ev.UserID, ev.IPAddress, "logged_in")
 }
@@ -166,6 +190,12 @@ func (h *Handler) HandleUserLoginFailed(msg *message.Message) error {
 			"err", err, "msg_id", msg.UUID,
 			"error_code", "unmarshal_failed", "retryable", false)
 		return nil // ack — schema mismatch is permanent, retrying won't help
+	}
+	if ev.Version != contracts.UserEventSchemaVersion {
+		slog.WarnContext(msg.Context(), "audit: unknown event version, acking to prevent retry loop",
+			"module", "audit", "operation", "HandleUserLoginFailed",
+			"got_version", ev.Version, "expected_version", contracts.UserEventSchemaVersion)
+		return nil // ack — don't retry unknown versions
 	}
 
 	return h.writer.CreateAuditLog(msg.Context(), sqlcgen.CreateAuditLogParams{
@@ -189,6 +219,12 @@ func (h *Handler) HandleUserLoggedOut(msg *message.Message) error {
 			"err", err, "msg_id", msg.UUID,
 			"error_code", "unmarshal_failed", "retryable", false)
 		return nil // ack — schema mismatch is permanent, retrying won't help
+	}
+	if ev.Version != contracts.UserEventSchemaVersion {
+		slog.WarnContext(msg.Context(), "audit: unknown event version, acking to prevent retry loop",
+			"module", "audit", "operation", "HandleUserLoggedOut",
+			"got_version", ev.Version, "expected_version", contracts.UserEventSchemaVersion)
+		return nil // ack — don't retry unknown versions
 	}
 	return h.handleAuditEvent(msg, ev.UserID, ev.UserID, ev.IPAddress, "logged_out")
 }

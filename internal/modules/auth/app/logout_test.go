@@ -3,16 +3,15 @@ package app
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
-	"github.com/alicebob/miniredis/v2"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
 	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/events"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/testutil"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/redis/go-redis/v9"
 )
 
 // stubClaims builds a minimal TokenClaims for testing.
@@ -28,12 +27,9 @@ func stubClaims(tokenID, userID string, expiresAt time.Time) *auth.TokenClaims {
 }
 
 func TestLogoutHandler_Success_BlacklistsToken(t *testing.T) {
-	mr, _ := miniredis.Run()
-	t.Cleanup(mr.Close)
-	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-
+	bl := testutil.NewStubBlacklister()
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
-	h := NewLogoutHandler(auth.NewRedisBlacklister(rdb), bus)
+	h := NewLogoutHandler(bl, bus)
 
 	claims := stubClaims("test-jti-001", "user-1", time.Now().Add(15*time.Minute))
 
@@ -41,8 +37,7 @@ func TestLogoutHandler_Success_BlacklistsToken(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	// Verify the token ID was added to Redis.
-	blacklisted, err := auth.IsBlacklisted(context.Background(), rdb, "test-jti-001")
+	blacklisted, err := bl.IsBlacklisted(context.Background(), "test-jti-001")
 	if err != nil {
 		t.Fatalf("IsBlacklisted error: %v", err)
 	}
@@ -52,14 +47,11 @@ func TestLogoutHandler_Success_BlacklistsToken(t *testing.T) {
 }
 
 func TestLogoutHandler_AlreadyExpiredToken_NoError(t *testing.T) {
-	mr, _ := miniredis.Run()
-	t.Cleanup(mr.Close)
-	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-
+	bl := testutil.NewStubBlacklister()
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
-	h := NewLogoutHandler(auth.NewRedisBlacklister(rdb), bus)
+	h := NewLogoutHandler(bl, bus)
 
-	// Expired tokens should not error — BlacklistToken is a no-op for expired tokens.
+	// Expired tokens: handler calls Blacklist with past expiry — no error expected.
 	claims := stubClaims("expired-jti", "user-1", time.Now().Add(-1*time.Second))
 
 	if err := h.Handle(context.Background(), claims); err != nil {
@@ -68,12 +60,9 @@ func TestLogoutHandler_AlreadyExpiredToken_NoError(t *testing.T) {
 }
 
 func TestLogoutHandler_NilClaims_ReturnsUnauthorized(t *testing.T) {
-	mr, _ := miniredis.Run()
-	t.Cleanup(mr.Close)
-	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-
+	bl := testutil.NewStubBlacklister()
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
-	h := NewLogoutHandler(auth.NewRedisBlacklister(rdb), bus)
+	h := NewLogoutHandler(bl, bus)
 
 	err := h.Handle(context.Background(), nil)
 	if err == nil {
@@ -85,12 +74,9 @@ func TestLogoutHandler_NilClaims_ReturnsUnauthorized(t *testing.T) {
 }
 
 func TestLogoutHandler_EventPublishFailure_DoesNotFail(t *testing.T) {
-	mr, _ := miniredis.Run()
-	t.Cleanup(mr.Close)
-	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-
+	bl := testutil.NewStubBlacklister()
 	bus := events.NewEventBus(&testutil.FailPublisher{})
-	h := NewLogoutHandler(auth.NewRedisBlacklister(rdb), bus)
+	h := NewLogoutHandler(bl, bus)
 
 	claims := stubClaims("test-jti-002", "user-1", time.Now().Add(15*time.Minute))
 
@@ -99,33 +85,26 @@ func TestLogoutHandler_EventPublishFailure_DoesNotFail(t *testing.T) {
 	}
 }
 
-func TestLogoutHandler_RedisWriteFailure_ReturnsError(t *testing.T) {
-	mr, _ := miniredis.Run()
-	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	t.Cleanup(func() { _ = rdb.Close() })
-
+func TestLogoutHandler_BlacklistWriteFailure_ReturnsError(t *testing.T) {
+	bl := testutil.NewStubBlacklister()
+	bl.BlacklistErr = fmt.Errorf("blacklist write failed")
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
-	h := NewLogoutHandler(auth.NewRedisBlacklister(rdb), bus)
+	h := NewLogoutHandler(bl, bus)
 
 	claims := stubClaims("test-jti-fail", "user-1", time.Now().Add(15*time.Minute))
 
-	// Close Redis before the blacklist write to simulate failure.
-	mr.Close()
-
 	err := h.Handle(context.Background(), claims)
 	if err == nil {
-		t.Fatal("expected error when Redis is unavailable, got nil")
+		t.Fatal("expected error when blacklist write fails, got nil")
 	}
 }
 
 func TestLogoutHandler_NilPanics(t *testing.T) {
+	bl := testutil.NewStubBlacklister()
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
-	mr, _ := miniredis.Run()
-	t.Cleanup(mr.Close)
-	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 
 	assertPanics(t, "nil bl", func() { NewLogoutHandler(nil, bus) })
-	assertPanics(t, "nil bus", func() { NewLogoutHandler(auth.NewRedisBlacklister(rdb), nil) })
+	assertPanics(t, "nil bus", func() { NewLogoutHandler(bl, nil) })
 }
 
 // isUnauthorized checks if err matches the UNAUTHENTICATED domain error code.

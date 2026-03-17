@@ -12,6 +12,10 @@ import (
 )
 
 // NewPostgresPool creates a pgx connection pool with retry logic.
+//
+// Failure mode: Postgres pool exhaustion.
+// pgxpool blocks new Acquire calls until a connection is returned or context expires.
+// Callers receive context.DeadlineExceeded when the pool is saturated.
 func NewPostgresPool(cfg *config.Config) (*pgxpool.Pool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
@@ -39,6 +43,6 @@ func NewPostgresPool(cfg *config.Config) (*pgxpool.Pool, error) {
 	if err != nil {
 		return nil, err
 	}
-	slog.Info("postgres connected", "host", poolCfg.ConnConfig.Host)
+	slog.Info("postgres connected", "module", "infra", "operation", "startup", "host", poolCfg.ConnConfig.Host)
 	return pool, nil
 }

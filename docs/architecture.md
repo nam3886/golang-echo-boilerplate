@@ -116,7 +116,7 @@ All configuration lives in `internal/shared/config/config.go` as a single `Confi
 
 **Validation occurs at two points:**
 1. `env.Parse` — type coercion and required-field presence
-2. `config.Validate()` — cross-field business rules (e.g., TTL constraints, enum values)
+2. Inline validation in `config.Load()` — cross-field business rules (e.g., TTL constraints, enum values)
 
 **Example flow for adding a new config value:**
 ```go

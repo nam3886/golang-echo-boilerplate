@@ -36,8 +36,8 @@ type Config struct {
 	// JWT
 	JWTSecret     string        `env:"JWT_SECRET,required"`
 	JWTAccessTTL  time.Duration `env:"JWT_ACCESS_TTL" envDefault:"15m"`
-	// TODO: JWTRefreshTTL is unused — no refresh token implementation yet.
-	// Remove this field or implement refresh tokens before next release.
+	// Deprecated: JWTRefreshTTL is unused — no refresh token implementation yet.
+	// Remove this field when refresh token support is added or when confirmed unnecessary.
 	JWTRefreshTTL time.Duration `env:"JWT_REFRESH_TTL" envDefault:"168h"`
 
 	// Logging

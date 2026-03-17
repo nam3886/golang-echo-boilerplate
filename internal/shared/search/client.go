@@ -23,7 +23,7 @@ type Client struct {
 // All consumers MUST nil-check the returned *Client before use.
 func NewClient(cfg *config.Config) (*Client, error) {
 	if cfg.ElasticsearchURL == "" {
-		slog.Info("elasticsearch disabled (ELASTICSEARCH_URL empty)")
+		slog.Info("elasticsearch disabled (ELASTICSEARCH_URL empty)", "module", "infra", "operation", "startup")
 		return nil, nil
 	}
 
@@ -52,7 +52,7 @@ func NewClient(cfg *config.Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	slog.Info("elasticsearch connected", "url", cfg.ElasticsearchURL)
+	slog.Info("elasticsearch connected", "module", "infra", "operation", "startup", "url", cfg.ElasticsearchURL)
 	return client, nil
 }
 
