@@ -19,10 +19,6 @@ import (
 	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
 )
 
-// Pre-allocated error target for hot-path errors.Is comparison — avoids allocating
-// a fresh *DomainError on every call.
-var errUserNotFoundTarget = domain.ErrUserNotFound()
-
 // CreateUserCmd holds input for creating a user.
 type CreateUserCmd struct {
 	Email    string
@@ -76,7 +72,7 @@ func (h *CreateUserHandler) Handle(ctx context.Context, cmd CreateUserCmd) (_ *d
 	// Fast-path: check email availability before expensive password hashing.
 	// The DB unique constraint (idx_users_email_active) is the authoritative guard against races.
 	existing, err := h.repo.GetByEmail(ctx, cmd.Email)
-	if err != nil && !errors.Is(err, errUserNotFoundTarget) {
+	if err != nil && !errors.Is(err, domain.ErrUserNotFound()) {
 		return nil, fmt.Errorf("checking email: %w", err)
 	}
 	if existing != nil {

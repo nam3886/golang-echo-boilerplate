@@ -138,6 +138,5 @@ const welcomeTemplate = `<!DOCTYPE html>
 <body>
   <h1>Welcome, {{.Name}}!</h1>
   <p>Your account has been created with the email <strong>{{.Email}}</strong>.</p>
-  <p>Role: {{.Role}}</p>
 </body>
 </html>`

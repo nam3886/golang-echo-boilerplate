@@ -24,6 +24,7 @@ internal/
       adapters/
         postgres/       # sqlc-generated repository implementation
         grpc/           # Connect RPC handler + routes
+    auth/               # Authentication (Tier 3: app + grpc, no domain entity)
     audit/              # Audit trail (Tier 2: event subscriber only)
     notification/       # Email notification (Tier 2: event subscriber only)
 ```
@@ -34,6 +35,10 @@ repository interface, app handlers, Postgres adapter, and Connect RPC routes.
 **Tier 2 modules** (`audit`, `notification`) have no proto, no DB schema, and no gRPC routes.
 They consist of a single event handler file and a `module.go` that registers handlers via the
 `event_handlers` fx group. They react to domain events published by Tier 1 modules.
+
+**Tier 3 modules** (`auth`) have app handlers and gRPC routes but no domain entity or repository.
+They compose shared services (JWT, blacklist, credential lookup) behind Connect RPC endpoints.
+Auth has no domain/ directory — it delegates to `shared/auth/` for token and password logic.
 
 ## Request Flow
 

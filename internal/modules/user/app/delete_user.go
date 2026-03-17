@@ -51,11 +51,10 @@ func (h *DeleteUserHandler) Handle(ctx context.Context, id string) (err error) {
 		return domain.ErrUserIDRequired()
 	}
 
+	// Delete is admin-only — enforced by RBAC interceptor (user:delete permission).
+	// No self-delete: members cannot reach this handler.
 	caller := auth.UserFromContext(ctx)
 	if caller == nil {
-		return sharederr.ErrForbidden()
-	}
-	if caller.UserID != id && !caller.HasPermission("user:delete") {
 		return sharederr.ErrForbidden()
 	}
 	user, err := h.repo.SoftDelete(ctx, domain.UserID(id))

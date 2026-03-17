@@ -36,7 +36,9 @@ type Config struct {
 	// JWT
 	JWTSecret     string        `env:"JWT_SECRET,required"`
 	JWTAccessTTL  time.Duration `env:"JWT_ACCESS_TTL" envDefault:"15m"`
-	JWTRefreshTTL time.Duration `env:"JWT_REFRESH_TTL" envDefault:"168h"` // 7 days; shorten to reduce exposure window after credential leak
+	// TODO: JWTRefreshTTL is unused — no refresh token implementation yet.
+	// Remove this field or implement refresh tokens before next release.
+	JWTRefreshTTL time.Duration `env:"JWT_REFRESH_TTL" envDefault:"168h"`
 
 	// Logging
 	LogLevel string `env:"LOG_LEVEL" envDefault:"info"`
@@ -107,6 +109,9 @@ func Load() (*Config, error) {
 	}
 	if cfg.RateLimitRPM <= 0 {
 		return nil, fmt.Errorf("RATE_LIMIT_RPM must be greater than 0 (got %d)", cfg.RateLimitRPM)
+	}
+	if cfg.RateLimitWindow < time.Second {
+		return nil, fmt.Errorf("RATE_LIMIT_WINDOW must be at least 1s (got %s); sub-second windows are truncated to 0 by Redis TTL", cfg.RateLimitWindow)
 	}
 	if cfg.BlacklistFailOpen && cfg.BlacklistCacheTTL <= 0 {
 		return nil, fmt.Errorf("BLACKLIST_CACHE_TTL must be positive when BLACKLIST_FAIL_OPEN=true")

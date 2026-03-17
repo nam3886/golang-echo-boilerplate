@@ -5,7 +5,7 @@
 The event system uses three publisher layers — depend on the interface, never on implementations:
 
 - **`events.EventPublisher` interface** — Used by app layer (handlers, domain). Only public abstraction.
-- **`events.EventBus` struct** — Internal wrapper that manages retry logic and dead-letter routing via Watermill.
+- **`events.EventBus` struct** — Internal wrapper that marshals events to JSON and publishes via Watermill. Retry logic and dead-letter routing are handled by the subscriber router middleware (`subscriber.go`), not by EventBus.
 - **`message.Publisher` (Watermill)** — Raw message broker interface. Never use directly in app code.
 
 Always inject `events.EventPublisher` into handlers; fx wires it from `EventBus`.

@@ -44,6 +44,28 @@ func parseIPAddress(ip string) *netip.Addr {
 	return &addr
 }
 
+// resolveMessageID parses the Watermill message UUID as the audit log primary key.
+// Falls back to a deterministic UUID derived from the event's EventID (or raw payload)
+// so that publisher-side retries with different Watermill UUIDs still collide on
+// ON CONFLICT (id) DO NOTHING.
+func resolveMessageID(msg *message.Message) uuid.UUID {
+	msgID, err := uuid.Parse(msg.UUID)
+	if err != nil {
+		var baseEvent struct {
+			EventID string `json:"event_id"`
+		}
+		if jsonErr := json.Unmarshal(msg.Payload, &baseEvent); jsonErr == nil && baseEvent.EventID != "" {
+			msgID = uuid.NewSHA1(uuid.NameSpaceOID, []byte(baseEvent.EventID))
+		} else {
+			msgID = uuid.NewSHA1(uuid.NameSpaceOID, msg.Payload)
+		}
+		slog.WarnContext(msg.Context(), "audit: invalid msg UUID, using event-derived deterministic ID",
+			"module", "audit", "operation", "resolveMessageID",
+			"msg_uuid", msg.UUID, "derived_id", msgID, "err", err)
+	}
+	return msgID
+}
+
 // parseActorID extracts the actor from the event, falling back to entityID.
 func parseActorID(ctx context.Context, actorIDStr string, entityID uuid.UUID) uuid.UUID {
 	if actorIDStr == "" {
@@ -70,30 +92,8 @@ func (h *Handler) handleAuditEvent(msg *message.Message, userID, actorID, ipAddr
 		return nil // ack — retrying won't fix bad data
 	}
 
-	// Use the Watermill message UUID as the audit log primary key for idempotency.
-	// ON CONFLICT (id) DO NOTHING in the query silently deduplicates retries.
-	msgID, err := uuid.Parse(msg.UUID)
-	if err != nil {
-		// Fallback: derive a deterministic UUID from the event's EventID (extracted from
-		// payload) so publisher-side retries with different Watermill UUIDs but same EventID
-		// still collide with ON CONFLICT (id) DO NOTHING.
-		// Using raw payload would fail dedup when Watermill wraps the same event in different envelopes.
-		var baseEvent struct {
-			EventID string `json:"event_id"`
-		}
-		if jsonErr := json.Unmarshal(msg.Payload, &baseEvent); jsonErr == nil && baseEvent.EventID != "" {
-			msgID = uuid.NewSHA1(uuid.NameSpaceOID, []byte(baseEvent.EventID))
-		} else {
-			// Last resort: payload-derived ID (same payload = same ID)
-			msgID = uuid.NewSHA1(uuid.NameSpaceOID, msg.Payload)
-		}
-		slog.WarnContext(msg.Context(), "audit: invalid msg UUID, using event-derived deterministic ID",
-			"module", "audit", "operation", "InsertAuditLog",
-			"msg_uuid", msg.UUID, "derived_id", msgID, "err", err)
-	}
-
 	return h.writer.CreateAuditLog(msg.Context(), sqlcgen.CreateAuditLogParams{
-		ID:         msgID,
+		ID:         resolveMessageID(msg),
 		EntityType: "user",
 		EntityID:   entityID,
 		Action:     action,
@@ -168,20 +168,8 @@ func (h *Handler) HandleUserLoginFailed(msg *message.Message) error {
 		return nil // ack — schema mismatch is permanent, retrying won't help
 	}
 
-	msgID, err := uuid.Parse(msg.UUID)
-	if err != nil {
-		var baseEvent struct {
-			EventID string `json:"event_id"`
-		}
-		if jsonErr := json.Unmarshal(msg.Payload, &baseEvent); jsonErr == nil && baseEvent.EventID != "" {
-			msgID = uuid.NewSHA1(uuid.NameSpaceOID, []byte(baseEvent.EventID))
-		} else {
-			msgID = uuid.NewSHA1(uuid.NameSpaceOID, msg.Payload)
-		}
-	}
-
 	return h.writer.CreateAuditLog(msg.Context(), sqlcgen.CreateAuditLogParams{
-		ID:         msgID,
+		ID:         resolveMessageID(msg),
 		EntityType: "auth",
 		EntityID:   uuid.Nil,
 		Action:     "login_failed",

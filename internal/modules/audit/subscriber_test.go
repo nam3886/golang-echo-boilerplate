@@ -154,6 +154,34 @@ func TestHandleUserLoggedIn_DBError(t *testing.T) {
 	}
 }
 
+func TestHandleUserLoginFailed_ValidPayload(t *testing.T) {
+	h := newTestHandler(nil)
+	msg := newMsg(`{"event_id":"evt-001","version":"v1","email":"unknown@example.com","reason":"invalid_credentials","ip_address":"10.0.0.1","at":"2026-03-14T00:00:00Z"}`)
+	err := h.HandleUserLoginFailed(msg)
+	if err != nil {
+		t.Errorf("expected nil error, got %v", err)
+	}
+}
+
+func TestHandleUserLoginFailed_InvalidJSON(t *testing.T) {
+	h := newTestHandler(nil)
+	msg := newMsg(`not-json`)
+	err := h.HandleUserLoginFailed(msg)
+	if err != nil {
+		t.Errorf("expected nil error on bad payload, got %v", err)
+	}
+}
+
+func TestHandleUserLoginFailed_DBError(t *testing.T) {
+	dbErr := fmt.Errorf("connection reset by peer")
+	h := newTestHandler(dbErr)
+	msg := newMsg(`{"event_id":"evt-002","version":"v1","email":"user@example.com","reason":"invalid_credentials","ip_address":"10.0.0.1","at":"2026-03-14T00:00:00Z"}`)
+	err := h.HandleUserLoginFailed(msg)
+	if err == nil {
+		t.Error("expected DB error to propagate for retry, got nil")
+	}
+}
+
 func TestHandleUserLoggedOut_ValidPayload(t *testing.T) {
 	h := newTestHandler(nil)
 	msg := newMsg(`{"version":"v1","user_id":"00000000-0000-0000-0000-000000000001","token_id":"tok-abc","ip_address":"192.168.1.1","at":"2026-03-14T00:00:00Z"}`)

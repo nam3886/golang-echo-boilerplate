@@ -223,7 +223,7 @@ func TestPgUserRepository_Create_ViewerRole(t *testing.T) {
 	repo := setupRepo(t)
 	ctx := context.Background()
 
-	user, err := domain.NewUser("viewer@test.com", "ViewerUser", "password123", domain.RoleViewer)
+	user, err := domain.NewUser("viewer@test.com", "ViewerUser", testutil.FakeArgon2Hash, domain.RoleViewer)
 	if err != nil {
 		t.Fatalf("NewUser: %v", err)
 	}

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/gnha/golang-echo-boilerplate/internal/modules/user/domain"
-	"github.com/gnha/golang-echo-boilerplate/internal/shared/auth"
 	sharederr "github.com/gnha/golang-echo-boilerplate/internal/shared/errors"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/events"
 	"github.com/gnha/golang-echo-boilerplate/internal/shared/mocks"
@@ -120,23 +119,18 @@ func TestDeleteUserHandler_RepoError(t *testing.T) {
 	}
 }
 
-// TestDeleteUserHandler_Forbidden_NonOwner verifies that a caller who is neither
-// the owner nor has user:delete permission receives ErrForbidden.
-func TestDeleteUserHandler_Forbidden_NonOwner(t *testing.T) {
+// TestDeleteUserHandler_Forbidden_NoCaller verifies that a request with no
+// authenticated caller receives ErrForbidden. Per-user authorization is
+// enforced by the RBAC interceptor (user:delete permission), not the handler.
+func TestDeleteUserHandler_Forbidden_NoCaller(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockRepo := mocks.NewMockUserRepository(ctrl)
 	bus := events.NewEventBus(&testutil.NoopPublisher{})
 	handler := NewDeleteUserHandler(mockRepo, bus)
 
-	// caller is "other-user-id", target is "user-id-1"
-	ctx := auth.WithUser(context.Background(), &auth.TokenClaims{
-		UserID:      "other-user-id",
-		Role:        "member",
-		Permissions: []string{"user:read"},
-	})
-	err := handler.Handle(ctx, "user-id-1")
+	err := handler.Handle(context.Background(), "user-id-1")
 	if err == nil {
-		t.Fatal("expected ErrForbidden for non-owner without user:delete")
+		t.Fatal("expected ErrForbidden for unauthenticated caller")
 	}
 	if !errors.Is(err, sharederr.ErrForbidden()) {
 		t.Errorf("expected ErrForbidden, got %v", err)
