@@ -51,6 +51,12 @@ func (h *LogoutHandler) Handle(ctx context.Context, claims *auth.TokenClaims) (e
 		return sharederr.ErrUnauthorized()
 	}
 
+	// Skip if token already blacklisted — prevents audit log pollution from replayed tokens.
+	alreadyBlacklisted, blErr := h.bl.IsBlacklisted(ctx, claims.ID)
+	if blErr == nil && alreadyBlacklisted {
+		return nil
+	}
+
 	expiry := claims.ExpiresAt.Time
 	if err := h.bl.Blacklist(ctx, claims.ID, expiry); err != nil {
 		return fmt.Errorf("blacklisting token: %w", err)

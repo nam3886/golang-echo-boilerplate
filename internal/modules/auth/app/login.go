@@ -89,7 +89,7 @@ func (h *LoginHandler) Handle(ctx context.Context, cmd LoginCmd) (_ LoginResult,
 				"module", "auth", "operation", "LoginHandler",
 				"error_code", "invalid_credentials", "ip", netutil.GetClientIP(ctx),
 				"retryable", false)
-			h.publishLoginFailed(ctx, cmd.Email, "unknown_email")
+			h.publishLoginFailed(ctx, cmd.Email, "invalid_credentials")
 			return LoginResult{}, ErrInvalidCredentials()
 		}
 		return LoginResult{}, fmt.Errorf("credential lookup: %w", err)
@@ -101,7 +101,7 @@ func (h *LoginHandler) Handle(ctx context.Context, cmd LoginCmd) (_ LoginResult,
 			"module", "auth", "operation", "LoginHandler",
 			"error_code", "invalid_credentials", "ip", netutil.GetClientIP(ctx),
 			"retryable", false)
-		h.publishLoginFailed(ctx, cmd.Email, "wrong_password")
+		h.publishLoginFailed(ctx, cmd.Email, "invalid_credentials")
 		return LoginResult{}, ErrInvalidCredentials()
 	}
 

@@ -11,6 +11,7 @@ import (
 // Implemented by RedisBlacklister; can be stubbed in tests.
 type Blacklister interface {
 	Blacklist(ctx context.Context, jti string, expiry time.Time) error
+	IsBlacklisted(ctx context.Context, jti string) (bool, error)
 }
 
 // RedisBlacklister implements Blacklister using Redis.
@@ -30,4 +31,9 @@ func NewRedisBlacklister(rdb *redis.Client) *RedisBlacklister {
 // Blacklist adds jti to the Redis blacklist with TTL until expiry.
 func (b *RedisBlacklister) Blacklist(ctx context.Context, jti string, expiry time.Time) error {
 	return BlacklistToken(ctx, b.rdb, jti, expiry)
+}
+
+// IsBlacklisted checks if jti is already in the Redis blacklist.
+func (b *RedisBlacklister) IsBlacklisted(ctx context.Context, jti string) (bool, error) {
+	return IsBlacklisted(ctx, b.rdb, jti)
 }

@@ -75,7 +75,7 @@ type UserLoginFailedEvent struct {
 	// Version is the schema version.
 	Version   string    `json:"version"`
 	Email     string    `json:"email"`
-	Reason    string    `json:"reason"` // "unknown_email" or "wrong_password"
+	Reason    string    `json:"reason"` // always "invalid_credentials" — uniform to prevent email enumeration via audit logs
 	IPAddress string    `json:"ip_address,omitempty"`
 	At        time.Time `json:"at"`
 }
